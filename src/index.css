@@ -1,0 +1,69 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Brand Colors */
+    --primary: 94 20% 48%; /* #839362 - Sage Green */
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 40 20% 96%; /* #F5F4F1 - Warm Off-white */
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    
+    --accent: 94 20% 92%; /* Light Sage */
+    --accent-foreground: 94 20% 30%;
+    
+    --background: 40 20% 98%; /* #FAF9F7 - Warmest White */
+    --foreground: 210 10% 20%; /* Soft Charcoal, no pure black */
+    
+    --muted: 40 10% 94%;
+    --muted-foreground: 215 10% 50%;
+    
+    --card: 0 0% 100%;
+    --card-foreground: 210 10% 20%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 10% 20%;
+    
+    --border: 214 10% 90%;
+    --input: 214 10% 90%;
+    
+    --ring: 94 20% 48%;
+    
+    --radius: 0.75rem; /* 12px */
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    /* Dark mode values would go here, but focusing on the light watercolor theme first */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Custom Scrollbar for a premium feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}

@@ -1,0 +1,37 @@
+{
+    "success": true,
+    "status": 200,
+    "message": "Login successful",
+    "response": {
+        "data": {
+            "id": "5ce8afcc-7950-4c4b-9f24-9ec8cccf34a1",
+            "firstName": "Clinic",
+            "lastName": "Owner",
+            "email": "newowner@example.com",
+            "role": "user",
+            "avatar": "/uploads/users/user.png",
+            "isEmailVerified": true,
+            "fcmToken": null,
+            "phoneNumber": null,
+            "countryCode": null,
+            "isRestricted": false,
+            "restrictionReason": null,
+            "bio": null,
+            "isOnline": false,
+            "lastSeen": null,
+            "lastLoginAt": "2026-01-16T16:38:35.955Z",
+            "createdAt": "2026-01-16T16:38:35.955Z",
+            "updatedAt": "2026-01-16T16:39:07.248Z"
+        },
+        "tokens": {
+            "access": {
+                "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI1Y2U4YWZjYy03OTUwLTRjNGItOWYyNC05ZWM4Y2NjZjM0YTEiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzY5MTAzMTAwLCJleHAiOjE3NjkzNjIzMDB9.KKEnKblsetBwv9hqI3Fpb4GjRQBCiOdIpiBz7D6SKXI",
+                "expiresAt": "2026-01-25T17:31:40.375Z"
+            },
+            "refresh": {
+                "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI1Y2U4YWZjYy03OTUwLTRjNGItOWYyNC05ZWM4Y2NjZjM0YTEiLCJ0eXBlIjoicmVmcmVzaCIsImlhdCI6MTc2OTEwMzEwMCwiZXhwIjoxNzcxNjk1MTAwfQ.F4RpKRz4pPoVBp5W3VchEi_JIHA40uEPgAUPf6dRz1U",
+                "expiresAt": "2026-02-21T17:31:40.373Z"
+            }
+        }
+    }
+}
