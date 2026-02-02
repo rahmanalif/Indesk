@@ -42,13 +42,13 @@ export function App() {
             <Route index element={<SmartRedirect />} />
 
             <Route path="dashboard" element={
-              <ProtectedRoute permission="page_dashboard">
+              <ProtectedRoute permission="clinician_dashboard">
                 <DashboardPage />
               </ProtectedRoute>
             } />
 
             <Route path="clients" element={
-              <ProtectedRoute permission="page_clients">
+              <ProtectedRoute permission="clinician_clients">
                 <ClientsPage />
               </ProtectedRoute>
             } />
@@ -56,7 +56,7 @@ export function App() {
 
 
             <Route path="clients/:id" element={
-              <ProtectedRoute permission="page_clients">
+              <ProtectedRoute permission="clinician_clients">
                 <ClientLayout />
               </ProtectedRoute>
             }>
@@ -68,7 +68,7 @@ export function App() {
             </Route>
 
             <Route path="clinic" element={
-              <ProtectedRoute permission="page_clinic">
+              <ProtectedRoute permission="clinician_clinicians">
                 <ClinicLayout />
               </ProtectedRoute>
             }>
@@ -78,37 +78,37 @@ export function App() {
             </Route>
 
             <Route path="invoices" element={
-              <ProtectedRoute permission="page_invoices">
+              <ProtectedRoute permission="clinician_invoices">
                 <InvoicesPage />
               </ProtectedRoute>
             } />
 
             <Route path="sessions" element={
-              <ProtectedRoute permission="page_sessions">
+              <ProtectedRoute permission="clinician_sessions">
                 <SessionsPage />
               </ProtectedRoute>
             } />
 
             <Route path="forms" element={
-              <ProtectedRoute permission="page_forms">
+              <ProtectedRoute permission="clinician_forms">
                 <FormsPage />
               </ProtectedRoute>
             } />
 
             <Route path="forms/:id" element={
-              <ProtectedRoute permission="page_forms">
+              <ProtectedRoute permission="clinician_forms">
                 <FormDetailsPage />
               </ProtectedRoute>
             } />
 
             <Route path="money" element={
-              <ProtectedRoute permission="page_money">
+              <ProtectedRoute permission="clinician_money">
                 <MoneyMattersPage />
               </ProtectedRoute>
             } />
 
             <Route path="subscription" element={
-              <ProtectedRoute permission="page_subscription">
+              <ProtectedRoute permission="clinician_subscription">
                 <SubscriptionPage />
               </ProtectedRoute>
             } />
@@ -116,19 +116,19 @@ export function App() {
             <Route path="profile" element={<UserProfilePage />} />
 
             <Route path="roles" element={
-              <ProtectedRoute permission="page_roles">
+              <ProtectedRoute permission="clinician_permissions">
                 <RolesPage />
               </ProtectedRoute>
             } />
 
             <Route path="integrations" element={
-              <ProtectedRoute permission="page_integrations">
+              <ProtectedRoute permission="clinician_integrations">
                 <IntegrationsPage />
               </ProtectedRoute>
             } />
 
             <Route path="ai-assistance" element={
-              <ProtectedRoute permission="page_ai">
+              <ProtectedRoute permission="clinician_ai">
                 <AIAssistancePage />
               </ProtectedRoute>
             } />
