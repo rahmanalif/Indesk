@@ -5,18 +5,18 @@ import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Checkbox } from '../ui/Checkbox';
 import { Textarea } from '../ui/Textarea';
+import { useCreateSessionMutation } from '../../redux/api/clientsApi';
 interface CreateSessionTypeModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-import { useData } from '../../context/DataContext';
 
 export function CreateSessionTypeModal({
   isOpen,
   onClose
 }: CreateSessionTypeModalProps) {
-  const { addSessionType } = useData();
   const [isLoading, setIsLoading] = useState(false);
+  const [createSession] = useCreateSessionMutation();
   const [sessionName, setSessionName] = useState('');
   const [duration, setDuration] = useState('60');
   const [price, setPrice] = useState('150.00');
@@ -29,39 +29,32 @@ export function CreateSessionTypeModal({
     e.preventDefault();
     setIsLoading(true);
 
-    const colorMap: Record<string, string> = {
-      blue: 'bg-blue-100 text-blue-700',
-      green: 'bg-green-100 text-green-700',
-      purple: 'bg-purple-100 text-purple-700',
-      orange: 'bg-orange-100 text-orange-700',
-      rose: 'bg-rose-100 text-rose-700',
-      amber: 'bg-amber-100 text-amber-700',
-    };
+    const durationValue = Number(duration);
+    const priceValue = Number(price);
 
-    const reminders = [];
-    if (emailReminder) reminders.push('Email');
-    if (smsReminder) reminders.push('SMS');
-
-    addSessionType({
+    createSession({
       name: sessionName,
-      duration: `${duration} min`,
-      price: `$${price}`,
-      color: colorMap[selectedColor] || 'bg-blue-100 text-blue-700',
-      reminders
-    });
-
-    setTimeout(() => {
-      setIsLoading(false);
-      onClose();
-      // Reset form
-      setSessionName('');
-      setDuration('60');
-      setPrice('150.00');
-      setSelectedColor('blue');
-      setDescription('');
-      setEmailReminder(true);
-      setSmsReminder(false);
-    }, 600);
+      description: description || null,
+      duration: Number.isFinite(durationValue) ? durationValue : 0,
+      price: Number.isFinite(priceValue) ? priceValue : 0,
+    })
+      .unwrap()
+      .then(() => {
+        onClose();
+        setSessionName('');
+        setDuration('60');
+        setPrice('150.00');
+        setSelectedColor('blue');
+        setDescription('');
+        setEmailReminder(true);
+        setSmsReminder(false);
+      })
+      .catch(() => {
+        alert('Failed to create session type. Please try again.');
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   };
   return <Modal isOpen={isOpen} onClose={onClose} title="Create Session Type" description="Define a new service offering">
     <form onSubmit={handleSubmit} className="space-y-6">
