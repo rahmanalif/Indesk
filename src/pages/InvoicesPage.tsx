@@ -5,33 +5,12 @@ import { Card, CardContent } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
-import { MOCK_CLIENTS } from '../lib/mockData';
 import { InvoicePreviewModal } from '../components/modals/InvoicePreviewModal';
 import { Pagination } from '../components/ui/Pagination';
 import { DatePicker } from '../components/ui/DatePicker';
-
-const INITIAL_INVOICES = [{
-  id: 'INV-001',
-  client: 'James Wilson',
-  date: 'Mar 20, 2024',
-  amount: '$150.00',
-  status: 'Paid'
-}, {
-  id: 'INV-002',
-  client: 'Emma Thompson',
-  date: 'Mar 19, 2024',
-  amount: '$200.00',
-  status: 'Pending'
-}, {
-  id: 'INV-003',
-  client: 'Michael Brown',
-  date: 'Mar 18, 2024',
-  amount: '$150.00',
-  status: 'Overdue'
-}];
+import { useGetInvoiceStatsQuery, useGetInvoicesQuery } from '../redux/api/clientsApi';
 
 export function InvoicesPage() {
-  const [invoices, setInvoices] = useState(INITIAL_INVOICES);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [modalMode, setModalMode] = useState<'view' | 'edit'>('view');
@@ -42,23 +21,50 @@ export function InvoicesPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
+  const { data: invoicesResponse, isLoading, isError, refetch } = useGetInvoicesQuery({
+    page: currentPage,
+    limit: itemsPerPage,
+  });
+  const { data: statsResponse } = useGetInvoiceStatsQuery();
+  const apiInvoices = invoicesResponse?.response?.data?.docs || [];
+  const stats = statsResponse?.response?.data;
+  const monthlySalesAmount = Number(stats?.monthlySales?.amount ?? 0);
+  const monthlySalesCount = Number(stats?.monthlySales?.count ?? 0);
+  const dueAmount = Number(stats?.dueAmount?.amount ?? 0);
+  const dueCount = Number(stats?.dueAmount?.count ?? 0);
+  const overdueAmount = Number(stats?.overdueAmount?.amount ?? 0);
+  const overdueCount = Number(stats?.overdueAmount?.count ?? 0);
+
+  const normalizeStatus = (status?: string) =>
+    status ? status.charAt(0).toUpperCase() + status.slice(1).toLowerCase() : 'Pending';
+
+  const invoices = apiInvoices.map(inv => {
+    const clientName = inv.client ? `${inv.client.firstName} ${inv.client.lastName}` : 'Unknown';
+    return {
+      id: inv.id,
+      client: clientName,
+      clientEmail: inv.client?.email || '',
+      date: inv.invoiceDate,
+      amount: `$${(inv.totalAmount ?? 0).toFixed(2)}`,
+      status: normalizeStatus(inv.status),
+    };
+  });
 
   const filteredInvoices = invoices.filter(invoice => {
     const matchesSearch = invoice.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
       invoice.id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'All' || invoice.status === statusFilter;
 
-    // Simple date string comparison (Mar 20, 2024 format)
-    // For a real app, we'd parse these, but for mock data we'll do a simple check
     const matchesDate = (!startDate || new Date(invoice.date) >= new Date(startDate)) &&
       (!endDate || new Date(invoice.date) <= new Date(endDate));
 
     return matchesSearch && matchesStatus && matchesDate;
   });
 
-  const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage);
-  const displayedInvoices = filteredInvoices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = invoicesResponse?.response?.data?.totalPages || 1;
+  const totalDocs = invoicesResponse?.response?.data?.totalDocs || filteredInvoices.length;
+  const displayedInvoices = filteredInvoices;
 
   const handleCreate = () => {
     setSelectedInvoice(null);
@@ -73,13 +79,9 @@ export function InvoicesPage() {
   };
 
   const handleSaveInvoice = (newInvoice: any) => {
-    if (selectedInvoice) {
-      // Edit existing
-      setInvoices(invoices.map(inv => inv.id === selectedInvoice.id ? newInvoice : inv));
-    } else {
-      // Add new
-      setInvoices([newInvoice, ...invoices]);
-    }
+    setIsPreviewOpen(false);
+    setSelectedInvoice(null);
+    refetch();
   };
 
   return <div className="space-y-6">
@@ -105,7 +107,9 @@ export function InvoicesPage() {
           <p className="text-sm font-medium text-muted-foreground">
             Total Revenue (Monthly)
           </p>
-          <h3 className="text-2xl font-bold mt-2">$12,450.00</h3>
+          <h3 className="text-2xl font-bold mt-2">
+            ${monthlySalesAmount.toFixed(2)}
+          </h3>
           <p className="text-xs text-green-600 mt-1">+12% from last month</p>
         </CardContent>
       </Card>
@@ -114,18 +118,22 @@ export function InvoicesPage() {
           <p className="text-sm font-medium text-muted-foreground">
             Pending Payments
           </p>
-          <h3 className="text-2xl font-bold mt-2">$3,200.00</h3>
+          <h3 className="text-2xl font-bold mt-2">
+            ${dueAmount.toFixed(2)}
+          </h3>
           <p className="text-xs text-muted-foreground mt-1">
-            8 invoices pending
+            {dueCount} invoices pending
           </p>
         </CardContent>
       </Card>
       <Card>
         <CardContent className="p-6">
           <p className="text-sm font-medium text-muted-foreground">Overdue</p>
-          <h3 className="text-2xl font-bold mt-2 text-red-600">$450.00</h3>
+          <h3 className="text-2xl font-bold mt-2 text-red-600">
+            ${overdueAmount.toFixed(2)}
+          </h3>
           <p className="text-xs text-muted-foreground mt-1">
-            2 invoices overdue
+            {overdueCount} invoices overdue
           </p>
         </CardContent>
       </Card>
@@ -202,6 +210,15 @@ export function InvoicesPage() {
 
     {/* Invoice List */}
     <div className="space-y-4">
+      {isLoading && (
+        <div className="text-sm text-muted-foreground">Loading invoices...</div>
+      )}
+      {isError && (
+        <div className="text-sm text-destructive">Failed to load invoices.</div>
+      )}
+      {!isLoading && !isError && displayedInvoices.length === 0 && (
+        <div className="text-sm text-muted-foreground">No invoices found.</div>
+      )}
       {/* Desktop Table View */}
       <Card className="hidden md:block border-none shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
@@ -219,17 +236,20 @@ export function InvoicesPage() {
             </thead>
             <tbody className="divide-y divide-border/50 bg-white">
               {displayedInvoices.map(invoice => {
-                const client = MOCK_CLIENTS.find(c => c.name === invoice.client);
+                const formattedDate = new Date(invoice.date).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                });
                 return (
                   <tr key={invoice.id} className="hover:bg-muted/5 transition-colors">
                     <td className="px-6 py-4 font-medium">{invoice.id}</td>
                     <td className="px-6 py-4">
                       <div className="font-medium">{invoice.client}</div>
-                      <div className="text-[10px] text-muted-foreground">{client?.phone}</div>
                     </td>
-                    <td className="px-6 py-4 text-muted-foreground">{invoice.date}</td>
+                    <td className="px-6 py-4 text-muted-foreground">{formattedDate}</td>
                     <td className="px-6 py-4 font-semibold">{invoice.amount}</td>
-                    <td className="px-6 py-4 text-muted-foreground">{client?.email}</td>
+                    <td className="px-6 py-4 text-muted-foreground">{invoice.clientEmail}</td>
                     <td className="px-6 py-4">
                       <Badge variant={invoice.status === 'Paid' ? 'success' : invoice.status === 'Pending' ? 'warning' : 'destructive'}>
                         {invoice.status}
@@ -246,7 +266,7 @@ export function InvoicesPage() {
                           className="text-primary hover:text-primary hover:bg-primary/10"
                           title="Send via Email"
                           onClick={() => {
-                            alert(`Invoice ${invoice.id} has been sent to ${client?.email}`);
+                            alert(`Invoice ${invoice.id} has been sent to ${invoice.clientEmail}`);
                           }}
                         >
                           <Mail className="h-4 w-4" />
@@ -264,13 +284,17 @@ export function InvoicesPage() {
       {/* Mobile Card View */}
       <div className="md:hidden space-y-4">
         {displayedInvoices.map(invoice => {
-          const client = MOCK_CLIENTS.find(c => c.name === invoice.client);
+          const formattedDate = new Date(invoice.date).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+          });
           return (
             <Card key={invoice.id} className="p-4 flex flex-col gap-3">
               <div className="flex justify-between items-start">
                 <div>
                   <div className="font-semibold text-foreground">{invoice.id}</div>
-                  <div className="text-xs text-muted-foreground">{invoice.date}</div>
+                  <div className="text-xs text-muted-foreground">{formattedDate}</div>
                 </div>
                 <Badge variant={invoice.status === 'Paid' ? 'success' : invoice.status === 'Pending' ? 'warning' : 'destructive'}>
                   {invoice.status}
@@ -281,7 +305,7 @@ export function InvoicesPage() {
                 <div className="flex-1">
                   <div className="text-xs text-muted-foreground mb-0.5">Client</div>
                   <div className="font-medium text-sm">{invoice.client}</div>
-                  <div className="text-[10px] text-muted-foreground">{client?.email}</div>
+                  <div className="text-[10px] text-muted-foreground">{invoice.clientEmail}</div>
                 </div>
                 <div className="text-right">
                   <div className="text-xs text-muted-foreground mb-0.5">Amount</div>
@@ -293,7 +317,7 @@ export function InvoicesPage() {
                 <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => handleView(invoice)}>
                   <Download className="h-3 w-3 mr-2" /> View
                 </Button>
-                <Button variant="outline" size="sm" className="h-8 text-xs text-primary border-primary/20 bg-primary/5" onClick={() => alert(`Sent to ${client?.email}`)}>
+                <Button variant="outline" size="sm" className="h-8 text-xs text-primary border-primary/20 bg-primary/5" onClick={() => alert(`Sent to ${invoice.clientEmail}`)}>
                   <Mail className="h-3 w-3 mr-2" /> Email
                 </Button>
               </div>
@@ -304,7 +328,7 @@ export function InvoicesPage() {
 
       <div className="bg-white px-4 py-3 flex flex-col sm:flex-row gap-3 items-center justify-between border-t border-border/50 rounded-xl md:rounded-b-xl md:rounded-t-none">
         <div className="text-sm text-muted-foreground text-center sm:text-left">
-          Showing <span className="font-medium">{Math.min((currentPage - 1) * itemsPerPage + 1, filteredInvoices.length)}</span> to <span className="font-medium">{Math.min(currentPage * itemsPerPage, filteredInvoices.length)}</span> of <span className="font-medium">{filteredInvoices.length}</span> results
+          Showing <span className="font-medium">{Math.min((currentPage - 1) * itemsPerPage + 1, totalDocs)}</span> to <span className="font-medium">{Math.min(currentPage * itemsPerPage, totalDocs)}</span> of <span className="font-medium">{totalDocs}</span> results
         </div>
         <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
       </div>

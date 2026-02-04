@@ -21,7 +21,7 @@ export function Select({ label, options, className = '', triggerClassName, ...pr
         </label>
       )}
       <select
-        className={`flex h-12 w- rounded-md border border-input bg-background px-4 py-3 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+        className={`flex h-12 w-full rounded-md border border-input bg-background px-4 py-3 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className} ${triggerClassName || ''}`}
         {...props}
       >
         {options.map((option) => (

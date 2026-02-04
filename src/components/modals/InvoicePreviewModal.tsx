@@ -8,6 +8,7 @@ import { Select } from '../ui/Select';
 import { DatePicker } from '../ui/DatePicker';
 import { Download, Edit2, Plus, Trash2 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
+import { useCreateInvoiceMutation, useGetClientsQuery } from '../../redux/api/clientsApi';
 
 interface InvoiceItem {
     id: string;
@@ -25,11 +26,15 @@ interface InvoicePreviewModalProps {
 
 export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = 'view' }: InvoicePreviewModalProps) {
     const { branding } = useData();
+    const { data: clientsResponse } = useGetClientsQuery({ page: 1, limit: 100 });
+    const clients = clientsResponse?.response?.data?.docs || [];
+    const [createInvoice] = useCreateInvoiceMutation();
     const [isEditing, setIsEditing] = useState(mode === 'edit');
     const [items, setItems] = useState<InvoiceItem[]>([
         { id: '1', description: 'Therapy Session - 60 min', amount: 150.00 }
     ]);
     const [clientName, setClientName] = useState('James Wilson');
+    const [clientId, setClientId] = useState<string>('');
     const [invoiceDate, setInvoiceDate] = useState<Date | undefined>(new Date());
     const [dueDate, setDueDate] = useState<Date | undefined>(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000));
 
@@ -38,17 +43,28 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
             setIsEditing(mode === 'edit');
             if (invoice) {
                 setClientName(invoice.client || 'James Wilson');
+                setClientId(invoice.clientId || '');
                 // Convert displayed date (e.g. "Mar 20, 2024") to YYYY-MM-DD for input[type=date]
                 const dateObj = new Date(invoice.date);
                 setInvoiceDate(isNaN(dateObj.getTime()) ? new Date() : dateObj);
             } else {
                 setIsEditing(true);
                 setClientName('James Wilson');
+                setClientId('');
                 setInvoiceDate(new Date());
                 setItems([{ id: '1', description: 'Therapy Session - 60 min', amount: 150.00 }]);
             }
         }
     }, [isOpen, invoice, mode]);
+    
+    useEffect(() => {
+        if (!clientId && clients.length > 0) {
+            const match = clients.find((c: any) => `${c.firstName} ${c.lastName}` === clientName);
+            if (match) {
+                setClientId(match.id);
+            }
+        }
+    }, [clients, clientId, clientName]);
 
     const total = items.reduce((sum, item) => sum + (isNaN(item.amount) ? 0 : item.amount), 0);
 
@@ -67,15 +83,54 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
     };
 
     const handleSave = () => {
-        const newInvoice = {
-            id: invoice?.id || `INV-00${Math.floor(Math.random() * 1000)}`,
-            client: clientName,
-            date: invoiceDate ? invoiceDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A',
-            amount: `$${total.toFixed(2)}`,
-            status: invoice?.status || 'Pending'
-        };
-        onSave?.(newInvoice);
-        setIsEditing(false); // Switch to preview mode
+        if (!clientId) {
+            alert('Please select a client.');
+            return;
+        }
+
+        const subtotal = total;
+        const tax = 0;
+        const totalAmount = subtotal + tax;
+        const payloadItems = items.map((item) => {
+            const unitPrice = isNaN(item.amount) ? 0 : item.amount;
+            return {
+                description: item.description || 'Service',
+                quantity: 1,
+                unitPrice,
+                total: unitPrice,
+            };
+        });
+
+        if (!dueDate) {
+            alert('Please select a due date.');
+            return;
+        }
+
+        createInvoice({
+            clientId,
+            items: payloadItems,
+            subtotal,
+            tax,
+            total: totalAmount,
+            invoiceDate: (invoiceDate || new Date()).toISOString(),
+            dueDate: dueDate.toISOString(),
+        })
+            .unwrap()
+            .then(() => {
+                const newInvoice = {
+                    id: invoice?.id || `INV-00${Math.floor(Math.random() * 1000)}`,
+                    client: clientName,
+                    clientId,
+                    date: invoiceDate ? invoiceDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A',
+                    amount: `$${totalAmount.toFixed(2)}`,
+                    status: invoice?.status || 'Pending'
+                };
+                onSave?.(newInvoice);
+                setIsEditing(false); // Switch to preview mode
+            })
+            .catch(() => {
+                alert('Failed to create invoice. Please try again.');
+            });
     };
 
     const handleDownload = async () => {
@@ -144,12 +199,20 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
                             {isEditing ? (
                                 <div className="space-y-2">
                                     <Select
-                                        value={clientName}
+                                        value={clientId}
                                         options={[
-                                            { value: 'James Wilson', label: 'James Wilson' },
-                                            { value: 'Emma Thompson', label: 'Emma Thompson' }
+                                            { value: '', label: 'Select a client' },
+                                            ...clients.map((c: any) => ({
+                                                value: c.id,
+                                                label: `${c.firstName} ${c.lastName}`
+                                            }))
                                         ]}
-                                        onChange={(e) => setClientName(e.target.value)}
+                                        onChange={(e) => {
+                                            const nextId = e.target.value;
+                                            const match = clients.find((c: any) => c.id === nextId);
+                                            setClientId(nextId);
+                                            setClientName(match ? `${match.firstName} ${match.lastName}` : '');
+                                        }}
                                     />
                                     <div className="text-sm text-muted-foreground">
                                         123 Wellness Ave<br />Health City, HC 90210

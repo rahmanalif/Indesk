@@ -8,7 +8,7 @@ import { TimePicker } from '../ui/TimePicker';
 import { Textarea } from '../ui/Textarea';
 import { useData } from '../../context/DataContext';
 import { cn } from '../../lib/utils';
-import { useCreateAppointmentMutation, useGetClientByIdQuery, useGetSessionsQuery } from '../../redux/api/clientsApi';
+import { useCreateAppointmentMutation, useGetClientByIdQuery, useGetClinicMembersQuery, useGetSessionsQuery } from '../../redux/api/clientsApi';
 
 interface CreateAppointmentModalProps {
   isOpen: boolean;
@@ -46,7 +46,8 @@ export function CreateAppointmentModal({
   const [time, setTime] = useState(initialTime || '');
   const [clientNameInput, setClientNameInput] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string | number | undefined>(undefined);
-  const [clinicianId, setClinicianId] = useState(existingData?.clinicianId?.toString() || '1');
+  const [clinicianId, setClinicianId] = useState('');
+  const [clinicianLocalId, setClinicianLocalId] = useState<number>(1);
   const [sessionType, setSessionType] = useState('');
   const [notes, setNotes] = useState('');
   const [suggestionBoxOpen, setSuggestionBoxOpen] = useState(false);
@@ -59,6 +60,20 @@ export function CreateAppointmentModal({
   const { data: clientDetails } = useGetClientByIdQuery(selectedClientId as string, {
     skip: !shouldFetchClient,
   });
+  const { data: clinicMembersResponse } = useGetClinicMembersQuery(
+    { page: 1, limit: 50 },
+    { skip: !isOpen }
+  );
+  const clinicianOptions = useMemo(() => {
+    const members = clinicMembersResponse?.response?.data?.docs || [];
+    return members
+      .filter(m => m.role === 'clinician' && m.user)
+      .map((m, idx) => ({
+        value: m.id,
+        label: `${m.user?.firstName || ''} ${m.user?.lastName || ''}`.trim() || m.user?.email || 'Clinician',
+        localId: idx + 1,
+      }));
+  }, [clinicMembersResponse]);
 
   // Sync state with props when modal opens or props change
   useEffect(() => {
@@ -72,7 +87,7 @@ export function CreateAppointmentModal({
         setSelectedClientId(existingData.clientId || 999);
         const matchedType = sessionTypes.find(t => t.name === existingData.type);
         setSessionType(matchedType ? matchedType.id.toString() : defaultSessionId);
-        setClinicianId(existingData.clinicianId?.toString() || '1');
+        setClinicianId(existingData.clinicianId?.toString() || '');
         setNotes(existingData.notes || '');
       } else if (fixedClient) {
         setClientNameInput(fixedClient.name);
@@ -81,12 +96,12 @@ export function CreateAppointmentModal({
         setTime(initialTime || '');
         setNotes('');
         setSessionType(defaultSessionId);
-        setClinicianId('1');
+        setClinicianId('');
       } else {
         setClientNameInput('');
         setSelectedClientId(undefined);
         setSessionType(defaultSessionId);
-        setClinicianId('1');
+        setClinicianId('');
         setNotes('');
 
         if (viewSource === 'day') {
@@ -105,6 +120,16 @@ export function CreateAppointmentModal({
       }
     }
   }, [isOpen, initialDate, initialTime, existingData, viewSource, fixedClient, sessionTypes]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (clinicianOptions.length === 0) return;
+    const assignedClinicianId = clientDetails?.response?.data?.assignedClinicianId;
+    const preferredId = assignedClinicianId || clinicianId;
+    const match = clinicianOptions.find(o => o.value === preferredId) || clinicianOptions[0];
+    setClinicianId(match.value);
+    setClinicianLocalId(match.localId);
+  }, [isOpen, clinicianOptions, clientDetails, clinicianId]);
 
   // Filter clients for autocomplete
   const filteredClients = useMemo(() => {
@@ -149,9 +174,9 @@ export function CreateAppointmentModal({
     const timeStr = time || '09:00';
     const timeIso = new Date(`${dateStr}T${timeStr}:00.000Z`).toISOString();
 
-    const clinicianIdToSend =
-      clientDetails?.response?.data?.assignedClinicianId ||
-      (isGuid(clinicianId) ? clinicianId : null);
+    const clinicianIdToSend = isGuid(clinicianId)
+      ? clinicianId
+      : clientDetails?.response?.data?.assignedClinicianId || null;
 
     if (!clinicianIdToSend) {
       alert('Clinician is missing. Please select a valid client or clinician.');
@@ -159,12 +184,13 @@ export function CreateAppointmentModal({
       return;
     }
 
+    const selectedClinician = clinicianOptions.find(o => o.value === clinicianId);
     const appointmentData = {
       id: existingData?.id,
       clientName: clientNameInput,
       clientId: selectedClientId,
-      clinician: clinicianId === '1' ? 'Dr. Sarah Wilson' : 'Dr. John Doe',
-      clinicianId: parseInt(clinicianId),
+      clinician: selectedClinician?.label || 'Clinician',
+      clinicianId: clinicianLocalId,
       date: dateStr,
       time: timeStr,
       duration: selectedSessionData?.duration ?? 50,
@@ -244,11 +270,16 @@ export function CreateAppointmentModal({
             <Select
               label="Clinician"
               value={clinicianId}
-              onChange={(e) => setClinicianId(e.target.value)}
-              options={[
-                { value: '1', label: 'Dr. Sarah Wilson' },
-                { value: '2', label: 'Dr. John Doe' }
-              ]}
+              onChange={(e) => {
+                const nextId = e.target.value;
+                const match = clinicianOptions.find(o => o.value === nextId);
+                setClinicianId(nextId);
+                setClinicianLocalId(match?.localId || 1);
+              }}
+              options={clinicianOptions.length > 0 ? clinicianOptions.map(o => ({
+                value: o.value,
+                label: o.label
+              })) : [{ value: '', label: 'No clinicians available' }]}
             />
 
             <Select

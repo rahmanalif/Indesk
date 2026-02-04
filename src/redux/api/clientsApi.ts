@@ -87,6 +87,139 @@ export interface GetSessionsResponse {
   };
 }
 
+export interface InvoiceItemSession {
+  name: string;
+  price: number;
+}
+
+export interface InvoiceAppointment {
+  id: string;
+  startTime: string;
+  session: InvoiceItemSession | null;
+}
+
+export interface InvoiceClient {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+export interface Invoice {
+  id: string;
+  clientId: string;
+  clinicId: string;
+  items: any[];
+  subtotal: number;
+  tax: number;
+  totalAmount: number;
+  status: string;
+  invoiceDate: string;
+  dueDate: string;
+  publicToken: string;
+  createdAt: string;
+  updatedAt: string;
+  client: InvoiceClient | null;
+  appointments: InvoiceAppointment[];
+}
+
+export interface GetInvoicesResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response: {
+    data: {
+      docs: Invoice[];
+      totalDocs: number;
+      limit: number;
+      page: number;
+      totalPages: number;
+    };
+  };
+}
+
+export interface ClinicMember {
+  id: string;
+  userId: string;
+  clinicId: string;
+  role: string;
+  clinicianToken?: string | null;
+  availability?: string[] | null;
+  specialization?: string[] | null;
+  createdAt: string;
+  updatedAt: string;
+  user?: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    avatar?: string | null;
+  };
+}
+
+export interface GetClinicMembersResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response: {
+    data: {
+      docs: ClinicMember[];
+      totalDocs: number;
+      limit: number;
+      page: number;
+      totalPages: number;
+    };
+  };
+}
+
+export interface InvoiceStatsResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response: {
+    data: {
+      monthlySales: {
+        amount: number;
+        count: number;
+      };
+      dueAmount: {
+        amount: number;
+        count: number;
+      };
+      overdueAmount: {
+        amount: number;
+        count: number;
+      };
+    };
+  };
+}
+
+export interface CreateInvoiceItem {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
+export interface CreateInvoiceRequest {
+  clientId: string;
+  items: CreateInvoiceItem[];
+  subtotal: number;
+  tax: number;
+  total: number;
+  dueDate: string;
+  invoiceDate: string;
+}
+
+interface CreateInvoiceResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response: {
+    data: Invoice;
+  };
+}
+
 export interface CreateSessionRequest {
   name: string;
   description?: string | null;
@@ -300,6 +433,42 @@ export const clientsApi = createApi({
       providesTags: ['Clients'],
     }),
 
+    getInvoices: builder.query<GetInvoicesResponse, { page?: number; limit?: number }>({
+      query: (params) => ({
+        url: '/invoice',
+        params: {
+          page: params?.page || 1,
+          limit: params?.limit || 10,
+        },
+      }),
+      providesTags: ['Clients'],
+    }),
+
+    getInvoiceStats: builder.query<InvoiceStatsResponse, void>({
+      query: () => '/invoice/stats',
+      providesTags: ['Clients'],
+    }),
+
+    getClinicMembers: builder.query<GetClinicMembersResponse, { page?: number; limit?: number }>({
+      query: (params) => ({
+        url: '/clinic-member',
+        params: {
+          page: params?.page || 1,
+          limit: params?.limit || 10,
+        },
+      }),
+      providesTags: ['Clients'],
+    }),
+
+    createInvoice: builder.mutation<CreateInvoiceResponse, CreateInvoiceRequest>({
+      query: (body) => ({
+        url: '/invoice',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Clients'],
+    }),
+
     createSession: builder.mutation<CreateSessionResponse, CreateSessionRequest>({
       query: (body) => ({
         url: '/session',
@@ -352,6 +521,10 @@ export const {
   useGetClientByIdQuery,
   useGetClientAppointmentsQuery,
   useGetSessionsQuery,
+  useGetInvoicesQuery,
+  useGetInvoiceStatsQuery,
+  useGetClinicMembersQuery,
+  useCreateInvoiceMutation,
   useCreateSessionMutation,
   useCreateAppointmentMutation,
   useUpdateClientMutation,
