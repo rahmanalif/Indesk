@@ -10,7 +10,7 @@ export interface ManagePermissionsModalProps {
     title?: string;
     description?: string;
     initialPermissions?: string[];
-    onSave?: (selectedPermissions: string[]) => void;
+    onSave?: (selectedPermissions: string[]) => Promise<void> | void;
 }
 
 export function ManagePermissionsModal({
@@ -40,18 +40,18 @@ export function ManagePermissionsModal({
         });
     };
 
-    const handleSave = (e: React.FormEvent) => {
+    const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
 
-        // Simulate API call
-        setTimeout(() => {
+        try {
             if (onSave) {
-                onSave(selectedPermissions);
+                await onSave(selectedPermissions);
             }
-            setIsLoading(false);
             onClose();
-        }, 600);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (

@@ -2,16 +2,19 @@ import { configureStore } from '@reduxjs/toolkit';
 import { authApi } from './redux/api/authApi';
 import authReducer from './redux/slices/authSlice';
 import { clientsApi } from './redux/api/clientsApi';
+import { invoiceApi } from './redux/api/invoiceApi';
 // If you have multiple reducers, you can combine them:
 // import counterReducer from '../features/counter/counterSlice';
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
-    [authApi.reducerPath]: authApi.reducer,[clientsApi.reducerPath]: clientsApi.reducer,
+    [authApi.reducerPath]: authApi.reducer,
+    [clientsApi.reducerPath]: clientsApi.reducer,
+    [invoiceApi.reducerPath]: invoiceApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(authApi.middleware, clientsApi.middleware),
+    getDefaultMiddleware().concat(authApi.middleware, clientsApi.middleware, invoiceApi.middleware),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

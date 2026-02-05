@@ -110,11 +110,27 @@ export function checkUserPermission(user: any, requiredPermission?: string): boo
     if (!requiredPermission) return true; // No permission required
     
     if (!user) return false;
+
+    const candidates = getPermissionCandidates(requiredPermission);
+
+    // Handle permissions as array of strings
+    const permissionsArray =
+        (Array.isArray(user.permissions) ? user.permissions : null) ||
+        (Array.isArray(user.permission) ? user.permission : null) ||
+        (Array.isArray(user.permissionList) ? user.permissionList : null) ||
+        (Array.isArray(user.permissionsList) ? user.permissionsList : null);
+
+    if (permissionsArray && permissionsArray.length > 0) {
+        const normalized = permissionsArray.map((p: string) => String(p).toLowerCase());
+        if (normalized.includes('all') || normalized.includes('*')) {
+            return true;
+        }
+
+        return candidates.some((permission) => normalized.includes(permission));
+    }
     
     // First, check if user has permissions object from backend
     if (user.permissions && typeof user.permissions === 'object') {
-        const candidates = getPermissionCandidates(requiredPermission);
-
         for (const permission of candidates) {
             if (permission in user.permissions) {
                 return user.permissions[permission] === true;
@@ -131,7 +147,7 @@ export function checkUserPermission(user: any, requiredPermission?: string): boo
     if (!user.role) return false;
     
     const userRole = user.role.toLowerCase() as UserRole;
-    const candidates = getPermissionCandidates(requiredPermission) as Permission[];
+    const roleCandidates = getPermissionCandidates(requiredPermission) as Permission[];
     
     // Check if role exists in our mapping
     if (!rolePermissions[userRole]) {
@@ -140,5 +156,5 @@ export function checkUserPermission(user: any, requiredPermission?: string): boo
     }
     
     const userPerms = rolePermissions[userRole];
-    return candidates.some(permission => userPerms.includes(permission)) || userPerms.includes('all');
+    return roleCandidates.some(permission => userPerms.includes(permission)) || userPerms.includes('all');
 }

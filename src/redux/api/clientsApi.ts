@@ -172,6 +172,84 @@ export interface GetClinicMembersResponse {
   };
 }
 
+export interface ClinicPermissions {
+  [key: string]: boolean;
+}
+
+export interface ClinicMemberUser {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  avatar?: string | null;
+  phoneNumber?: string | null;
+  countryCode?: string | null;
+  bio?: string | null;
+  role?: string | null;
+}
+
+export interface ClinicMemberItem {
+  id: string;
+  userId: string;
+  clinicId: string;
+  role: string;
+  clinicianToken?: string | null;
+  availability?: string[] | null;
+  specialization?: string[] | null;
+  createdAt: string;
+  updatedAt: string;
+  user?: ClinicMemberUser | null;
+}
+
+export interface ClinicOwner {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  avatar?: string | null;
+  phoneNumber?: string | null;
+  countryCode?: string | null;
+}
+
+export interface ClinicDetails {
+  id: string;
+  name: string;
+  email: string;
+  phoneNumber: string | null;
+  countryCode: string | null;
+  address: Record<string, any>;
+  logo: string | null;
+  color: string | null;
+  description: string | null;
+  permissions: ClinicPermissions;
+  publicToken: string | null;
+  isActive: boolean;
+  activatedAt: string | null;
+  ownerId: string;
+  createdAt: string;
+  updatedAt: string;
+  members?: ClinicMemberItem[];
+  owner?: ClinicOwner | null;
+}
+
+export interface GetClinicResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response: {
+    data: ClinicDetails;
+  };
+}
+
+export interface PatchClinicPermissionsResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response?: {
+    data?: ClinicDetails;
+  };
+}
+
 export interface InvoiceStatsResponse {
   success: boolean;
   status: number;
@@ -194,6 +272,117 @@ export interface InvoiceStatsResponse {
   };
 }
 
+export interface SubscriptionPlanFeatures {
+  notes?: boolean;
+  clients?: boolean;
+  assessments?: boolean;
+  appointments?: boolean;
+  integrations?: boolean;
+  custom_branding?: boolean;
+  priority_support?: boolean;
+  advanced_reporting?: boolean;
+}
+
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  type: string;
+  description?: string | null;
+  price: number;
+  clientLimit?: number | null;
+  features?: SubscriptionPlanFeatures;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface SubscriptionClinic {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export interface Subscription {
+  id: string;
+  clinicId: string;
+  planId: string;
+  status: string;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+  currentPeriodStart: string | null;
+  currentPeriodEnd: string | null;
+  trialStart: string | null;
+  trialEnd: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  plan?: SubscriptionPlan;
+  clinic?: SubscriptionClinic;
+}
+
+export interface SubscriptionUsage {
+  canAddClient: boolean;
+  currentCount: number;
+  limit: number;
+  isUnlimited: boolean;
+  planName: string;
+  planType: string;
+  subscriptionStatus: string;
+}
+
+export interface GetCurrentSubscriptionResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response: {
+    data: {
+      subscription: Subscription;
+      usage: SubscriptionUsage;
+    };
+  };
+}
+
+export interface ClinicTransactionUser {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface ClinicTransaction {
+  id: string;
+  sessionId: string | null;
+  clientId: string | null;
+  clinicId: string;
+  userId: string;
+  transactionId: string;
+  amount: number;
+  type: string;
+  method: string;
+  status: string;
+  description: string;
+  meta?: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+  client?: any | null;
+  session?: any | null;
+  user?: ClinicTransactionUser | null;
+}
+
+export interface GetClinicTransactionsResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response: {
+    data: {
+      docs: ClinicTransaction[];
+      totalDocs: number;
+      limit: number;
+      page: number;
+      totalPages: number;
+    };
+  };
+}
 export interface CreateInvoiceItem {
   description: string;
   quantity: number;
@@ -449,6 +638,22 @@ export const clientsApi = createApi({
       providesTags: ['Clients'],
     }),
 
+    getCurrentSubscription: builder.query<GetCurrentSubscriptionResponse, void>({
+      query: () => '/subscription/current',
+      providesTags: ['Clients'],
+    }),
+
+    getClinicTransactions: builder.query<GetClinicTransactionsResponse, { page?: number; limit?: number }>({
+      query: (params) => ({
+        url: '/transaction/clinic',
+        params: {
+          page: params?.page || 1,
+          limit: params?.limit || 50,
+        },
+      }),
+      providesTags: ['Clients'],
+    }),
+
     getClinicMembers: builder.query<GetClinicMembersResponse, { page?: number; limit?: number }>({
       query: (params) => ({
         url: '/clinic-member',
@@ -458,6 +663,20 @@ export const clientsApi = createApi({
         },
       }),
       providesTags: ['Clients'],
+    }),
+
+    getClinic: builder.query<GetClinicResponse, void>({
+      query: () => '/clinic',
+      providesTags: ['Clients'],
+    }),
+
+    patchClinicPermissions: builder.mutation<PatchClinicPermissionsResponse, ClinicPermissions>({
+      query: (body) => ({
+        url: '/clinic/permissions',
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: ['Clients'],
     }),
 
     createInvoice: builder.mutation<CreateInvoiceResponse, CreateInvoiceRequest>({
@@ -523,7 +742,11 @@ export const {
   useGetSessionsQuery,
   useGetInvoicesQuery,
   useGetInvoiceStatsQuery,
+  useGetCurrentSubscriptionQuery,
+  useGetClinicTransactionsQuery,
   useGetClinicMembersQuery,
+  useGetClinicQuery,
+  usePatchClinicPermissionsMutation,
   useCreateInvoiceMutation,
   useCreateSessionMutation,
   useCreateAppointmentMutation,

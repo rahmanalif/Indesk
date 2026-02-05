@@ -8,7 +8,7 @@ import { Select } from '../components/ui/Select';
 import { InvoicePreviewModal } from '../components/modals/InvoicePreviewModal';
 import { Pagination } from '../components/ui/Pagination';
 import { DatePicker } from '../components/ui/DatePicker';
-import { useGetInvoiceStatsQuery, useGetInvoicesQuery } from '../redux/api/clientsApi';
+import { useGetInvoiceStatsQuery, useGetInvoicesQuery } from '../redux/api/invoiceApi';
 
 export function InvoicesPage() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -45,7 +45,7 @@ export function InvoicesPage() {
       id: inv.id,
       client: clientName,
       clientEmail: inv.client?.email || '',
-      date: inv.invoiceDate,
+      date: inv.issueDate,
       amount: `$${(inv.totalAmount ?? 0).toFixed(2)}`,
       status: normalizeStatus(inv.status),
     };
@@ -73,7 +73,8 @@ export function InvoicesPage() {
   };
 
   const handleView = (invoice: any) => {
-    setSelectedInvoice(invoice);
+    const rawInvoice = apiInvoices.find(inv => inv.id === invoice.id);
+    setSelectedInvoice(rawInvoice || invoice);
     setModalMode('view');
     setIsPreviewOpen(true);
   };
