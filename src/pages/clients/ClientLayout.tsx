@@ -178,6 +178,7 @@ export function ClientLayout() {
                 isOpen={isHistoryOpen}
                 onClose={() => setIsHistoryOpen(false)}
                 clientName={client.name}
+                clientId={client.id}
             />
 
             <CreateAppointmentModal

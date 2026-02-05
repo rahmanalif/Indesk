@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { cn } from '../lib/utils';
 import { Check, CreditCard, Plus, Edit2, Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
@@ -9,6 +9,7 @@ import { UpdatePaymentModal } from '../components/modals/UpdatePaymentModal';
 import { EditSubscriptionModal } from '../components/modals/EditSubscriptionModal';
 import { BillingDetailsModal } from '../components/modals/BillingDetailsModal';
 import { Pagination } from '../components/ui/Pagination';
+import { useGetClinicTransactionsQuery, useGetCurrentSubscriptionQuery } from '../redux/api/clientsApi';
 
 export function SubscriptionPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -18,35 +19,55 @@ export function SubscriptionPage() {
   const [selectedBilling, setSelectedBilling] = useState<any>(null);
   const [isBillingOpen, setIsBillingOpen] = useState(false);
 
-  const [subscriptions, setSubscriptions] = useState([
-    { id: '1', name: 'Professional Plan', cycle: 'Monthly', price: '$49.00', nextBilling: 'Apr 24, 2024', status: 'Active' },
-    { id: '2', name: 'Add-on: SMS Pack', cycle: 'Monthly', price: '$15.00', nextBilling: 'Apr 24, 2024', status: 'Active' }
-  ]);
+  const { data: subscriptionResponse, isLoading: subscriptionLoading, isError: subscriptionError } = useGetCurrentSubscriptionQuery();
+  const subscriptionData = subscriptionResponse?.response?.data?.subscription;
+
+  const subscriptions = useMemo(() => {
+    if (!subscriptionData) {
+      return [];
+    }
+
+    const planName = subscriptionData.plan?.name || 'Current Plan';
+    const price = subscriptionData.plan?.price ?? 0;
+    const nextBilling = subscriptionData.currentPeriodEnd
+      ? new Date(subscriptionData.currentPeriodEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      : 'N/A';
+    const status = subscriptionData.status ? subscriptionData.status.charAt(0).toUpperCase() + subscriptionData.status.slice(1) : 'Active';
+
+    return [
+      {
+        id: subscriptionData.id,
+        name: planName,
+        cycle: 'Monthly',
+        price: `$${price.toFixed(2)}`,
+        nextBilling,
+        status,
+      },
+    ];
+  }, [subscriptionData]);
 
   // Pagination for Billing History
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
-  const allBillingItems = Array.from({ length: 20 }, (_, i) => ({
-    id: `INV-2024-${String(20 - i).padStart(3, '0')}`,
-    date: `Mar ${20 - (i % 30)}, 2024`,
-    description: i % 2 === 0 ? 'Professional Plan - Monthly' : 'SMS Pack Add-on',
-    amount: i % 2 === 0 ? '$49.00' : '$15.00'
-  }));
-  const totalPages = Math.ceil(allBillingItems.length / itemsPerPage);
+  const itemsPerPage = 10;
+  const { data: transactionsResponse, isLoading: transactionsLoading, isError: transactionsError } = useGetClinicTransactionsQuery({
+    page: currentPage,
+    limit: itemsPerPage,
+  });
+  const transactions = transactionsResponse?.response?.data?.docs || [];
+  const totalPages = transactionsResponse?.response?.data?.totalPages || 1;
+  const totalDocs = transactionsResponse?.response?.data?.totalDocs || transactions.length;
 
   const handleEdit = (sub: any) => {
     setSelectedSubscription(sub);
     setIsEditOpen(true);
   };
 
-  const handleAddSubscription = (newSub: any) => {
-    setSubscriptions([...subscriptions, newSub]);
+  const handleAddSubscription = () => {
+    setIsAddOpen(false);
   };
 
-  const handleDeleteSubscription = (id: string) => {
-    if (confirm('Are you sure you want to delete this subscription?')) {
-      setSubscriptions(subscriptions.filter(s => s.id !== id));
-    }
+  const handleDeleteSubscription = () => {
+    alert('Please contact support to cancel or change your subscription.');
   };
 
   const handleBillingClick = (item: any) => {
@@ -80,8 +101,15 @@ export function SubscriptionPage() {
             <CardDescription>Manage your current plans and services</CardDescription>
           </CardHeader>
           <CardContent>
+            {subscriptionLoading && (
+              <div className="text-sm text-muted-foreground">Loading subscription...</div>
+            )}
+            {subscriptionError && (
+              <div className="text-sm text-destructive">Failed to load subscription.</div>
+            )}
             {/* Desktop Table */}
-            <div className="hidden md:block overflow-x-auto">
+            {!subscriptionLoading && !subscriptionError && (
+              <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm text-left">
                 <thead className="bg-muted/50 text-muted-foreground font-medium">
                   <tr>
@@ -94,6 +122,13 @@ export function SubscriptionPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/50">
+                  {subscriptions.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-6 text-sm text-muted-foreground">
+                        No active subscription found.
+                      </td>
+                    </tr>
+                  )}
                   {subscriptions.map((sub) => (
                     <tr key={sub.id} className="group hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-3 font-medium">
@@ -120,7 +155,7 @@ export function SubscriptionPage() {
                           <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-primary" onClick={() => handleEdit(sub)}>
                             <Edit2 className="h-3 w-3" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-destructive" onClick={() => handleDeleteSubscription(sub.id)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-destructive" onClick={handleDeleteSubscription}>
                             <Trash2 className="h-3 w-3" />
                           </Button>
                         </div>
@@ -129,10 +164,12 @@ export function SubscriptionPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
+              </div>
+            )}
 
             {/* Mobile Card View */}
-            <div className="md:hidden space-y-4">
+            {!subscriptionLoading && !subscriptionError && (
+              <div className="md:hidden space-y-4">
               {subscriptions.map((sub) => (
                 <Card key={sub.id} className="p-4 border border-border/50 shadow-sm flex flex-col gap-3">
                   <div className="flex justify-between items-start">
@@ -165,13 +202,17 @@ export function SubscriptionPage() {
                     <Button variant="outline" size="sm" className="h-8 text-xs flex-1" onClick={() => handleEdit(sub)}>
                       Edit Plan
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteSubscription(sub.id)}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={handleDeleteSubscription}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </Card>
               ))}
-            </div>
+              {subscriptions.length === 0 && (
+                <div className="text-sm text-muted-foreground">No active subscription found.</div>
+              )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -206,8 +247,15 @@ export function SubscriptionPage() {
           <CardTitle>Billing History</CardTitle>
         </CardHeader>
         <CardContent>
+          {transactionsLoading && (
+            <div className="text-sm text-muted-foreground">Loading billing history...</div>
+          )}
+          {transactionsError && (
+            <div className="text-sm text-destructive">Failed to load billing history.</div>
+          )}
           {/* Desktop Table */}
-          <div className="hidden md:block overflow-x-auto">
+          {!transactionsLoading && !transactionsError && (
+            <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="bg-muted/50 text-muted-foreground font-medium">
                 <tr>
@@ -218,16 +266,27 @@ export function SubscriptionPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
-                {[1, 2, 3, 4].map(i => {
-                  const item = { id: `INV-2024-00${i}`, date: `Mar ${20 - i}, 2024`, description: 'Professional Plan - Monthly', amount: '$49.00' };
+                {transactions.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-6 text-sm text-muted-foreground">
+                      No billing history found.
+                    </td>
+                  </tr>
+                )}
+                {transactions.map((item) => {
+                  const date = new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                  const statusLabel = item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : 'Unknown';
                   return (
-                    <tr key={i} className="hover:bg-muted/50 cursor-pointer transition-colors" onClick={() => handleBillingClick(item)}>
-                      <td className="px-4 py-3">{item.date}</td>
+                    <tr key={item.id} className="hover:bg-muted/50 cursor-pointer transition-colors" onClick={() => handleBillingClick(item)}>
+                      <td className="px-4 py-3">{date}</td>
                       <td className="px-4 py-3">{item.description}</td>
-                      <td className="px-4 py-3">{item.amount}</td>
+                      <td className="px-4 py-3">${item.amount.toFixed(2)}</td>
                       <td className="px-4 py-3 text-right">
-                        <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-200 border-none">
-                          Paid
+                        <Badge
+                          variant="secondary"
+                          className={item.status === 'completed' ? "bg-green-100 text-green-700 hover:bg-green-200 border-none" : ""}
+                        >
+                          {statusLabel}
                         </Badge>
                       </td>
                     </tr>
@@ -235,29 +294,43 @@ export function SubscriptionPage() {
                 })}
               </tbody>
             </table>
-          </div>
+            </div>
+          )}
 
           {/* Mobile Card View */}
-          <div className="md:hidden space-y-3">
-            {[1, 2, 3, 4].map(i => {
-              const item = { id: `INV-2024-00${i}`, date: `Mar ${20 - (i % 30)}, 2024`, description: i % 2 === 0 ? 'Professional Plan - Monthly' : 'SMS Pack Add-on', amount: i % 2 === 0 ? '$49.00' : '$15.00' };
-              return (
-                <div key={i} className="p-3 border border-border/50 rounded-lg flex justify-between items-center active:bg-muted/5" onClick={() => handleBillingClick(item)}>
-                  <div>
-                    <div className="font-semibold text-sm">{item.description}</div>
-                    <div className="text-xs text-muted-foreground">{item.date}</div>
+          {!transactionsLoading && !transactionsError && (
+            <div className="md:hidden space-y-3">
+              {transactions.length === 0 && (
+                <div className="text-sm text-muted-foreground">No billing history found.</div>
+              )}
+              {transactions.map((item) => {
+                const date = new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                const statusLabel = item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : 'Unknown';
+                return (
+                  <div key={item.id} className="p-3 border border-border/50 rounded-lg flex justify-between items-center active:bg-muted/5" onClick={() => handleBillingClick(item)}>
+                    <div>
+                      <div className="font-semibold text-sm">{item.description}</div>
+                      <div className="text-xs text-muted-foreground">{date}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-sm">${item.amount.toFixed(2)}</div>
+                      <Badge variant="secondary" className={item.status === 'completed' ? "text-[10px] h-5 bg-green-50 text-green-700 px-1.5 border-green-100" : "text-[10px] h-5"}>
+                        {statusLabel}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-bold text-sm">{item.amount}</div>
-                    <Badge variant="secondary" className="text-[10px] h-5 bg-green-50 text-green-700 px-1.5 border-green-100">Paid</Badge>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
 
           <div className="mt-4">
             <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+            <div className="text-xs text-muted-foreground mt-2">
+              Showing <span className="font-medium">{Math.min((currentPage - 1) * itemsPerPage + 1, totalDocs)}</span> to{' '}
+              <span className="font-medium">{Math.min(currentPage * itemsPerPage, totalDocs)}</span> of{' '}
+              <span className="font-medium">{totalDocs}</span> results
+            </div>
           </div>
         </CardContent>
       </Card>

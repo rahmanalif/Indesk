@@ -4,6 +4,8 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
+import { useCreateAssessmentTemplateMutation } from '../../redux/api/assessmentApi';
+import type { AssessmentQuestionPayload, AssessmentQuestionType } from '../../redux/api/assessmentApi';
 
 interface Question {
   id: number;
@@ -33,7 +35,7 @@ export function QuestionnaireBuilderModal({
     }
   ]);
 
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [createAssessmentTemplate, { isLoading: isCreating }] = useCreateAssessmentTemplateMutation();
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [newOptionValue, setNewOptionValue] = useState<{ [key: number]: string }>({});
@@ -106,35 +108,83 @@ export function QuestionnaireBuilderModal({
     }
   };
 
-  const handleGenerate = () => {
-    if (!title) return alert("Please enter an assessment title.");
+  const mapQuestionType = (type: Question['type']): AssessmentQuestionType => {
+    return type === 'multiple-choice' ? 'multiple_choice' : type;
+  };
 
-    setIsGenerating(true);
+  const handleGenerate = async () => {
+    if (!title.trim()) return alert("Please enter an assessment title.");
 
-    // Save to localStorage
-    const newForm = {
-      id: `custom-${Date.now()}`,
-      name: title,
-      category: category,
-      clientAge: 'Adults',
-      description: description,
-      questions: questions,
-      isCustom: true
-    };
+    const cleanedQuestions = questions
+      .filter(q => q.text.trim() !== '')
+      .map(q => ({
+        ...q,
+        text: q.text.trim(),
+        options: q.options ? q.options.map(opt => opt.trim()).filter(Boolean) : undefined,
+      }));
 
-    const existingForms = JSON.parse(localStorage.getItem('custom_forms') || '[]');
-    localStorage.setItem('custom_forms', JSON.stringify([...existingForms, newForm]));
+    if (cleanedQuestions.length === 0) {
+      return alert('Please add at least one question.');
+    }
 
-    // Notify FormsPage to refresh
-    window.dispatchEvent(new Event('forms_updated'));
+    const hasInvalidMultipleChoice = cleanedQuestions.some(
+      q => q.type === 'multiple-choice' && (!q.options || q.options.length === 0)
+    );
+    if (hasInvalidMultipleChoice) {
+      return alert('Please add at least one option for each multiple-choice question.');
+    }
 
-    setTimeout(() => {
-      setIsGenerating(false);
+    const apiQuestions: AssessmentQuestionPayload[] = cleanedQuestions.map(q => {
+      const mappedType = mapQuestionType(q.type);
+      const payload: AssessmentQuestionPayload = {
+        question: q.text,
+        type: mappedType,
+      };
+
+      if (mappedType === 'multiple_choice' && q.options && q.options.length > 0) {
+        payload.options = q.options;
+      }
+
+      return payload;
+    });
+
+    try {
+      const normalizedDescription = description.trim();
+      await createAssessmentTemplate({
+        title: title.trim(),
+        description: normalizedDescription ? normalizedDescription : undefined,
+        questions: apiQuestions,
+      }).unwrap();
+
+      // Save to localStorage for current UI list
+      const newForm = {
+        id: `custom-${Date.now()}`,
+        name: title.trim(),
+        category: category,
+        clientAge: 'Adults',
+        description: normalizedDescription,
+        questions: cleanedQuestions,
+        isCustom: true,
+      };
+
+      const existingForms = JSON.parse(localStorage.getItem('custom_forms') || '[]');
+      localStorage.setItem('custom_forms', JSON.stringify([...existingForms, newForm]));
+
+      // Notify FormsPage to refresh
+      window.dispatchEvent(new Event('forms_updated'));
+
       setShowSuccess(true);
       setTimeout(() => {
         onClose();
       }, 2000);
-    }, 1000);
+    } catch (error: any) {
+      console.error('Failed to create assessment template:', error);
+      const message =
+        error?.data?.message ||
+        error?.error ||
+        'Failed to create assessment. Please try again.';
+      alert(message);
+    }
   };
 
   return (
@@ -344,10 +394,10 @@ export function QuestionnaireBuilderModal({
               </Button>
               <Button
                 onClick={handleGenerate}
-                disabled={isGenerating || questions.length === 0}
+                disabled={isCreating || questions.length === 0}
                 className="flex-1 sm:flex-none h-14 px-10 bg-primary hover:bg-primary/90 rounded-2xl shadow-xl shadow-primary/20 font-bold min-w-[200px] transition-all"
               >
-                {isGenerating ? 'Building Instrument...' : 'Generate New Form'}
+                {isCreating ? 'Building Instrument...' : 'Generate New Form'}
               </Button>
             </div>
           </div>

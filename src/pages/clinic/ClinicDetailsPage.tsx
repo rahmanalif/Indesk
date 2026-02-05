@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { MapPin, Globe, Mail, Phone, Upload, Check } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
-import { MOCK_CLINIC_DETAILS } from '../../lib/mockData';
 import { useData } from '../../context/DataContext';
 import { cn } from '../../lib/utils';
+import { useGetClinicQuery } from '../../redux/api/clientsApi';
 
 export function ClinicDetailsPage() {
     const { branding, updateBranding } = useData();
+    const { data: clinicResponse, isLoading: clinicLoading, isError: clinicError } = useGetClinicQuery();
+    const clinic = clinicResponse?.response?.data;
+    const clinicAddress = clinic?.address || {};
     const [isLoading, setIsLoading] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
     const [tempLogo, setTempLogo] = useState<string | null>(branding.logo);
@@ -37,32 +40,52 @@ export function ClinicDetailsPage() {
     };
 
     const PRESET_COLORS = [
-        '#0066FF', // Default InKind Blue
-        '#7C3AED', // Purple
-        '#10B981', // Emerald
-        '#EF4444', // Red
-        '#F59E0B', // Amber
-        '#0F172A', // Slate
+        '#0066FF',
+        '#7C3AED',
+        '#10B981',
+        '#EF4444',
+        '#F59E0B',
+        '#0F172A'
     ];
+
+    const clinicName = clinic?.name || '';
+    const clinicEmail = clinic?.email || '';
+    const clinicPhone = clinic?.phoneNumber || '';
+    const clinicWebsite = '';
+
+    const addressFields = useMemo(() => ({
+        street: (clinicAddress as any).street || '',
+        city: (clinicAddress as any).city || '',
+        state: (clinicAddress as any).state || '',
+        zip: (clinicAddress as any).zip || ''
+    }), [clinicAddress]);
 
     return (
         <form onSubmit={handleSave} className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                {/* Left Column - General Info */}
                 <div className="lg:col-span-2 space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>General Information1</CardTitle>
+                            <CardTitle>General Information</CardTitle>
                             <CardDescription>Public facing details about your clinic.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <Input label="Clinic Name" defaultValue={MOCK_CLINIC_DETAILS.name} />
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Input label="Phone Number" defaultValue={MOCK_CLINIC_DETAILS.phone} icon={<Phone className="h-4 w-4" />} />
-                                <Input label="Email Address" defaultValue={MOCK_CLINIC_DETAILS.email} icon={<Mail className="h-4 w-4" />} />
-                            </div>
-                            <Input label="Website URL" defaultValue={MOCK_CLINIC_DETAILS.website} icon={<Globe className="h-4 w-4" />} />
+                            {clinicLoading && (
+                                <div className="text-sm text-muted-foreground">Loading clinic details...</div>
+                            )}
+                            {clinicError && (
+                                <div className="text-sm text-destructive">Failed to load clinic details.</div>
+                            )}
+                            {!clinicLoading && !clinicError && (
+                                <>
+                                    <Input label="Clinic Name" value={clinicName} readOnly />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <Input label="Phone Number" value={clinicPhone} icon={<Phone className="h-4 w-4" />} readOnly />
+                                        <Input label="Email Address" value={clinicEmail} icon={<Mail className="h-4 w-4" />} readOnly />
+                                    </div>
+                                    <Input label="Website URL" value={clinicWebsite} icon={<Globe className="h-4 w-4" />} readOnly />
+                                </>
+                            )}
                         </CardContent>
                     </Card>
 
@@ -72,17 +95,26 @@ export function ClinicDetailsPage() {
                             <CardDescription>This address will appear on invoices and public listings.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Input label="Street Address" defaultValue={MOCK_CLINIC_DETAILS.address} icon={<MapPin className="h-4 w-4" />} />
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                                <Input label="City" defaultValue="Health City" />
-                                <Input label="State" defaultValue="HC" />
-                                <Input label="Postal Code" defaultValue="12345" />
-                            </div>
+                            {!clinicLoading && !clinicError && (
+                                <>
+                                    <Input label="Street Address" value={addressFields.street} icon={<MapPin className="h-4 w-4" />} readOnly />
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                                        <Input label="City" value={addressFields.city} readOnly />
+                                        <Input label="State" value={addressFields.state} readOnly />
+                                        <Input label="Postal Code" value={addressFields.zip} readOnly />
+                                    </div>
+                                </>
+                            )}
+                            {clinicLoading && (
+                                <div className="text-sm text-muted-foreground">Loading address...</div>
+                            )}
+                            {clinicError && (
+                                <div className="text-sm text-destructive">Failed to load address.</div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
 
-                {/* Right Column - Branding */}
                 <div className="space-y-6">
                     <Card>
                         <CardHeader>
@@ -104,7 +136,7 @@ export function ClinicDetailsPage() {
                                     </div>
                                 ) : (
                                     <div className="h-24 w-24 rounded-full bg-primary flex items-center justify-center text-white text-3xl font-bold shadow-lg" style={{ backgroundColor: tempColor }}>
-                                        {MOCK_CLINIC_DETAILS.name[0]}
+                                        {clinicName ? clinicName[0] : 'C'}
                                     </div>
                                 )}
                                 <div className="relative">
@@ -159,7 +191,6 @@ export function ClinicDetailsPage() {
                         </CardContent>
                     </Card>
 
-                    {/* Action Buttons */}
                     <div className="flex gap-3 pt-2">
                         <Button type="submit" className="w-full transition-all" isLoading={isLoading} disabled={isSaved}>
                             {isSaved ? (

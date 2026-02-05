@@ -109,18 +109,17 @@ export function ClientProfilePage() {
         
         try {
             const updateData = {
-                id: client.id,
+                clientId: client.id,
                 firstName: formData.firstName,
                 lastName: formData.lastName,
                 email: formData.email,
-                phoneNumber: formData.phoneNumber || '',
+                phoneNumber: formData.phoneNumber || null,
                 countryCode: formData.countryCode || '+1',
-                dateOfBirth: dob?.toISOString().split('T')[0] || '', // Send only date part
-                gender: formData.gender ? formData.gender.toLowerCase() : 'male',
+                dateOfBirth: dob ? dob.toISOString().split('T')[0] : null, // Send only date part
+                gender: formData.gender ? formData.gender.toLowerCase() : null,
                 status: formData.status ? formData.status.toLowerCase() : 'active',
-                address: formData.address,
-                clinicId: clientRaw?.clinicId || '',
-                assignedClinicianId: clientRaw?.assignedClinicianId || ''
+                assignedClinicianId: clientRaw?.assignedClinicianId || null,
+                address: formData.address
             };
 
             console.log('Updating client with data:', updateData);

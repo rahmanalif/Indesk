@@ -4,6 +4,16 @@ import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
 import { Select } from '../components/ui/Select';
 import { MoneyMattersReportModal } from '../components/modals/MoneyMattersReportModal';
+import {
+  useGetFinancialOverviewQuery,
+  useGetClientGrowthQuery,
+  useGetExpensesQuery,
+  useGetSessionDistributionQuery,
+  type FinancialOverviewData,
+  type ClientGrowthData,
+  type ExpensesData,
+  type SessionDistributionData
+} from '../redux/api/analyticsApi';
 
 // --- Types & Interfaces ---
 
@@ -14,7 +24,7 @@ interface FinancialData {
   expenses: number[];
   labels: string[];
   totalIncome: number;
-  monthlyRevenue: number;
+  avgRevenue: number;
   outstanding: number;
   expensesTotal: number;
   incomeSources: { name: string; value: number; color: string }[];
@@ -28,65 +38,137 @@ const DATE_OPTIONS = [
   { value: 'year', label: 'This Year' }
 ];
 
+const DEFAULT_INCOME_SOURCES = [
+  { name: 'Therapy', value: 55, color: '#839362' },
+  { name: 'Workshops', value: 25, color: '#A4B484' },
+  { name: 'Consulting', value: 10, color: '#C5D5A6' },
+  { name: 'Products', value: 10, color: '#E6F6C8' }
+];
+
+const SESSION_TYPE_COLORS: Record<string, string> = {
+  individual: '#0ea5e9',
+  couples: '#8b5cf6',
+  family: '#ec4899',
+  group: '#f59e0b',
+  other: '#64748b'
+};
+
 // --- Mock Data Generator ---
 
 const generateData = (range: DateRange, customStart?: Date, customEnd?: Date): FinancialData => {
-  // Helpers
-  const random = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1) + min);
-
-  // Default values
   let labels: string[] = [];
-  let revenue: number[] = [];
-  let expenses: number[] = [];
 
   if (range === 'day') {
     labels = ['9am', '10am', '11am', '12pm', '1pm', '2pm', '3pm', '4pm', '5pm'];
-    revenue = labels.map(() => random(0, 500));
-    expenses = labels.map(() => random(0, 100));
   } else if (range === 'week') {
     labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    revenue = labels.map(() => random(300, 1200));
-    expenses = labels.map(() => random(100, 400));
   } else if (range === 'month') {
-    // Generate 30 days
     labels = Array.from({ length: 30 }, (_, i) => `${i + 1}`);
-    revenue = labels.map(() => random(200, 1500));
-    expenses = labels.map(() => random(100, 600));
   } else if (range === 'year') {
     labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    revenue = labels.map(() => random(5000, 15000));
-    expenses = labels.map(() => random(2000, 8000));
   } else if (range === 'custom' && customStart && customEnd) {
     const diffTime = Math.abs(customEnd.getTime() - customStart.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    // Cap at 30 points to avoid overcrowding for this demo
     const steps = Math.min(diffDays, 30);
     labels = Array.from({ length: steps }, (_, i) => `Day ${i + 1}`);
-    revenue = labels.map(() => random(100, 2000));
-    expenses = labels.map(() => random(50, 800));
   } else {
-    // Default 6 months
     labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-    revenue = [4000, 3000, 9800, 3908, 4800, 3800];
-    expenses = [2400, 1398, 2000, 2780, 1890, 2390];
   }
 
-  const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
+  const revenue = labels.map(() => 0);
+  const expenses = labels.map(() => 0);
 
   return {
     revenue,
     expenses,
     labels,
-    totalIncome: sum(revenue),
-    monthlyRevenue: Math.round(sum(revenue) / (labels.length || 1)),
-    outstanding: random(1000, 5000),
-    expensesTotal: sum(expenses),
-    incomeSources: [
-      { name: 'Therapy', value: 55, color: '#839362' },
-      { name: 'Workshops', value: 25, color: '#A4B484' },
-      { name: 'Consulting', value: 10, color: '#C5D5A6' },
-      { name: 'Products', value: 10, color: '#E6F6C8' }
-    ]
+    totalIncome: 0,
+    avgRevenue: 0,
+    outstanding: 0,
+    expensesTotal: 0,
+    incomeSources: DEFAULT_INCOME_SOURCES.map((source) => ({ ...source, value: 0 }))
+  };
+};
+
+const mapOverviewToFinancialData = (overview?: FinancialOverviewData | null): FinancialData | null => {
+  if (!overview) {
+    return null;
+  }
+
+  const monthly = overview.monthlyRevenue || [];
+  const labels = monthly.length > 0 ? monthly.map((item) => item.month) : ['N/A'];
+  const revenue = monthly.length > 0 ? monthly.map((item) => item.revenue ?? 0) : [0];
+  const expenses = revenue.map(() => 0);
+  const totalIncome = Number.isFinite(overview.totalIncome) ? overview.totalIncome : revenue.reduce((a, b) => a + b, 0);
+  const avgRevenue = Number.isFinite(overview.avgRevenue)
+    ? overview.avgRevenue
+    : Math.round(totalIncome / (labels.length || 1));
+  const incomeSources = totalIncome > 0
+    ? DEFAULT_INCOME_SOURCES
+    : DEFAULT_INCOME_SOURCES.map((source) => ({ ...source, value: 0 }));
+
+  return {
+    revenue,
+    expenses,
+    labels,
+    totalIncome,
+    avgRevenue,
+    outstanding: overview.outstanding ?? 0,
+    expensesTotal: 0,
+    incomeSources
+  };
+};
+
+const mapSessionDistributionToChartData = (data?: SessionDistributionData | null) => {
+  if (!data?.distribution) {
+    return [
+      { name: 'Individual', value: 0, color: SESSION_TYPE_COLORS.individual },
+      { name: 'Couples', value: 0, color: SESSION_TYPE_COLORS.couples },
+      { name: 'Family', value: 0, color: SESSION_TYPE_COLORS.family },
+      { name: 'Group', value: 0, color: SESSION_TYPE_COLORS.group },
+      { name: 'Other', value: 0, color: SESSION_TYPE_COLORS.other }
+    ];
+  }
+
+  return [
+    { name: 'Individual', value: data.distribution.individual?.count ?? 0, color: SESSION_TYPE_COLORS.individual },
+    { name: 'Couples', value: data.distribution.couples?.count ?? 0, color: SESSION_TYPE_COLORS.couples },
+    { name: 'Family', value: data.distribution.family?.count ?? 0, color: SESSION_TYPE_COLORS.family },
+    { name: 'Group', value: data.distribution.group?.count ?? 0, color: SESSION_TYPE_COLORS.group },
+    { name: 'Other', value: data.distribution.other?.count ?? 0, color: SESSION_TYPE_COLORS.other }
+  ];
+};
+
+const mapClientGrowthToChartData = (data?: ClientGrowthData | null) => {
+  if (!data?.monthlyData || data.monthlyData.length === 0) {
+    return {
+      labels: ['N/A'],
+      newClients: [0],
+      churnedClients: [0]
+    };
+  }
+
+  return {
+    labels: data.monthlyData.map((item) => item.month),
+    newClients: data.monthlyData.map((item) => item.newClients ?? 0),
+    churnedClients: data.monthlyData.map((item) => item.churnedClients ?? 0)
+  };
+};
+
+const mapExpensesToSeries = (data: ExpensesData | null | undefined, labels: string[]) => {
+  if (!data || labels.length === 0) {
+    return {
+      expensesTotal: 0,
+      expensesSeries: labels.map(() => 0)
+    };
+  }
+
+  const total = Number.isFinite(data.totalExpenses) ? data.totalExpenses : 0;
+  const perLabel = labels.length > 0 ? total / labels.length : 0;
+
+  return {
+    expensesTotal: total,
+    expensesSeries: labels.map(() => perLabel)
   };
 };
 
@@ -311,48 +393,15 @@ function InteractiveDonutChart({ data }: { data: { name: string, value: number, 
 
 // --- New Client Growth Chart ---
 
-function ClientGrowthChart({ range }: { range: DateRange }) {
+function ClientGrowthChart({
+  data
+}: {
+  data: { newClients: number[]; churnedClients: number[]; labels: string[] };
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
-  // Generate dynamic mock data based on range
-  const { newClients, churnedClients, labels } = useMemo(() => {
-    let count = 7;
-    let labels: string[] = [];
-
-    switch (range) {
-      case 'day':
-        count = 12; // Hours
-        labels = ['9am', '10am', '11am', '12pm', '1pm', '2pm', '3pm', '4pm', '5pm', '6pm', '7pm', '8pm'];
-        break;
-      case 'week':
-        count = 7;
-        labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        break;
-      case 'month':
-        count = 30;
-        labels = Array.from({ length: 15 }, (_, i) => `${i * 2 + 1}`); // Show every other day for labels, but data for 30?
-        // Let's generate 30 points but labels can be sparse
-        labels = Array.from({ length: 30 }, (_, i) => `${i + 1}`);
-        break;
-      case '6month':
-        count = 6;
-        labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-        break;
-      case 'year':
-        count = 12;
-        labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        break;
-      default:
-        count = 7;
-        labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    }
-
-    const newClients = Array.from({ length: count }, () => Math.floor(Math.random() * 20) + 5);
-    const churnedClients = Array.from({ length: count }, () => Math.floor(Math.random() * 8));
-
-    return { newClients, churnedClients, labels };
-  }, [range]);
+  const { newClients, churnedClients, labels } = data;
 
   const height = 250;
   const width = 500; // SVG internal width
@@ -394,7 +443,7 @@ function ClientGrowthChart({ range }: { range: DateRange }) {
           className="absolute z-20 top-0 bg-popover text-popover-foreground shadow-lg border border-border rounded-lg p-3 text-xs pointer-events-none transform -translate-x-1/2 transition-all duration-75"
           style={{ left: `${(hoverIndex / (newClients.length - 1)) * 100}%` }}
         >
-          <div className="font-bold mb-1 opacity-70">{range === 'month' ? `Day ${labels[hoverIndex]}` : labels[hoverIndex]}</div>
+          <div className="font-bold mb-1 opacity-70">{labels[hoverIndex]}</div>
           <div className="flex justify-between gap-4 font-mono">
             <span className="text-emerald-600">+{newClients[hoverIndex]} New</span>
             <span className="text-rose-500">-{churnedClients[hoverIndex]} Lost</span>
@@ -441,12 +490,7 @@ function ClientGrowthChart({ range }: { range: DateRange }) {
 
       {/* X Axis */}
       <div className="flex justify-between mt-2 text-xs text-muted-foreground font-medium px-2">
-        {labels.filter((_, i) => {
-          // Show limited labels for density
-          if (range === 'month') return i % 5 === 0;
-          if (range === 'day') return i % 2 === 0;
-          return true;
-        }).map((l, i) => (
+        {labels.filter((_, i) => (labels.length <= 12 ? true : i % Math.ceil(labels.length / 8) === 0)).map((l, i) => (
           <span key={i}>{l}</span>
         ))}
       </div>
@@ -456,16 +500,16 @@ function ClientGrowthChart({ range }: { range: DateRange }) {
 
 // --- Rounded Session Type Chart ---
 
-function SessionTypeChart() {
-  const data = [
-    { name: 'Individual', value: 450, color: '#0ea5e9' }, // sky-500
-    { name: 'Couples', value: 120, color: '#8b5cf6' },   // violet-500
-    { name: 'Family', value: 80, color: '#ec4899' },     // pink-500
-    { name: 'Group', value: 40, color: '#f59e0b' }       // amber-500
-  ];
-
+function SessionTypeChart({
+  data,
+  totalSessions
+}: {
+  data: { name: string; value: number; color: string }[];
+  totalSessions?: number;
+}) {
   const [hovered, setHovered] = useState<number | null>(null);
-  const total = data.reduce((acc, cur) => acc + cur.value, 0);
+  const totalFromData = data.reduce((acc, cur) => acc + cur.value, 0);
+  const total = typeof totalSessions === 'number' ? totalSessions : totalFromData;
 
   // Render concentric rounded bars (Radial Bar Chart style)
   // Largest outer, smallest inner
@@ -492,7 +536,7 @@ function SessionTypeChart() {
             // Let's do relative to the max value in the set so the biggest one is "full" or close to it.
             // Wait, user used a bar chart before. Let's do concentric rings where length is proportional to value/max_value.
 
-            const maxVal = Math.max(...data.map(d => d.value));
+            const maxVal = Math.max(...data.map(d => d.value)) || 1;
             const barLength = (item.value / maxVal) * circumference * 0.75; // 75% circle max
 
             return (
@@ -538,7 +582,9 @@ function SessionTypeChart() {
             <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: item.color }} />
             <div className="flex flex-col">
               <span className="text-sm font-semibold text-foreground">{item.name}</span>
-              <span className="text-xs text-muted-foreground">{item.value} sessions ({Math.round(item.value / total * 100)}%)</span>
+              <span className="text-xs text-muted-foreground">
+                {item.value} sessions ({total > 0 ? Math.round((item.value / total) * 100) : 0}%)
+              </span>
             </div>
           </div>
         ))}
@@ -550,7 +596,35 @@ function SessionTypeChart() {
 export function MoneyMattersPage() {
   const [dateRange, setDateRange] = useState<DateRange>('6month');
   const [isReportOpen, setIsReportOpen] = useState(false);
-  const data = useMemo(() => generateData(dateRange), [dateRange]);
+  const { data: overviewResponse } = useGetFinancialOverviewQuery();
+  const { data: sessionDistributionResponse } = useGetSessionDistributionQuery();
+  const { data: clientGrowthResponse } = useGetClientGrowthQuery();
+  const { data: expensesResponse } = useGetExpensesQuery();
+
+  const mappedOverview = useMemo(() => {
+    return mapOverviewToFinancialData(overviewResponse?.response?.data);
+  }, [overviewResponse]);
+
+  const data = useMemo(() => {
+    const base = mappedOverview ?? generateData(dateRange);
+    const { expensesTotal, expensesSeries } = mapExpensesToSeries(expensesResponse?.response?.data, base.labels);
+
+    return {
+      ...base,
+      expensesTotal,
+      expenses: expensesSeries
+    };
+  }, [mappedOverview, dateRange, expensesResponse]);
+
+  const sessionChartData = useMemo(() => {
+    return mapSessionDistributionToChartData(sessionDistributionResponse?.response?.data);
+  }, [sessionDistributionResponse]);
+
+  const totalSessions = sessionDistributionResponse?.response?.data?.totalSessions;
+
+  const clientGrowthChartData = useMemo(() => {
+    return mapClientGrowthToChartData(clientGrowthResponse?.response?.data);
+  }, [clientGrowthResponse]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -591,7 +665,7 @@ export function MoneyMattersPage() {
         <Card>
           <CardContent className="p-6">
             <p className="text-muted-foreground font-medium text-sm uppercase tracking-wide">Avg Revenue</p>
-            <h3 className="text-3xl font-bold mt-2 text-foreground">${data.monthlyRevenue.toLocaleString()}</h3>
+            <h3 className="text-3xl font-bold mt-2 text-foreground">${data.avgRevenue.toLocaleString()}</h3>
             <div className="flex items-center mt-2 text-green-600 text-sm">
               <ArrowUpRight className="mr-1 h-4 w-4" /> +8% growth
             </div>
@@ -650,7 +724,7 @@ export function MoneyMattersPage() {
             <CardDescription>Breakdown of clinical session modalities</CardDescription>
           </CardHeader>
           <CardContent>
-            <SessionTypeChart />
+            <SessionTypeChart data={sessionChartData} totalSessions={totalSessions} />
           </CardContent>
         </Card>
 
@@ -660,7 +734,7 @@ export function MoneyMattersPage() {
             <CardDescription>New vs Churned clients over time</CardDescription>
           </CardHeader>
           <CardContent>
-            <ClientGrowthChart range={dateRange} />
+            <ClientGrowthChart data={clientGrowthChartData} />
           </CardContent>
         </Card>
       </div>

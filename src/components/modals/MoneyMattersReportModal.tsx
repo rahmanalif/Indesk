@@ -78,7 +78,7 @@ export function MoneyMattersReportModal({ isOpen, onClose, data, range }: MoneyM
                                 <TrendingUp className="h-4 w-4" />
                                 <span className="text-xs font-bold uppercase tracking-wider">Avg Revenue</span>
                             </div>
-                            <div className="text-2xl font-black text-slate-800">${data.monthlyRevenue.toLocaleString()}</div>
+                            <div className="text-2xl font-black text-slate-800">${data.avgRevenue.toLocaleString()}</div>
                         </div>
                         <div className="p-4 bg-rose-50 rounded-xl border border-rose-100">
                             <div className="flex items-center gap-2 text-rose-600 mb-1">

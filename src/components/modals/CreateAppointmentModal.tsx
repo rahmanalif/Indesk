@@ -8,6 +8,7 @@ import { TimePicker } from '../ui/TimePicker';
 import { Textarea } from '../ui/Textarea';
 import { useData } from '../../context/DataContext';
 import { cn } from '../../lib/utils';
+import { useCreateAppointmentMutation, useGetClientByIdQuery, useGetClinicMembersQuery, useGetSessionsQuery } from '../../redux/api/clientsApi';
 
 interface CreateAppointmentModalProps {
   isOpen: boolean;
@@ -30,29 +31,63 @@ export function CreateAppointmentModal({
   viewSource,
   fixedClient
 }: CreateAppointmentModalProps) {
-  const { clients, addAppointment, updateAppointment, sessionTypes } = useData();
+  const { clients, addAppointment, updateAppointment } = useData();
+  const [createAppointment] = useCreateAppointmentMutation();
+  const { data: sessionsResponse, isLoading: isSessionsLoading } = useGetSessionsQuery(undefined, {
+    skip: !isOpen
+  });
+  const sessionTypes = sessionsResponse?.response?.data?.docs || [];
+  const sessionOptions = useMemo(() => {
+    if (isSessionsLoading) return [{ value: '', label: 'Loading session types...' }];
+    if (sessionTypes.length === 0) return [{ value: '', label: 'No session types available' }];
+    return sessionTypes.map(s => ({ value: s.id.toString(), label: `${s.name} (${s.duration} min)` }));
+  }, [isSessionsLoading, sessionTypes]);
   const [date, setDate] = useState<Date | undefined>(initialDate || new Date());
   const [time, setTime] = useState(initialTime || '');
   const [clientNameInput, setClientNameInput] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string | number | undefined>(undefined);
-  const [clinicianId, setClinicianId] = useState(existingData?.clinicianId?.toString() || '1');
-  const [sessionType, setSessionType] = useState(existingData ? sessionTypes.find(t => t.name === existingData.type)?.id.toString() || '1' : sessionTypes[0]?.id.toString() || '1');
+  const [clinicianId, setClinicianId] = useState('');
+  const [clinicianLocalId, setClinicianLocalId] = useState<number>(1);
+  const [sessionType, setSessionType] = useState('');
   const [notes, setNotes] = useState('');
   const [suggestionBoxOpen, setSuggestionBoxOpen] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
+  const isGuid = (val: unknown) =>
+    typeof val === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val);
+  const shouldFetchClient = isGuid(selectedClientId);
+  const { data: clientDetails } = useGetClientByIdQuery(selectedClientId as string, {
+    skip: !shouldFetchClient,
+  });
+  const { data: clinicMembersResponse } = useGetClinicMembersQuery(
+    { page: 1, limit: 50 },
+    { skip: !isOpen }
+  );
+  const clinicianOptions = useMemo(() => {
+    const members = clinicMembersResponse?.response?.data?.docs || [];
+    return members
+      .filter(m => m.role === 'clinician' && m.user)
+      .map((m, idx) => ({
+        value: m.id,
+        label: `${m.user?.firstName || ''} ${m.user?.lastName || ''}`.trim() || m.user?.email || 'Clinician',
+        localId: idx + 1,
+      }));
+  }, [clinicMembersResponse]);
 
   // Sync state with props when modal opens or props change
   useEffect(() => {
     if (isOpen) {
+      const defaultSessionId = sessionTypes[0]?.id?.toString() || '';
+
       if (existingData) {
         setDate(new Date(existingData.date));
         setTime(existingData.time);
         setClientNameInput(existingData.clientName);
         setSelectedClientId(existingData.clientId || 999);
         const matchedType = sessionTypes.find(t => t.name === existingData.type);
-        setSessionType(matchedType ? matchedType.id.toString() : (sessionTypes[0]?.id.toString()));
-        setClinicianId(existingData.clinicianId?.toString() || '1');
+        setSessionType(matchedType ? matchedType.id.toString() : defaultSessionId);
+        setClinicianId(existingData.clinicianId?.toString() || '');
         setNotes(existingData.notes || '');
       } else if (fixedClient) {
         setClientNameInput(fixedClient.name);
@@ -60,13 +95,13 @@ export function CreateAppointmentModal({
         setDate(initialDate || new Date());
         setTime(initialTime || '');
         setNotes('');
-        setSessionType(sessionTypes[0]?.id.toString());
-        setClinicianId('1');
+        setSessionType(defaultSessionId);
+        setClinicianId('');
       } else {
         setClientNameInput('');
         setSelectedClientId(undefined);
-        setSessionType(sessionTypes[0]?.id.toString());
-        setClinicianId('1');
+        setSessionType(defaultSessionId);
+        setClinicianId('');
         setNotes('');
 
         if (viewSource === 'day') {
@@ -84,7 +119,17 @@ export function CreateAppointmentModal({
         }
       }
     }
-  }, [isOpen, initialDate, initialTime, existingData, viewSource, fixedClient]);
+  }, [isOpen, initialDate, initialTime, existingData, viewSource, fixedClient, sessionTypes]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (clinicianOptions.length === 0) return;
+    const assignedClinicianId = clientDetails?.response?.data?.assignedClinicianId;
+    const preferredId = assignedClinicianId || clinicianId;
+    const match = clinicianOptions.find(o => o.value === preferredId) || clinicianOptions[0];
+    setClinicianId(match.value);
+    setClinicianLocalId(match.localId);
+  }, [isOpen, clinicianOptions, clientDetails, clinicianId]);
 
   // Filter clients for autocomplete
   const filteredClients = useMemo(() => {
@@ -113,40 +158,77 @@ export function CreateAppointmentModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isClientValid) return;
+    if (sessionTypes.length === 0) {
+      alert('No session types available.');
+      return;
+    }
+    if (!selectedClientId) {
+      alert('Please select a client.');
+      return;
+    }
 
     setIsLoading(true);
 
-    setTimeout(() => {
+    const selectedSessionData = sessionTypes.find(s => s.id.toString() === sessionType);
+    const dateStr = date ? date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+    const timeStr = time || '09:00';
+    const timeIso = new Date(`${dateStr}T${timeStr}:00.000Z`).toISOString();
+
+    const clinicianIdToSend = isGuid(clinicianId)
+      ? clinicianId
+      : clientDetails?.response?.data?.assignedClinicianId || null;
+
+    if (!clinicianIdToSend) {
+      alert('Clinician is missing. Please select a valid client or clinician.');
       setIsLoading(false);
-      const selectedSessionData = sessionTypes.find(s => s.id.toString() === sessionType);
+      return;
+    }
 
-      const appointmentData = {
-        id: existingData?.id,
-        clientName: clientNameInput,
-        clientId: selectedClientId,
-        clinician: clinicianId === '1' ? 'Dr. Sarah Wilson' : 'Dr. John Doe',
-        clinicianId: parseInt(clinicianId),
-        date: date ? date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        time: time || '09:00',
-        duration: parseInt(selectedSessionData?.duration || '50'),
-        type: selectedSessionData?.name || 'Therapy Session',
-        notes,
-        color: selectedSessionData?.color || 'bg-blue-100 border-blue-200 text-blue-700',
-        status: existingData?.status || 'Active',
-        videoLink: existingData?.videoLink || 'https://zoom.us/j/123456789'
-      };
+    const selectedClinician = clinicianOptions.find(o => o.value === clinicianId);
+    const appointmentData = {
+      id: existingData?.id,
+      clientName: clientNameInput,
+      clientId: selectedClientId,
+      clinician: selectedClinician?.label || 'Clinician',
+      clinicianId: clinicianLocalId,
+      date: dateStr,
+      time: timeStr,
+      duration: selectedSessionData?.duration ?? 50,
+      type: selectedSessionData?.name || 'Therapy Session',
+      notes,
+      color: selectedSessionData?.color || 'bg-blue-100 border-blue-200 text-blue-700',
+      status: existingData?.status || 'Active',
+      videoLink: existingData?.videoLink || 'https://zoom.us/j/123456789'
+    };
 
-      if (onSave) {
-        onSave(appointmentData);
-      } else {
-        if (existingData) {
-          updateAppointment(appointmentData);
+    createAppointment({
+      sessionId: sessionType,
+      clientId: selectedClientId.toString(),
+      clinicianId: clinicianIdToSend,
+      date: new Date(dateStr).toISOString(),
+      time: timeIso,
+      note: notes || null,
+      meetingType: 'zoom',
+    })
+      .unwrap()
+      .then(() => {
+        if (onSave) {
+          onSave(appointmentData);
         } else {
-          addAppointment(appointmentData);
+          if (existingData) {
+            updateAppointment(appointmentData);
+          } else {
+            addAppointment(appointmentData);
+          }
+          onClose();
         }
-        onClose();
-      }
-    }, 600);
+      })
+      .catch(() => {
+        alert('Failed to create appointment. Please try again.');
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   };
 
   return (
@@ -188,18 +270,24 @@ export function CreateAppointmentModal({
             <Select
               label="Clinician"
               value={clinicianId}
-              onChange={(e) => setClinicianId(e.target.value)}
-              options={[
-                { value: '1', label: 'Dr. Sarah Wilson' },
-                { value: '2', label: 'Dr. John Doe' }
-              ]}
+              onChange={(e) => {
+                const nextId = e.target.value;
+                const match = clinicianOptions.find(o => o.value === nextId);
+                setClinicianId(nextId);
+                setClinicianLocalId(match?.localId || 1);
+              }}
+              options={clinicianOptions.length > 0 ? clinicianOptions.map(o => ({
+                value: o.value,
+                label: o.label
+              })) : [{ value: '', label: 'No clinicians available' }]}
             />
 
             <Select
               label="Session Type"
-              options={sessionTypes.map(s => ({ value: s.id.toString(), label: s.name + ' (' + s.duration + ')' }))}
+              options={sessionOptions}
               value={sessionType}
               onChange={(e) => setSessionType(e.target.value)}
+              disabled={isSessionsLoading || sessionTypes.length === 0}
             />
           </div>
 

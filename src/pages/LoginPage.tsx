@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Shield, User, Eye, EyeOff, ArrowRight, AlertCircle } from 'lucide-react';
@@ -88,15 +88,8 @@ export function LoginPage() {
     }
   };
 
-  // If already authenticated, redirect to home
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/');
-    }
-  }, [isAuthenticated, navigate]);
-
   if (isAuthenticated) {
-    return null;
+    return <Navigate to="/" replace />;
   }
 
   return (

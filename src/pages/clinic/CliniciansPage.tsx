@@ -5,7 +5,7 @@ import { Input } from '../../components/ui/Input';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
-import { MOCK_CLINICIANS } from '../../lib/mockData';
+import { useGetClinicQuery } from '../../redux/api/clientsApi';
 import { CreateClinicianModal } from '../../components/modals/CreateClinicianModal';
 import { ClinicianProfileModal } from '../../components/modals/ClinicianProfileModal';
 import { EditClinicianModal } from '../../components/modals/EditClinicianModal';
@@ -20,8 +20,10 @@ export function CliniciansPage() {
     const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
 
     // Custom Dropdown State
-    const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
+    const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const { data: clinicResponse, isLoading: clinicLoading, isError: clinicError } = useGetClinicQuery();
+    const clinicMembers = clinicResponse?.response?.data?.members || [];
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -54,14 +56,34 @@ export function CliniciansPage() {
         setOpenDropdownId(null);
     };
 
-    const toggleDropdown = (e: React.MouseEvent, id: number) => {
+    const toggleDropdown = (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
         setOpenDropdownId(openDropdownId === id ? null : id);
     };
 
-    const filteredClinicians = MOCK_CLINICIANS.filter(c =>
+    const formattedMembers = clinicMembers.map((member: any) => {
+        const firstName = member.user?.firstName || '';
+        const lastName = member.user?.lastName || '';
+        const name = `${firstName} ${lastName}`.trim() || member.user?.email || 'Unknown';
+        const specialty = Array.isArray(member.specialization) && member.specialization.length > 0
+            ? member.specialization.join(', ')
+            : member.role || 'Clinician';
+
+        return {
+            id: member.id as string,
+            name,
+            role: member.role || 'Clinician',
+            email: member.user?.email || '',
+            status: 'Available',
+            specialty,
+            clients: '-',
+        };
+    });
+
+    const filteredClinicians = formattedMembers.filter(c =>
         c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.role.toLowerCase().includes(searchTerm.toLowerCase())
+        c.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -86,6 +108,15 @@ export function CliniciansPage() {
 
             {/* Clinicians Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {clinicLoading && (
+                    <div className="text-sm text-muted-foreground">Loading team members...</div>
+                )}
+                {clinicError && (
+                    <div className="text-sm text-destructive">Failed to load team members.</div>
+                )}
+                {!clinicLoading && !clinicError && filteredClinicians.length === 0 && (
+                    <div className="text-sm text-muted-foreground">No team members found.</div>
+                )}
                 {filteredClinicians.map((clinician) => (
                     <Card key={clinician.id} className="group hover:shadow-lg transition-all duration-300 border-border/50 overflow-hidden relative">
                         <div className="absolute top-4 right-4 z-20">
@@ -120,13 +151,13 @@ export function CliniciansPage() {
                                     <Avatar fallback={clinician.name[0]} className="h-24 w-24 text-2xl border-4 border-white shadow-sm bg-primary/10 text-primary">
                                         {clinician.name.split(' ').map((n: string) => n[0]).join('')}
                                     </Avatar>
-                                    <div className={`absolute bottom-0 right-0 h-5 w-5 rounded-full border-2 border-white 
+                                <div className={`absolute bottom-0 right-0 h-5 w-5 rounded-full border-2 border-white 
                     ${clinician.status === 'Available' ? 'bg-green-500' :
                                             clinician.status === 'In Session' ? 'bg-orange-500' : 'bg-slate-400'}`}
-                                    />
-                                </div>
+                                />
+                            </div>
 
-                                <h3 className="font-bold text-lg text-foreground">{clinician.name}</h3>
+                            <h3 className="font-bold text-lg text-foreground">{clinician.name}</h3>
                                 <p className="text-sm font-medium text-primary mb-1">{clinician.role}</p>
                                 <div className="flex items-center gap-1.5 mb-3 px-3 py-1 bg-secondary/30 rounded-full border border-primary/5">
                                     <div className={`h-2 w-2 rounded-full ${clinician.status === 'Available' ? 'bg-green-500' : clinician.status === 'In Session' ? 'bg-orange-500' : 'bg-slate-400'}`} />
