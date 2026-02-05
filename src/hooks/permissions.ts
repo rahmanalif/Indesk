@@ -53,11 +53,18 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
         'page_sessions'
     ],
     'user': [
-        'page_dashboard',
-        'page_clients',
-        'page_clinic',
-        'page_sessions',
-        'page_forms'
+        'all',
+     'page_dashboard',
+     'page_roles',
+     'page_ai',
+     'page_clients',
+     'page_clinic',
+     'page_invoices',
+     'page_sessions',
+     'page_forms',
+     'page_money',
+     'page_subscription',
+     'page_integrations'
     ]
 };
 
