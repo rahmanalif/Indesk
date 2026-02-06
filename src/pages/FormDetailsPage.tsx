@@ -7,6 +7,7 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { ShareDocumentModal } from '../components/modals/ShareDocumentModal';
 import { cn } from '../lib/utils';
+import { useGetAssessmentTemplateByIdQuery } from '../redux/api/assessmentApi';
 
 // Mock Data
 const MOCK_FORM_DETAILS = {
@@ -30,8 +31,26 @@ const INITIAL_QUESTIONS = [
     { id: 6, text: 'Safety Indicator: Did you often feel that no one in your family thought you were important?', type: 'checkbox', label: 'Emotional Neglect Indicator' }
 ];
 
+const API_CATEGORY_LABELS: Record<string, string> = {
+    general_clinical: 'General Clinical',
+    mental_health: 'Mental Health',
+    physical_therapy: 'Physical Therapy',
+    neurology: 'Neurology',
+};
+
+const getCategoryLabel = (value?: string) => {
+    if (!value) return 'General Clinical';
+    return API_CATEGORY_LABELS[value] || value;
+};
+
+const mapApiQuestionType = (type?: string) => {
+    if (type === 'multiple_choice') return 'multiple-choice';
+    if (type === 'yes_no') return 'checkbox';
+    return 'text';
+};
+
 export function FormDetailsPage() {
-    const { id } = useParams();
+    const { id: templateId } = useParams();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const resultsOnly = searchParams.get('resultsOnly') === 'true';
@@ -53,18 +72,38 @@ export function FormDetailsPage() {
     const [questions, setQuestions] = useState<any[]>([]);
     const [isEditingAbout, setIsEditingAbout] = useState(false);
     const [currentStep, setCurrentStep] = useState(-1);
-    const [answers, setAnswers] = useState<Record<number, any>>({});
+    const [answers, setAnswers] = useState<Record<string | number, any>>({});
+
+    const isCustomForm = templateId?.startsWith('custom-');
+    const isAceForm = templateId === 'ace';
+
+    const {
+        data: templateResponse,
+        isLoading: templateLoading,
+        isError: templateError,
+        error: templateErrorDetails,
+        refetch: refetchTemplate,
+    } = useGetAssessmentTemplateByIdQuery(templateId ?? '', {
+        skip: !templateId || isCustomForm || isAceForm,
+    });
 
     useEffect(() => {
-        if (id?.startsWith('custom-')) {
+        if (!templateId) return;
+
+        setQuestions([]);
+        setAnswers({});
+        setCurrentStep(-1);
+        setActiveTab(initialTab);
+
+        if (templateId.startsWith('custom-')) {
             const customForms = JSON.parse(localStorage.getItem('custom_forms') || '[]');
-            const form = customForms.find((f: any) => f.id === id);
+            const form = customForms.find((f: any) => f.id === templateId);
             if (form) {
                 setAboutData({
                     name: form.name,
                     displayName: form.name,
                     description: form.description || '',
-                    category: form.category || 'General',
+                    category: form.category || 'General Clinical',
                     clientAge: form.clientAge || 'Adults',
                     staffAccess: 'Clinical'
                 });
@@ -73,7 +112,10 @@ export function FormDetailsPage() {
                     setActiveTab('sample');
                 }
             }
-        } else if (id === 'ace') {
+            return;
+        }
+
+        if (templateId === 'ace') {
             setAboutData({
                 name: MOCK_FORM_DETAILS.name,
                 displayName: MOCK_FORM_DETAILS.displayName,
@@ -83,10 +125,69 @@ export function FormDetailsPage() {
                 staffAccess: MOCK_FORM_DETAILS.properties.staffAccess
             });
             setQuestions(INITIAL_QUESTIONS);
+            return;
         }
-    }, [id]);
 
-    const handleAnswer = (qid: number, value: any) => {
+        const apiTemplate = templateResponse?.response?.data || templateResponse?.data;
+        if (apiTemplate) {
+            setAboutData({
+                name: apiTemplate.title || '',
+                displayName: apiTemplate.title || '',
+                description: apiTemplate.description || '',
+                category: getCategoryLabel(apiTemplate.category),
+                clientAge: (apiTemplate as any).clientAge || 'Adults',
+                staffAccess: 'Clinical',
+            });
+
+            const sortedQuestions = [...(apiTemplate.questions || [])].sort((a: any, b: any) => {
+                const aOrder = typeof a?.order === 'number' ? a.order : 0;
+                const bOrder = typeof b?.order === 'number' ? b.order : 0;
+                return aOrder - bOrder;
+            });
+
+            const mappedQuestions = sortedQuestions.map((q: any, index: number) => ({
+                id: q.id || index + 1,
+                text: q.question || '',
+                type: mapApiQuestionType(q.type),
+                options: Array.isArray(q.options) ? q.options : undefined,
+                label: q.type === 'yes_no' ? 'Yes, this applies' : undefined,
+                points: typeof q.points === 'number' ? q.points : undefined,
+                order: typeof q.order === 'number' ? q.order : index,
+            }));
+
+            setQuestions(mappedQuestions);
+
+        if (!apiTemplate.description) {
+            setActiveTab('sample');
+        }
+    }
+    }, [templateId, templateResponse, initialTab]);
+
+    if (!isCustomForm && !isAceForm && templateLoading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                    <p className="mt-2 text-muted-foreground">Loading assessment...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!isCustomForm && !isAceForm && templateError) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center text-red-600">
+                    <p>Error loading assessment: {(templateErrorDetails as any)?.data?.message || 'Unknown error'}</p>
+                    <Button variant="outline" className="mt-4" onClick={() => refetchTemplate()}>
+                        Retry
+                    </Button>
+                </div>
+            </div>
+        );
+    }
+
+    const handleAnswer = (qid: string | number, value: any) => {
         setAnswers(prev => ({ ...prev, [qid]: value }));
     };
 
@@ -116,7 +217,7 @@ export function FormDetailsPage() {
                     </Button>
                     <div>
                         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                            {aboutData.displayName || (id?.toUpperCase() === 'ACE' ? 'ACE Questionnaire' : `Form: ${id?.toUpperCase()}`)}
+                            {aboutData.displayName || (templateId?.toUpperCase() === 'ACE' ? 'ACE Questionnaire' : `Form: ${templateId?.toUpperCase()}`)}
                         </h1>
                         <p className="text-muted-foreground text-sm font-medium uppercase tracking-widest mt-1">Clinical Protocol ID: #IMS-882-01</p>
                     </div>
@@ -284,11 +385,17 @@ export function FormDetailsPage() {
                                         <p className="text-muted-foreground text-base sm:text-lg font-medium max-w-xl mx-auto leading-relaxed">
                                             This assessment helps identify longitudinal clinical markers. Expected duration: 8-12 minutes.
                                         </p>
+                                        {questions.length === 0 && (
+                                            <p className="text-sm text-muted-foreground font-semibold">
+                                                No questions available for this assessment yet.
+                                            </p>
+                                        )}
                                     </div>
 
                                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
                                         <Button
                                             onClick={() => setCurrentStep(0)}
+                                            disabled={questions.length === 0}
                                             className="w-full sm:w-auto h-14 px-10 rounded-xl font-bold text-sm gap-2 shadow-lg shadow-primary/20"
                                         >
                                             Start Assessment <ChevronRight className="h-5 w-5" />

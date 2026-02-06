@@ -40,11 +40,26 @@ export function QuestionnaireBuilderModal({
   const [showSuccess, setShowSuccess] = useState(false);
   const [newOptionValue, setNewOptionValue] = useState<{ [key: number]: string }>({});
 
+  const mapCategoryToApi = (value: string) => {
+    switch (value) {
+      case 'Mental Health':
+        return 'mental_health';
+      case 'Physical Therapy':
+        return 'physical_therapy';
+      case 'Neurology':
+        return 'neurology';
+      case 'General Clinical':
+        return 'general_clinical';
+      default:
+        return value.toLowerCase().replace(/\s+/g, '_');
+    }
+  };
+
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
       setTitle('');
-      setCategory('General');
+      setCategory('General Clinical');
       setDescription('');
       setQuestions([{ id: Date.now(), type: 'text', text: '' }]);
       setShowSuccess(false);
@@ -109,7 +124,9 @@ export function QuestionnaireBuilderModal({
   };
 
   const mapQuestionType = (type: Question['type']): AssessmentQuestionType => {
-    return type === 'multiple-choice' ? 'multiple_choice' : type;
+    if (type === 'multiple-choice') return 'multiple_choice';
+    if (type === 'checkbox') return 'yes_no';
+    return 'text';
   };
 
   const handleGenerate = async () => {
@@ -134,11 +151,13 @@ export function QuestionnaireBuilderModal({
       return alert('Please add at least one option for each multiple-choice question.');
     }
 
-    const apiQuestions: AssessmentQuestionPayload[] = cleanedQuestions.map(q => {
+    const apiQuestions: AssessmentQuestionPayload[] = cleanedQuestions.map((q, index) => {
       const mappedType = mapQuestionType(q.type);
       const payload: AssessmentQuestionPayload = {
         question: q.text,
         type: mappedType,
+        order: index + 1,
+        points: mappedType === 'text' ? 0 : 1,
       };
 
       if (mappedType === 'multiple_choice' && q.options && q.options.length > 0) {
@@ -153,25 +172,9 @@ export function QuestionnaireBuilderModal({
       await createAssessmentTemplate({
         title: title.trim(),
         description: normalizedDescription ? normalizedDescription : undefined,
+        category: mapCategoryToApi(category),
         questions: apiQuestions,
       }).unwrap();
-
-      // Save to localStorage for current UI list
-      const newForm = {
-        id: `custom-${Date.now()}`,
-        name: title.trim(),
-        category: category,
-        clientAge: 'Adults',
-        description: normalizedDescription,
-        questions: cleanedQuestions,
-        isCustom: true,
-      };
-
-      const existingForms = JSON.parse(localStorage.getItem('custom_forms') || '[]');
-      localStorage.setItem('custom_forms', JSON.stringify([...existingForms, newForm]));
-
-      // Notify FormsPage to refresh
-      window.dispatchEvent(new Event('forms_updated'));
 
       setShowSuccess(true);
       setTimeout(() => {
@@ -219,7 +222,7 @@ export function QuestionnaireBuilderModal({
                   <label className="text-[10px] font-bold text-primary uppercase tracking-[0.15em] ml-1 block">Category</label>
                   <Select
                     options={[
-                      { value: 'General', label: 'General Clinical' },
+                      { value: 'General Clinical', label: 'General Clinical' },
                       { value: 'Mental Health', label: 'Mental Health' },
                       { value: 'Physical Therapy', label: 'Physical Therapy' },
                       { value: 'Neurology', label: 'Neurology' }

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, FileText, ChevronDown, Search, Share2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
@@ -8,54 +8,29 @@ import { Input } from '../components/ui/Input';
 import { QuestionnaireBuilderModal } from '../components/modals/QuestionnaireBuilderModal';
 import { EditFormModal } from '../components/modals/EditFormModal';
 import { ShareDocumentModal } from '../components/modals/ShareDocumentModal';
+import { useGetAssessmentTemplatesQuery } from '../redux/api/assessmentApi';
 
-const FORMS = [
-  {
-    id: 'ace',
-    name: 'ACE: Adverse Childhood Experiences Questionnaire',
-    category: 'Childhood Experiences',
-    clientAge: 'Adults'
-  },
-  {
-    id: 'aims',
-    name: 'AIMS: Abnormal Involuntary Movement Scale',
-    category: 'Tardive Dyskinesia (TD)',
-    clientAge: 'Adults, Adolescents, Children'
-  },
-  {
-    id: 'aq10-adolescent',
-    name: 'AQ-10 Adolescent: Autism Spectrum Quotient 10 for Adolescents',
-    category: 'Autism Spectrum Disorder (ASD)',
-    clientAge: 'Adolescents'
-  },
-  {
-    id: 'aq10-adult',
-    name: 'AQ-10 Adult: Autism Spectrum Quotient 10 for Adults',
-    category: 'Autism Spectrum Disorder (ASD)',
-    clientAge: 'Adults'
-  },
-  {
-    id: 'aq10-child',
-    name: 'AQ-10 Child: Autism Spectrum Quotient 10 for Children',
-    category: 'Autism Spectrum Disorder (ASD)',
-    clientAge: 'Children (caregiver reported)'
-  },
-  {
-    id: 'asrs',
-    name: 'ASRS-v1.1: Adult ADHD Self-Report Scale',
-    category: 'Attention Deficit Hyperactivity Disorder (ADHD)',
-    clientAge: 'Adults'
-  }
-];
+const CATEGORY_TO_API: Record<string, string> = {
+  'General Clinical': 'general_clinical',
+  'Mental Health': 'mental_health',
+  'Physical Therapy': 'physical_therapy',
+  Neurology: 'neurology',
+};
+
+const API_CATEGORY_LABELS: Record<string, string> = {
+  general_clinical: 'General Clinical',
+  mental_health: 'Mental Health',
+  physical_therapy: 'Physical Therapy',
+  neurology: 'Neurology',
+};
+
+const getCategoryLabel = (value?: string) => {
+  if (!value) return 'General Clinical';
+  return API_CATEGORY_LABELS[value] || value;
+};
 
 export function FormsPage() {
   const navigate = useNavigate();
-  const [customForms, setCustomForms] = useState<any[]>(() => {
-    return JSON.parse(localStorage.getItem('custom_forms') || '[]');
-  });
-
-  const allForms = useMemo(() => [...FORMS, ...customForms], [customForms]);
-
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -67,40 +42,59 @@ export function FormsPage() {
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Sync with localStorage
-  useEffect(() => {
-    const handleUpdate = () => {
-      setCustomForms(JSON.parse(localStorage.getItem('custom_forms') || '[]'));
-    };
-    window.addEventListener('forms_updated', handleUpdate);
-    return () => window.removeEventListener('forms_updated', handleUpdate);
-  }, []);
+  const apiCategory = categoryFilter === 'All' ? undefined : CATEGORY_TO_API[categoryFilter];
+  const apiCategoryLabel = getCategoryLabel(apiCategory);
+
+  const {
+    data: templatesResponse,
+    isLoading: templatesLoading,
+    isError: templatesError,
+    error: templatesErrorDetails,
+    refetch,
+  } = useGetAssessmentTemplatesQuery({
+    category: apiCategory,
+    limit: pageSize,
+    page: currentPage,
+    sort: 'createdAt:desc',
+  });
+
+  const apiForms = useMemo(() => {
+    const docs = templatesResponse?.response?.data?.docs ?? [];
+    return docs.map((template) => ({
+      id: template.id,
+      name: template.title || 'Untitled Assessment',
+      category: getCategoryLabel(template.category) || apiCategoryLabel,
+      clientAge: (template as any).clientAge || 'All Ages',
+      description: template.description,
+      questions: template.questions || [],
+      source: 'api',
+    }));
+  }, [templatesResponse, apiCategoryLabel]);
 
   // Dynamic Options for Filters
   const categories = useMemo(() => {
-    const raw = Array.from(new Set(allForms.map(f => f.category)));
+    const raw = Array.from(new Set(apiForms.map(f => f.category)));
     return [{ value: 'All', label: 'All Categories' }, ...raw.map(c => ({ value: c, label: c }))];
-  }, [allForms]);
+  }, [apiForms]);
 
   const ages = useMemo(() => {
-    const raw = Array.from(new Set(allForms.map(f => f.clientAge)));
+    const raw = Array.from(new Set(apiForms.map(f => f.clientAge)));
     return [{ value: 'Any', label: 'Any Age' }, ...raw.map(a => ({ value: a, label: a }))];
-  }, [allForms]);
+  }, [apiForms]);
 
   // Filter Logic
   const filteredForms = useMemo(() => {
-    return allForms.filter(form => {
+    return apiForms.filter(form => {
       const matchSearch = form.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchCategory = categoryFilter === 'All' || form.category === categoryFilter;
       const matchAge = ageFilter === 'Any' || form.clientAge === ageFilter;
       return matchSearch && matchCategory && matchAge;
     });
-  }, [searchTerm, categoryFilter, ageFilter, allForms]);
+  }, [searchTerm, categoryFilter, ageFilter, apiForms]);
 
-  const totalPages = Math.ceil(filteredForms.length / pageSize);
-  const paginatedForms = useMemo(() => {
-    return filteredForms.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  }, [filteredForms, currentPage, pageSize]);
+  const totalPages = templatesResponse?.response?.data?.totalPages || 1;
+  const totalDocs = templatesResponse?.response?.data?.totalDocs ?? filteredForms.length;
+  const paginatedForms = filteredForms;
 
   const handleShare = (e: React.MouseEvent, form: any) => {
     e.stopPropagation();
@@ -112,6 +106,7 @@ export function FormsPage() {
     setSearchTerm('');
     setCategoryFilter('All');
     setAgeFilter('Any');
+    setCurrentPage(1);
   };
 
   return (
@@ -141,7 +136,10 @@ export function FormsPage() {
               placeholder="Search by name, ID, or intent..."
               icon={<Search className="h-4 w-4" />}
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
               className="border-none shadow-inner"
             />
           </div>
@@ -153,14 +151,20 @@ export function FormsPage() {
                 label="Category"
                 value={categoryFilter}
                 options={categories}
-                onChange={(e) => setCategoryFilter(e.target.value)}
+                onChange={(e) => {
+                  setCategoryFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
               />
 
               <Select
                 label="Age Group"
                 value={ageFilter}
                 options={ages}
-                onChange={(e) => setAgeFilter(e.target.value)}
+                onChange={(e) => {
+                  setAgeFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
               />
 
               <Select
@@ -203,7 +207,28 @@ export function FormsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border/50 bg-white">
-              {paginatedForms.map((form) => (
+              {templatesLoading && (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">
+                    Loading assessments...
+                  </td>
+                </tr>
+              )}
+              {templatesError && !templatesLoading && (
+                <tr>
+                  <td colSpan={4} className="px-6 py-10 text-center text-red-600">
+                    <div className="space-y-3">
+                      <p>
+                        Error loading assessments: {(templatesErrorDetails as any)?.data?.message || 'Unknown error'}
+                      </p>
+                      <Button variant="outline" size="sm" onClick={() => refetch()}>
+                        Retry
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {!templatesLoading && !templatesError && paginatedForms.map((form) => (
                 <tr
                   key={form.id}
                   onClick={() => navigate(`/forms/${form.id}`)}
@@ -240,7 +265,7 @@ export function FormsPage() {
                   </td>
                 </tr>
               ))}
-              {paginatedForms.length === 0 && (
+              {!templatesLoading && !templatesError && paginatedForms.length === 0 && (
                 <tr>
                   <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">
                     No assessments found matching your selection.
@@ -252,7 +277,7 @@ export function FormsPage() {
         </div>
         <div className="bg-white px-6 py-4 flex flex-col sm:flex-row items-center justify-between border-t border-border/50 gap-4">
           <div className="text-sm text-muted-foreground">
-            Showing <span className="font-medium text-foreground">{paginatedForms.length}</span> of <span className="font-medium text-foreground">{filteredForms.length}</span> clinical items
+            Showing <span className="font-medium text-foreground">{paginatedForms.length}</span> of <span className="font-medium text-foreground">{totalDocs}</span> clinical items
           </div>
           <div className="flex items-center gap-2">
             <Button
