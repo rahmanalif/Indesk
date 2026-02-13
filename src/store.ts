@@ -5,6 +5,8 @@ import { clientsApi } from './redux/api/clientsApi';
 import { invoiceApi } from './redux/api/invoiceApi';
 import { assessmentApi } from './redux/api/assessmentApi';
 import { analyticsApi } from './redux/api/analyticsApi';
+import { integrationApi } from './redux/api/integrationApi';
+import { aiAssistantApi } from './redux/api/aiAssistantApi';
 // If you have multiple reducers, you can combine them:
 // import counterReducer from '../features/counter/counterSlice';
 
@@ -16,6 +18,8 @@ export const store = configureStore({
     [invoiceApi.reducerPath]: invoiceApi.reducer,
     [assessmentApi.reducerPath]: assessmentApi.reducer,
     [analyticsApi.reducerPath]: analyticsApi.reducer,
+    [integrationApi.reducerPath]: integrationApi.reducer,
+    [aiAssistantApi.reducerPath]: aiAssistantApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
@@ -23,7 +27,9 @@ export const store = configureStore({
       clientsApi.middleware,
       invoiceApi.middleware,
       assessmentApi.middleware,
-      analyticsApi.middleware
+      analyticsApi.middleware,
+      integrationApi.middleware,
+      aiAssistantApi.middleware
     ),
 });
 

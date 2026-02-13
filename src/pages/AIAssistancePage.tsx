@@ -4,14 +4,29 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Avatar } from '../components/ui/Avatar';
 import { Card } from '../components/ui/Card';
+import { useSendChatMutation } from '../redux/api/aiAssistantApi';
+import type { AiAssistantMessage } from '../redux/api/aiAssistantApi';
+
+type ChatMessage = {
+  id: number;
+  role: 'ai' | 'user';
+  text: string;
+};
+
+const toConversationHistory = (messages: ChatMessage[]): AiAssistantMessage[] =>
+  messages.map((message) => ({
+    role: message.role === 'ai' ? 'assistant' : 'user',
+    content: message.text,
+  }));
+
 export function AIAssistancePage() {
-  const [messages, setMessages] = useState([{
+  const [messages, setMessages] = useState<ChatMessage[]>([{
     id: 1,
     role: 'ai',
     text: "Hello Dr. Smith! I'm your Inkind Assistant. How can I help you today? I can summarize client notes, draft emails, or help optimize your schedule."
   }]);
   const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  const [sendChat, { isLoading: isTyping, error: chatError }] = useSendChatMutation();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({
@@ -20,28 +35,44 @@ export function AIAssistancePage() {
   };
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
-  const handleSend = (e: React.FormEvent) => {
+  }, [messages, isTyping]);
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    const trimmedInput = input.trim();
+    if (!trimmedInput || isTyping) return;
     const userMsg = {
       id: Date.now(),
       role: 'user',
-      text: input
+      text: trimmedInput
     };
-    setMessages(prev => [...prev, userMsg]);
+    const nextMessages = [...messages, userMsg];
+    setMessages(nextMessages);
     setInput('');
-    setIsTyping(true);
-    // Simulate AI response
-    setTimeout(() => {
+
+    try {
+      const response = await sendChat({
+        message: trimmedInput,
+        conversationHistory: toConversationHistory(nextMessages),
+      }).unwrap();
+
+      const aiText =
+        response?.response?.data?.message ||
+        'I can certainly help with that. Let me look into it.';
+
       const aiMsg = {
         id: Date.now() + 1,
         role: 'ai',
-        text: 'I can certainly help with that. Let me analyze the recent client data...'
+        text: aiText
       };
       setMessages(prev => [...prev, aiMsg]);
-      setIsTyping(false);
-    }, 1500);
+    } catch (err) {
+      const fallbackMsg = {
+        id: Date.now() + 1,
+        role: 'ai' as const,
+        text: 'Sorry, I ran into an error while contacting the assistant. Please try again.',
+      };
+      setMessages(prev => [...prev, fallbackMsg]);
+    }
   };
 
   return (
@@ -71,7 +102,7 @@ export function AIAssistancePage() {
                 className={`p-3 rounded-2xl max-w-[85%] text-sm ${msg.role === 'user'
                   ? 'bg-primary text-primary-foreground rounded-tr-none'
                   : 'bg-white border border-border/50 rounded-tl-none shadow-sm'
-                  }`}
+                  } whitespace-pre-wrap`}
               >
                 {msg.text}
               </div>
@@ -114,6 +145,11 @@ export function AIAssistancePage() {
               Create invoice
             </Button>
           </div>
+          {chatError && (
+            <div className="mt-2 text-xs text-red-600">
+              {(chatError as any)?.data?.message || 'Unable to reach the AI assistant right now.'}
+            </div>
+          )}
         </div>
       </Card>
     </div>
