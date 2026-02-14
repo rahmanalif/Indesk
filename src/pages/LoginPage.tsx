@@ -112,7 +112,7 @@ export function LoginPage() {
         </div>
 
         {/* Role Switcher */}
-        <div className="flex p-1 bg-secondary/50 rounded-lg mb-8" role="tablist">
+        {/* <div className="flex p-1 bg-secondary/50 rounded-lg mb-8" role="tablist">
           <button
             type="button"
             onClick={() => handleRoleChange('Admin')}
@@ -135,7 +135,7 @@ export function LoginPage() {
           >
             <User className="w-4 h-4" /> Clinician
           </button>
-        </div>
+        </div> */}
 
         {/* Error Alert */}
         {error && (
@@ -243,7 +243,7 @@ export function LoginPage() {
           <img
             src="/images/login.jpeg"
             alt="Therapy Session Illustration"
-            className="h-full w-full object-cover hover:scale-105 transition-transform duration-1000 ease-in-out"
+            className="h-full w-full object-center hover:scale-105 transition-transform duration-1000 ease-in-out"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
         </div>
