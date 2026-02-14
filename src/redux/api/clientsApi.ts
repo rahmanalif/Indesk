@@ -453,6 +453,38 @@ interface CreateAppointmentResponse {
   };
 }
 
+export interface CreateClinicMemberRequest {
+  email: string;
+  role: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+  countryCode?: string;
+  bio?: string;
+  specialization?: string[];
+  availability?: string[];
+}
+
+export interface UpdateClinicMemberRequest {
+  memberId: string;
+  availability?: string[];
+  specialization?: string[];
+}
+
+export interface UpdateClinicMemberRoleRequest {
+  memberId: string;
+  role: string;
+}
+
+interface ClinicMemberMutationResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response?: {
+    data?: ClinicMemberItem;
+  };
+}
+
 export interface CreateClientRequest {
   firstName: string;
   lastName: string;
@@ -733,6 +765,33 @@ export const clientsApi = createApi({
       }),
       invalidatesTags: ['Clients'],
     }),
+
+    createClinicMember: builder.mutation<ClinicMemberMutationResponse, CreateClinicMemberRequest>({
+      query: (body) => ({
+        url: '/clinic-member',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Clients'],
+    }),
+
+    updateClinicMember: builder.mutation<ClinicMemberMutationResponse, UpdateClinicMemberRequest>({
+      query: ({ memberId, ...body }) => ({
+        url: `/clinic-members/${memberId}`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: ['Clients'],
+    }),
+
+    updateClinicMemberRole: builder.mutation<ClinicMemberMutationResponse, UpdateClinicMemberRoleRequest>({
+      query: ({ memberId, role }) => ({
+        url: `/clinic-members/${memberId}/role`,
+        method: 'PATCH',
+        body: { role },
+      }),
+      invalidatesTags: ['Clients'],
+    }),
     
     updateClient: builder.mutation<UpdateClientResponse, UpdateClientRequest>({
       query: ({ clientId, ...body }) => ({
@@ -779,6 +838,9 @@ export const {
   useCreateInvoiceMutation,
   useCreateSessionMutation,
   useCreateAppointmentMutation,
+  useCreateClinicMemberMutation,
+  useUpdateClinicMemberMutation,
+  useUpdateClinicMemberRoleMutation,
   useUpdateClientMutation,
   useDeleteClientMutation,
   useCreateClinicalNoteMutation,
