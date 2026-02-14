@@ -25,6 +25,27 @@ export interface AiAssistantChatResponse {
   };
 }
 
+export interface AiAssistantDraftEmailRequest {
+  clientId: string;
+  purpose: string;
+  tone: string;
+}
+
+export interface AiAssistantDraftEmailResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response?: {
+    data?: {
+      message?: string;
+      draft?: string;
+      email?: string;
+      subject?: string;
+      body?: string;
+    };
+  };
+}
+
 export const aiAssistantApi = createApi({
   reducerPath: 'aiAssistantApi',
   baseQuery: fetchBaseQuery({
@@ -58,7 +79,14 @@ export const aiAssistantApi = createApi({
         body,
       }),
     }),
+    draftEmail: builder.mutation<AiAssistantDraftEmailResponse, AiAssistantDraftEmailRequest>({
+      query: (body) => ({
+        url: '/ai-assistant/draft-email',
+        method: 'POST',
+        body,
+      }),
+    }),
   }),
 });
 
-export const { useSendChatMutation } = aiAssistantApi;
+export const { useSendChatMutation, useDraftEmailMutation } = aiAssistantApi;

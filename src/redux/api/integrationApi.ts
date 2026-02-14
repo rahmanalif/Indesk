@@ -8,6 +8,13 @@ export interface IntegrationItem {
   category?: string;
   status?: string;
   isConnected?: boolean;
+  isConfigured?: boolean;
+  requiresOAuth?: boolean;
+  oauthUrl?: string;
+  healthStatus?: string | null;
+  lastHealthCheck?: string | null;
+  requiredEnvVars?: string[];
+  documentation?: string;
   description?: string;
   icon?: string;
 }

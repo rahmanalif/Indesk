@@ -8,8 +8,6 @@ import { useGetIntegrationsQuery, useLazyGetIntegrationOAuthUrlQuery } from '../
 
 type IntegrationStatus = 'Connected' | 'Disconnected';
 
-const ALLOWED_OAUTH_TYPES = new Set(['google_calendar', 'stripe', 'xero', 'mailchimp', 'zoom']);
-
 const ICON_BY_TYPE: Record<string, string> = {
   google_calendar: '📅',
   stripe: '💳',
@@ -36,11 +34,21 @@ const resolveStatus = (status?: string, isConnected?: boolean): IntegrationStatu
 const mapOAuthType = (value?: string) => {
   if (!value) return null;
   const normalized = value.toLowerCase().replace(/\s+/g, '_');
-  if (ALLOWED_OAUTH_TYPES.has(normalized)) return normalized;
   if (normalized === 'google') return 'google_calendar';
   if (normalized === 'googlecalendar') return 'google_calendar';
   if (normalized === 'google_cal') return 'google_calendar';
-  return null;
+  return normalized;
+};
+
+const resolveOAuthMeta = (integration: any) => {
+  const oauthType = mapOAuthType(integration.type || integration.name);
+  const requiresOAuth =
+    typeof integration.requiresOAuth === 'boolean'
+      ? integration.requiresOAuth
+      : !!integration.oauthUrl || !!oauthType;
+  const hasOAuth = requiresOAuth || !!integration.oauthUrl;
+  const connectKey = oauthType || integration.id || integration.name;
+  return { oauthType, requiresOAuth, hasOAuth, connectKey };
 };
 
 export function IntegrationsPage() {
@@ -66,26 +74,36 @@ export function IntegrationsPage() {
         '🔌',
       description: integration.description || '',
       type: integration.type || normalizeKey(integration.name),
+      requiresOAuth: integration.requiresOAuth,
+      oauthUrl: integration.oauthUrl,
+      isConfigured: integration.isConfigured,
     }));
   }, [apiIntegrations]);
 
   const handleAction = async (integration: any) => {
-    const oauthType = mapOAuthType(integration.type || integration.name);
-    const shouldAuthorize = !!oauthType && (integration.status !== 'Connected' || oauthType === 'stripe');
+    const { oauthType, hasOAuth, connectKey } = resolveOAuthMeta(integration);
+    const isConnected = integration.status === 'Connected';
+    const shouldAuthorize = hasOAuth && (!isConnected || oauthType === 'stripe');
 
     if (!shouldAuthorize) {
-      setSelectedIntegration(integration.name);
+      if (isConnected) {
+        setSelectedIntegration(integration.name);
+      }
       return;
     }
 
-    setConnectingType(oauthType);
+    setConnectingType(connectKey);
     try {
-      const response = await getOAuthUrl(oauthType).unwrap();
-      const url = response?.response?.data?.oauthUrl;
-      if (url) {
-        const opened = window.open(url, '_blank', 'noopener,noreferrer');
+      let oauthUrl = integration.oauthUrl as string | undefined;
+      if (!oauthUrl && oauthType) {
+        const response = await getOAuthUrl(oauthType).unwrap();
+        oauthUrl = response?.response?.data?.oauthUrl;
+      }
+      if (oauthUrl) {
+        const finalUrl = oauthUrl.startsWith('/') ? `${window.location.origin}${oauthUrl}` : oauthUrl;
+        const opened = window.open(finalUrl, '_blank', 'noopener,noreferrer');
         if (!opened) {
-          window.location.href = url;
+          window.location.href = finalUrl;
         }
       }
     } catch (err) {
@@ -120,51 +138,56 @@ export function IntegrationsPage() {
       <div className="text-sm text-muted-foreground">No integrations available.</div>
     ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {integrationList.map(integration => (
-        <Card key={integration.id} className="border-border/50">
-          <CardContent className="p-6 flex flex-col h-full">
-            <div className="flex justify-between items-start mb-4">
-              <div className="text-3xl">{integration.icon}</div>
-              <Badge variant={integration.status === 'Connected' ? 'success' : 'secondary'}>
-                {integration.status}
-              </Badge>
-            </div>
+        {integrationList.map(integration => {
+          const { oauthType, hasOAuth, connectKey } = resolveOAuthMeta(integration);
+          const isConnected = integration.status === 'Connected';
+          const isConnecting = connectingType === connectKey;
+          const label = isConnected
+            ? oauthType === 'stripe'
+              ? 'Authorize & Connect'
+              : 'Manage Settings'
+            : isConnecting
+              ? 'Authorize & Connect'
+              : hasOAuth
+                ? 'Authorize & Connect'
+                : 'Unavailable';
+          const isDisabled = isConnecting || (!hasOAuth && !isConnected);
 
-            <h3 className="font-semibold text-lg mb-1">{integration.name}</h3>
-            <p className="text-sm text-muted-foreground mb-4 flex-1">
-              {integration.description}
-            </p>
+          return (
+          <Card key={integration.id} className="border-border/50">
+            <CardContent className="p-6 flex flex-col h-full">
+              <div className="flex justify-between items-start mb-4">
+                <div className="text-3xl">{integration.icon}</div>
+                <Badge variant={integration.status === 'Connected' ? 'success' : 'secondary'}>
+                  {integration.status}
+                </Badge>
+              </div>
 
-            <Button
-              variant={integration.status === 'Connected' ? 'outline' : 'default'}
-              className="w-full"
-              onClick={() => handleAction(integration)}
-              disabled={
-                connectingType === mapOAuthType(integration.type || integration.name) ||
-                (!mapOAuthType(integration.type || integration.name) && integration.status !== 'Connected')
-              }
-            >
-              {integration.status === 'Connected'
-                ? mapOAuthType(integration.type || integration.name) === 'stripe'
-                  ? 'Authorize & Connect'
-                  : 'Manage Settings'
-                : connectingType === mapOAuthType(integration.type || integration.name)
-                  ? 'Connecting...'
-                  : mapOAuthType(integration.type || integration.name)
-                    ? 'Authorize & Connect'
-                    : 'Unavailable'}
-            </Button>
-            {integration.status === 'Connected' && (
-              <button
-                onClick={() => setSelectedIntegration(integration.name)}
-                className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-primary transition-colors"
+              <h3 className="font-semibold text-lg mb-1">{integration.name}</h3>
+              <p className="text-sm text-muted-foreground mb-4 flex-1">
+                {integration.description}
+              </p>
+
+              <Button
+                variant={integration.status === 'Connected' ? 'outline' : 'default'}
+                className="w-full"
+                onClick={() => handleAction(integration)}
+                disabled={isDisabled}
               >
-                View Permissions <ExternalLink className="h-3 w-3" />
-              </button>
-            )}
-          </CardContent>
-        </Card>
-        ))}
+                {label}
+              </Button>
+              {integration.status === 'Connected' && (
+                <button
+                  onClick={() => setSelectedIntegration(integration.name)}
+                  className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-primary transition-colors"
+                >
+                  View Permissions <ExternalLink className="h-3 w-3" />
+                </button>
+              )}
+            </CardContent>
+          </Card>
+          );
+        })}
       </div>
     )}
 
