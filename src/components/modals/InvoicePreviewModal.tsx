@@ -18,6 +18,7 @@ import {
   Client,
   Appointment
 } from '../../redux/api/invoiceApi';
+import { useGetClinicQuery } from '../../redux/api/clientsApi';
 
 interface InvoiceItem {
   id: string;
@@ -38,6 +39,24 @@ interface InvoicePreviewModalProps {
 
 export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = 'view' }: InvoicePreviewModalProps) {
   const { branding } = useData();
+  const { data: clinicResponse } = useGetClinicQuery();
+  const clinic = clinicResponse?.response?.data;
+  const apiOrigin = (() => {
+    try {
+      return new URL(import.meta.env.VITE_CLIENTS_API_BASE_URL).origin;
+    } catch {
+      return '';
+    }
+  })();
+  const resolveImageUrl = (value?: string | null) => {
+    if (!value) return null;
+    if (value.startsWith('http')) return value;
+    if (!apiOrigin) return value;
+    if (value.startsWith('/uploads/')) return `${apiOrigin}/public${value}`;
+    return `${apiOrigin}${value}`;
+  };
+  const clinicLogo = resolveImageUrl(clinic?.logo) || resolveImageUrl(branding.logo);
+  const clinicName = clinic?.name || 'Inkind Wellness';
   const [isEditing, setIsEditing] = useState(mode === 'edit');
   
   // Client state
@@ -408,15 +427,15 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
           <div className="flex justify-between items-start border-b pb-8 mb-8">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-4">
-                {branding.logo ? (
-                  <img src={branding.logo} alt="Clinic Logo" className="h-16 w-auto object-contain" />
+                {clinicLogo ? (
+                  <img src={clinicLogo || undefined} alt="Clinic Logo" className="h-16 w-auto object-contain" />
                 ) : (
                   <div className="h-16 w-16 rounded-xl flex items-center justify-center text-white text-2xl font-bold shadow-sm" style={{ backgroundColor: branding.color }}>
                     IW
                   </div>
                 )}
                 <div>
-                  <h2 className="text-xl font-bold tracking-tight" style={{ color: branding.color }}>Inkind Wellness</h2>
+                  <h2 className="text-xl font-bold tracking-tight" style={{ color: branding.color }}>{clinicName}</h2>
                   <p className="text-xs text-muted-foreground">123 Healing Blvd, Suite 100</p>
                 </div>
               </div>
