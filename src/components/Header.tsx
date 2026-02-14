@@ -8,6 +8,11 @@ import { SearchDropdown } from './SearchDropdown';
 import { NotificationDropdown } from './NotificationDropdown';
 import { useData } from '../context/DataContext';
 import { navItems } from '../config/navigation';
+import {
+  useGetNotificationsQuery,
+  useGetUnreadCountQuery,
+  useMarkAllAsReadMutation,
+} from '../redux/api/notificationApi';
 
 interface HeaderProps {
   isSidebarCollapsed: boolean;
@@ -32,20 +37,57 @@ export function Header({
   // --- Notification State ---
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
-  const [notifications, setNotifications] = useState([
-    { id: 1, title: 'New Client Registration', desc: 'Sarah Connor added recently.', time: '2m ago', read: false },
-    { id: 2, title: 'Payment Successful', desc: 'Invoice #1024 paid by Mike.', time: '1h ago', read: false },
-    { id: 3, title: 'Session Reminder', desc: 'Therapy with John in 30m.', time: '2h ago', read: false },
-  ]);
+  const [locallyReadIds, setLocallyReadIds] = useState<Set<string>>(new Set());
+  const [markAllAsRead] = useMarkAllAsReadMutation();
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const { data: notificationsResponse } = useGetNotificationsQuery(
+    { page: 1, limit: 10, isRead: false },
+    { pollingInterval: 30000 }
+  );
+  const { data: unreadCountResponse } = useGetUnreadCountQuery(undefined, { pollingInterval: 30000 });
 
-  const markAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  const getRelativeTime = (dateString?: string) => {
+    if (!dateString) return 'Just now';
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return 'Just now';
+    const diffMs = Date.now() - date.getTime();
+    const minutes = Math.floor(diffMs / 60000);
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
   };
 
-  const markSingleRead = (id: number) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  const notifications = (notificationsResponse?.response?.data ?? []).map((item: any, index: number) => {
+    const id = String(item.id ?? item._id ?? index);
+    return {
+      id,
+      title: item.title || item.type || 'Notification',
+      desc: item.description || item.message || item.body || '',
+      time: getRelativeTime(item.createdAt || item.updatedAt),
+      read: Boolean(item.isRead) || locallyReadIds.has(id),
+    };
+  });
+
+  const unreadCount = unreadCountResponse?.response?.data?.count ?? 0;
+
+  const markAllRead = async () => {
+    try {
+      await markAllAsRead().unwrap();
+      setLocallyReadIds(new Set());
+    } catch (err) {
+      console.error('Failed to mark notifications as read:', err);
+    }
+  };
+
+  const markSingleRead = (id: string) => {
+    setLocallyReadIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
   };
 
   // Click outside handler

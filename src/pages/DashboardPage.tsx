@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import { Avatar } from '../components/ui/Avatar';
 import { useData } from '../context/DataContext';
 import { MOCK_CLINICIANS } from '../lib/mockData';
-import { Check, Users } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Users } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useGetAppointmentsQuery } from '../redux/api/invoiceApi';
 import { useGetClinicMembersQuery } from '../redux/api/clientsApi';
@@ -76,6 +76,7 @@ const mergeClinicians = (primary: any[], secondary: any[]) => {
 export function DashboardPage() {
   const { appointments, currentUser } = useData();
   const authUser = useSelector((state: RootState) => state.auth.user);
+  const [isCliniciansCollapsed, setIsCliniciansCollapsed] = useState(false);
 
   const {
     data: appointmentsResponse,
@@ -225,88 +226,110 @@ export function DashboardPage() {
   return (
     <div className="flex flex-col lg:flex-row h-auto lg:h-[calc(100vh-3rem)] gap-4 pb-4">
       {/* Left Sidebar - Clinician Selector */}
-      <Card className="w-full lg:w-64 flex-shrink-0 h-auto max-h-60 lg:max-h-none lg:h-full overflow-hidden flex flex-col border-border/50 shadow-sm order-1">
+      <Card className={cn(
+        "w-full flex-shrink-0 h-auto max-h-60 lg:max-h-none lg:h-full overflow-hidden flex flex-col border-border/50 shadow-sm order-1 transition-all duration-300",
+        isCliniciansCollapsed ? "lg:w-16" : "lg:w-64"
+      )}>
         <CardHeader className="border-b border-border/50 bg-muted/10 p-3 lg:pb-4">
-          <CardTitle className="text-base lg:text-lg font-semibold flex items-center gap-2">
-            <Users className="w-5 h-5 text-primary" />
-            Clinicians
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0 flex-1 overflow-y-auto">
-          <div className="p-2 space-y-1">
-            {/* My Calendar Option (For Admin mainly, or self) */}
-            <button
-              onClick={() => myCalendarId && setSelectedClinicianId(myCalendarId)}
-              className={cn(
-                "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all duration-200 border",
-                isMyCalendarSelected
-                  ? "bg-primary/5 border-primary/20 shadow-sm"
-                  : "hover:bg-muted/50 border-transparent text-muted-foreground hover:text-foreground"
-              )}
+          <div className={cn("flex items-center", isCliniciansCollapsed ? "justify-center" : "justify-between gap-2")}>
+            <CardTitle className={cn("text-base lg:text-lg font-semibold flex items-center gap-2", isCliniciansCollapsed && "sr-only")}>
+              <Users className="w-5 h-5 text-primary" />
+              Clinicians
+            </CardTitle>
+            {isCliniciansCollapsed && (
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Users className="w-5 h-5 text-primary" />
+              </div>
+            )}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsCliniciansCollapsed((prev) => !prev)}
+              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-primary"
+              aria-label={isCliniciansCollapsed ? "Expand clinicians panel" : "Collapse clinicians panel"}
             >
-              <div className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center border-2",
-                isMyCalendarSelected ? "bg-primary text-white border-primary" : "bg-muted text-muted-foreground border-transparent"
-              )}>
-                <Avatar fallback="Me" className="bg-transparent text-inherit" />
-              </div>
-              <div className="flex-1">
-                <p className={cn("font-medium", isMyCalendarSelected ? "text-primary" : "text-foreground")}>My Calendar</p>
-                <p className="text-xs text-muted-foreground">Personal Schedule</p>
-              </div>
-              {isMyCalendarSelected && <Check className="w-4 h-4 text-primary" />}
-            </button>
-
-            <div className="h-px bg-border/50 my-2 mx-2" />
-
-            {/* Clinician List */}
-            {clinicians.map((clinician: any) => {
-              // specific logic: don't show "Me" twice if I'm a clinician in the list?
-              // The user said "only selected the profile will show the clinicians profile"
-              // Let's just list them all.
-              const isSelected = selectedClinicianId !== null && String(selectedClinicianId) === String(clinician.id);
-              return (
-                <button
-                  key={clinician.id}
-                  onClick={() => setSelectedClinicianId(clinician.id)}
-                  className={cn(
-                    "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all duration-200 border group",
-                    isSelected
-                      ? "bg-primary/5 border-primary/20 shadow-sm"
-                      : "hover:bg-muted/50 border-transparent"
-                  )}
-                >
-                  <div className="relative">
-                    <Avatar
-                      src={clinician.avatar}
-                      alt={clinician.name}
-                      fallback={clinician.name?.[0] || 'C'}
-                      className={cn(
-                        "w-10 h-10 border-2 transition-colors",
-                        isSelected ? "border-primary" : "border-transparent group-hover:border-primary/20"
-                      )}
-                    />
-                    <div className={cn(
-                      "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white",
-                      clinician.status === 'Available' ? "bg-emerald-500" :
-                        clinician.status === 'In Session' ? "bg-amber-500" : "bg-slate-300"
-                    )} />
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <p className={cn("font-medium truncate", isSelected ? "text-primary" : "text-foreground")}>
-                      {clinician.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {clinician.role || 'Clinician'}
-                    </p>
-                  </div>
-                  {isSelected && <Check className="w-4 h-4 text-primary" />}
-                </button>
-              );
-            })}
+              {isCliniciansCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            </Button>
           </div>
-        </CardContent>
+        </CardHeader>
+        {!isCliniciansCollapsed && (
+          <CardContent className="p-0 flex-1 overflow-y-auto">
+            <div className="p-2 space-y-1">
+              {/* My Calendar Option (For Admin mainly, or self) */}
+              <button
+                onClick={() => myCalendarId && setSelectedClinicianId(myCalendarId)}
+                className={cn(
+                  "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all duration-200 border",
+                  isMyCalendarSelected
+                    ? "bg-primary/5 border-primary/20 shadow-sm"
+                    : "hover:bg-muted/50 border-transparent text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <div className={cn(
+                  "w-10 h-10 rounded-full flex items-center justify-center border-2",
+                  isMyCalendarSelected ? "bg-primary text-white border-primary" : "bg-muted text-muted-foreground border-transparent"
+                )}>
+                  <Avatar fallback="Me" className="bg-transparent text-inherit" />
+                </div>
+                <div className="flex-1">
+                  <p className={cn("font-medium", isMyCalendarSelected ? "text-primary" : "text-foreground")}>My Calendar</p>
+                  <p className="text-xs text-muted-foreground">Personal Schedule</p>
+                </div>
+                {isMyCalendarSelected && <Check className="w-4 h-4 text-primary" />}
+              </button>
+
+              <div className="h-px bg-border/50 my-2 mx-2" />
+
+              {/* Clinician List */}
+              {clinicians.map((clinician: any) => {
+                // specific logic: don't show "Me" twice if I'm a clinician in the list?
+                // The user said "only selected the profile will show the clinicians profile"
+                // Let's just list them all.
+                const isSelected = selectedClinicianId !== null && String(selectedClinicianId) === String(clinician.id);
+                return (
+                  <button
+                    key={clinician.id}
+                    onClick={() => setSelectedClinicianId(clinician.id)}
+                    className={cn(
+                      "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all duration-200 border group",
+                      isSelected
+                        ? "bg-primary/5 border-primary/20 shadow-sm"
+                        : "hover:bg-muted/50 border-transparent"
+                    )}
+                  >
+                    <div className="relative">
+                      <Avatar
+                        src={clinician.avatar}
+                        alt={clinician.name}
+                        fallback={clinician.name?.[0] || 'C'}
+                        className={cn(
+                          "w-10 h-10 border-2 transition-colors",
+                          isSelected ? "border-primary" : "border-transparent group-hover:border-primary/20"
+                        )}
+                      />
+                      <div className={cn(
+                        "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white",
+                        clinician.status === 'Available' ? "bg-emerald-500" :
+                          clinician.status === 'In Session' ? "bg-amber-500" : "bg-slate-300"
+                      )} />
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <p className={cn("font-medium truncate", isSelected ? "text-primary" : "text-foreground")}>
+                        {clinician.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {clinician.role || 'Clinician'}
+                      </p>
+                    </div>
+                    {isSelected && <Check className="w-4 h-4 text-primary" />}
+                  </button>
+                );
+              })}
+            </div>
+          </CardContent>
+        )}
         {/* Footer removed as we don't clear anymore */}
       </Card>
 

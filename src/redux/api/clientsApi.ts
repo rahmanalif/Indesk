@@ -250,6 +250,15 @@ export interface PatchClinicPermissionsResponse {
   };
 }
 
+export interface UpdateClinicResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response?: {
+    data?: ClinicDetails;
+  };
+}
+
 export interface InvoiceStatsResponse {
   success: boolean;
   status: number;
@@ -560,6 +569,11 @@ export const clientsApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: import.meta.env.VITE_CLIENTS_API_BASE_URL,
     prepareHeaders: (headers, { getState }) => {
+      const skipContentType = headers.get('x-skip-content-type') === 'true';
+      if (skipContentType) {
+        headers.delete('x-skip-content-type');
+      }
+
       const state = getState() as RootState;
       const expiresAt = state.auth.tokens?.access?.expiresAt;
       const isReduxTokenValid = expiresAt ? new Date(expiresAt) > new Date() : true;
@@ -574,7 +588,9 @@ export const clientsApi = createApi({
       if (token) {
         headers.set('Authorization', `Bearer ${token}`);
       }
-      headers.set('Content-Type', 'application/json');
+      if (!skipContentType) {
+        headers.set('Content-Type', 'application/json');
+      }
       return headers;
     },
   }),
@@ -679,6 +695,18 @@ export const clientsApi = createApi({
       invalidatesTags: ['Clients'],
     }),
 
+    updateClinic: builder.mutation<UpdateClinicResponse, FormData>({
+      query: (body) => ({
+        url: '/clinic',
+        method: 'PUT',
+        body,
+        headers: {
+          'x-skip-content-type': 'true',
+        },
+      }),
+      invalidatesTags: ['Clients'],
+    }),
+
     createInvoice: builder.mutation<CreateInvoiceResponse, CreateInvoiceRequest>({
       query: (body) => ({
         url: '/invoice',
@@ -747,6 +775,7 @@ export const {
   useGetClinicMembersQuery,
   useGetClinicQuery,
   usePatchClinicPermissionsMutation,
+  useUpdateClinicMutation,
   useCreateInvoiceMutation,
   useCreateSessionMutation,
   useCreateAppointmentMutation,

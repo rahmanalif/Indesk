@@ -82,6 +82,114 @@ export interface GetAssessmentTemplatesParams {
   sort?: string;
 }
 
+export interface AssessmentProgressDateRange {
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface AssessmentProgressTrend {
+  date?: string;
+  period?: string;
+  label?: string;
+  score?: number;
+  value?: number;
+  averageSeverityScore?: number;
+  avgScore?: number;
+  severityScore?: number;
+}
+
+export interface AssessmentProgressPayload {
+  clientId: string;
+  clientName?: string;
+  dateRange?: AssessmentProgressDateRange;
+  totalAssessments?: number;
+  longitudinalTrend?: {
+    percentageChange?: number;
+    direction?: 'increase' | 'decrease' | 'stable' | string;
+  };
+  clinicalStabilization?: {
+    averageSeverityScore?: number;
+    currentSeverityLevel?: string;
+  };
+  protocolAdherence?: {
+    attendanceRate?: number;
+    totalAppointments?: number;
+    completedAppointments?: number;
+  };
+  frequency?: string;
+  trends?: AssessmentProgressTrend[];
+  severityMap?: Array<{
+    label?: string;
+    score?: number;
+    color?: string;
+  }>;
+  assessments?: any[];
+  progressByTemplate?: any[];
+  progressByCategory?: any[];
+  insights?: string;
+}
+
+export interface GetAssessmentProgressResponse {
+  success?: boolean;
+  status?: number;
+  message?: string;
+  response?: {
+    data?: AssessmentProgressPayload;
+  };
+}
+
+export interface GetAssessmentProgressParams {
+  clientId: string;
+  startDate?: string;
+  endDate?: string;
+  frequency?: string;
+}
+
+export interface AssessmentInstanceTemplate {
+  id?: string;
+  title?: string;
+  name?: string;
+  category?: string;
+}
+
+export interface AssessmentInstanceItem {
+  id?: string;
+  _id?: string;
+  templateId?: string;
+  clientId?: string;
+  status?: string;
+  score?: number | null;
+  totalScore?: number | null;
+  createdAt?: string;
+  updatedAt?: string;
+  completedAt?: string | null;
+  template?: AssessmentInstanceTemplate | null;
+  assessmentTemplate?: AssessmentInstanceTemplate | null;
+}
+
+export interface GetAssessmentInstancesResponse {
+  success?: boolean;
+  status?: number;
+  message?: string;
+  response?: {
+    data?: {
+      docs?: AssessmentInstanceItem[];
+      totalDocs?: number;
+      limit?: number;
+      page?: number;
+      totalPages?: number;
+    };
+  };
+}
+
+export interface GetAssessmentInstancesParams {
+  clientId: string;
+  status?: string;
+  limit?: number;
+  page?: number;
+  sort?: string;
+}
+
 export const assessmentApi = createApi({
   reducerPath: 'assessmentApi',
   baseQuery: fetchBaseQuery({
@@ -140,6 +248,28 @@ export const assessmentApi = createApi({
       }),
       invalidatesTags: [{ type: 'AssessmentTemplate', id: 'LIST' }],
     }),
+    getAssessmentProgress: builder.query<GetAssessmentProgressResponse, GetAssessmentProgressParams>({
+      query: ({ clientId, startDate, endDate, frequency }) => ({
+        url: `assessment/progress/${clientId}`,
+        params: {
+          startDate,
+          endDate,
+          frequency,
+        },
+      }),
+    }),
+    getAssessmentInstances: builder.query<GetAssessmentInstancesResponse, GetAssessmentInstancesParams>({
+      query: ({ clientId, status, limit = 10, page = 1, sort = '-createdAt' }) => ({
+        url: 'assessment/instance',
+        params: {
+          clientId,
+          status,
+          limit,
+          page,
+          sort,
+        },
+      }),
+    }),
   }),
 });
 
@@ -147,4 +277,6 @@ export const {
   useCreateAssessmentTemplateMutation,
   useGetAssessmentTemplatesQuery,
   useGetAssessmentTemplateByIdQuery,
+  useGetAssessmentProgressQuery,
+  useGetAssessmentInstancesQuery,
 } = assessmentApi;

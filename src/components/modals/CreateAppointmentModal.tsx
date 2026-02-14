@@ -8,7 +8,7 @@ import { TimePicker } from '../ui/TimePicker';
 import { Textarea } from '../ui/Textarea';
 import { useData } from '../../context/DataContext';
 import { cn } from '../../lib/utils';
-import { useCreateAppointmentMutation, useGetClientByIdQuery, useGetClinicMembersQuery, useGetSessionsQuery } from '../../redux/api/clientsApi';
+import { useCreateAppointmentMutation, useGetClientByIdQuery, useGetClinicMembersQuery, useGetSessionsQuery, useGetClientsQuery } from '../../redux/api/clientsApi';
 
 interface CreateAppointmentModalProps {
   isOpen: boolean;
@@ -31,8 +31,12 @@ export function CreateAppointmentModal({
   viewSource,
   fixedClient
 }: CreateAppointmentModalProps) {
-  const { clients, addAppointment, updateAppointment } = useData();
+  const { addAppointment, updateAppointment } = useData();
   const [createAppointment] = useCreateAppointmentMutation();
+  const { data: clientsResponse } = useGetClientsQuery(
+    { page: 1, limit: 100 },
+    { skip: !isOpen }
+  );
   const { data: sessionsResponse, isLoading: isSessionsLoading } = useGetSessionsQuery(undefined, {
     skip: !isOpen
   });
@@ -47,7 +51,6 @@ export function CreateAppointmentModal({
   const [clientNameInput, setClientNameInput] = useState('');
   const [selectedClientId, setSelectedClientId] = useState<string | number | undefined>(undefined);
   const [clinicianId, setClinicianId] = useState('');
-  const [clinicianLocalId, setClinicianLocalId] = useState<number>(1);
   const [sessionType, setSessionType] = useState('');
   const [notes, setNotes] = useState('');
   const [suggestionBoxOpen, setSuggestionBoxOpen] = useState(false);
@@ -60,6 +63,14 @@ export function CreateAppointmentModal({
   const { data: clientDetails } = useGetClientByIdQuery(selectedClientId as string, {
     skip: !shouldFetchClient,
   });
+  const apiClients = useMemo(() => {
+    const docs = clientsResponse?.response?.data?.docs || [];
+    return docs.map((c: any) => ({
+      id: c.id,
+      name: `${c.firstName || ''} ${c.lastName || ''}`.trim() || c.email || 'Client',
+      email: c.email || '',
+    }));
+  }, [clientsResponse]);
   const { data: clinicMembersResponse } = useGetClinicMembersQuery(
     { page: 1, limit: 50 },
     { skip: !isOpen }
@@ -71,7 +82,6 @@ export function CreateAppointmentModal({
       .map((m, idx) => ({
         value: m.id,
         label: `${m.user?.firstName || ''} ${m.user?.lastName || ''}`.trim() || m.user?.email || 'Clinician',
-        localId: idx + 1,
       }));
   }, [clinicMembersResponse]);
 
@@ -128,17 +138,16 @@ export function CreateAppointmentModal({
     const preferredId = assignedClinicianId || clinicianId;
     const match = clinicianOptions.find(o => o.value === preferredId) || clinicianOptions[0];
     setClinicianId(match.value);
-    setClinicianLocalId(match.localId);
   }, [isOpen, clinicianOptions, clientDetails, clinicianId]);
 
   // Filter clients for autocomplete
   const filteredClients = useMemo(() => {
     if (!clientNameInput) return [];
     const lower = clientNameInput.toLowerCase();
-    return clients.filter(c => c.name.toLowerCase().includes(lower));
-  }, [clientNameInput, clients]);
+    return apiClients.filter(c => c.name.toLowerCase().includes(lower));
+  }, [clientNameInput, apiClients]);
 
-  const handleClientSelect = (client: typeof clients[0]) => {
+  const handleClientSelect = (client: { id: string; name: string; email: string }) => {
     setClientNameInput(client.name);
     setSelectedClientId(client.id);
     setSuggestionBoxOpen(false);
@@ -152,8 +161,8 @@ export function CreateAppointmentModal({
 
   const isClientValid = useMemo(() => {
     if (fixedClient) return true;
-    return clients.some(c => c.name.toLowerCase() === clientNameInput.trim().toLowerCase());
-  }, [clientNameInput, fixedClient, clients]);
+    return isGuid(selectedClientId);
+  }, [fixedClient, selectedClientId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,6 +181,7 @@ export function CreateAppointmentModal({
     const selectedSessionData = sessionTypes.find(s => s.id.toString() === sessionType);
     const dateStr = date ? date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
     const timeStr = time || '09:00';
+    const dateIso = new Date(`${dateStr}T00:00:00.000Z`).toISOString();
     const timeIso = new Date(`${dateStr}T${timeStr}:00.000Z`).toISOString();
 
     const clinicianIdToSend = isGuid(clinicianId)
@@ -190,7 +200,7 @@ export function CreateAppointmentModal({
       clientName: clientNameInput,
       clientId: selectedClientId,
       clinician: selectedClinician?.label || 'Clinician',
-      clinicianId: clinicianLocalId,
+      clinicianId: clinicianIdToSend,
       date: dateStr,
       time: timeStr,
       duration: selectedSessionData?.duration ?? 50,
@@ -205,7 +215,7 @@ export function CreateAppointmentModal({
       sessionId: sessionType,
       clientId: selectedClientId.toString(),
       clinicianId: clinicianIdToSend,
-      date: new Date(dateStr).toISOString(),
+      date: dateIso,
       time: timeIso,
       note: notes || null,
       meetingType: 'zoom',
@@ -270,11 +280,9 @@ export function CreateAppointmentModal({
             <Select
               label="Clinician"
               value={clinicianId}
-              onChange={(e) => {
+            onChange={(e) => {
                 const nextId = e.target.value;
-                const match = clinicianOptions.find(o => o.value === nextId);
                 setClinicianId(nextId);
-                setClinicianLocalId(match?.localId || 1);
               }}
               options={clinicianOptions.length > 0 ? clinicianOptions.map(o => ({
                 value: o.value,
