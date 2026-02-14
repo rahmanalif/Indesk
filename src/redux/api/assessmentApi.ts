@@ -289,6 +289,7 @@ export const assessmentApi = createApi({
           body: formData,
         };
       },
+    }),
     getAssessmentProgress: builder.query<GetAssessmentProgressResponse, GetAssessmentProgressParams>({
       query: ({ clientId, startDate, endDate, frequency }) => ({
         url: `assessment/progress/${clientId}`,
