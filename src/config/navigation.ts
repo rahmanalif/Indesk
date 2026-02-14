@@ -23,7 +23,7 @@ export interface NavItem {
 export const navItems: NavItem[] = [
     {
         icon: Calendar,
-        label: 'Dashboard',
+        label: 'Calendar',
         path: '/dashboard',
         permission: 'clinician_dashboard'
     },

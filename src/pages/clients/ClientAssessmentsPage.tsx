@@ -7,12 +7,7 @@ import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { Select } from '../../components/ui/Select';
 import { DatePicker } from '../../components/ui/DatePicker';
-
-const MOCK_ASSESSMENTS = [
-    { id: 1, name: 'Adverse Childhood Experiences (ACE)', date: 'Oct 12, 2024', status: 'Completed', score: 4 },
-    { id: 2, name: 'PHQ-9 Depression Scale', date: 'Sep 28, 2024', status: 'Completed', score: 12 },
-    { id: 3, name: 'GAD-7 Anxiety Severity', date: 'Sep 15, 2024', status: 'In Progress', score: null },
-];
+import { useGetAssessmentInstancesQuery } from '../../redux/api/assessmentApi';
 
 export function ClientAssessmentsPage() {
     const { id } = useParams();
@@ -21,10 +16,45 @@ export function ClientAssessmentsPage() {
     const [statusFilter, setStatusFilter] = useState('all');
     const [dateFilter, setDateFilter] = useState<Date | undefined>(undefined);
 
-    const filteredAssessments = MOCK_ASSESSMENTS.filter(a => {
+    const apiStatus = statusFilter === 'all'
+        ? undefined
+        : statusFilter === 'Completed'
+            ? 'completed'
+            : 'pending';
+
+    const { data, isLoading, isError, error, refetch } = useGetAssessmentInstancesQuery(
+        {
+            clientId: id as string,
+            status: apiStatus,
+            limit: 10,
+            page: 1,
+            sort: '-createdAt',
+        },
+        { skip: !id }
+    );
+
+    const assessments = (data?.response?.data?.docs ?? []).map((item: any, index: number) => {
+        const template = item.assessmentTemplate || item.template || {};
+        const rawStatus = String(item.status || '').toLowerCase();
+        const normalizedStatus = rawStatus === 'completed' ? 'Completed' : 'In Progress';
+        const rawDate = item.completedAt || item.createdAt || item.updatedAt;
+        const parsedDate = rawDate ? new Date(rawDate) : null;
+
+        return {
+            id: String(item.id || item._id || index),
+            name: template.title || template.name || 'Assessment',
+            date: parsedDate && !Number.isNaN(parsedDate.getTime())
+                ? parsedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                : '-',
+            status: normalizedStatus,
+            score: item.score ?? item.totalScore ?? null,
+        };
+    });
+
+    const filteredAssessments = assessments.filter(a => {
         const matchesSearch = a.name.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesStatus = statusFilter === 'all' || a.status === statusFilter;
-        const matchesDate = !dateFilter || new Date(a.date).toDateString() === dateFilter.toDateString();
+        const matchesDate = !dateFilter || (a.date !== '-' && new Date(a.date).toDateString() === dateFilter.toDateString());
         return matchesSearch && matchesStatus && matchesDate;
     });
 
@@ -82,7 +112,26 @@ export function ClientAssessmentsPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border/40">
-                                    {filteredAssessments.length > 0 ? (
+                                    {isLoading ? (
+                                        <tr>
+                                            <td colSpan={5} className="px-6 py-10 text-center text-muted-foreground italic">
+                                                Loading assessments...
+                                            </td>
+                                        </tr>
+                                    ) : isError ? (
+                                        <tr>
+                                            <td colSpan={5} className="px-6 py-10 text-center">
+                                                <div className="space-y-3">
+                                                    <p className="text-destructive">
+                                                        {(error as any)?.data?.message || 'Failed to load assessments.'}
+                                                    </p>
+                                                    <Button variant="outline" size="sm" onClick={() => refetch()}>
+                                                        Retry
+                                                    </Button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ) : filteredAssessments.length > 0 ? (
                                         filteredAssessments.map((assessment) => (
                                             <tr
                                                 key={assessment.id}
@@ -130,7 +179,20 @@ export function ClientAssessmentsPage() {
 
                 {/* Mobile Card View */}
                 <div className="md:hidden space-y-4">
-                    {filteredAssessments.length > 0 ? (
+                    {isLoading ? (
+                        <div className="text-center py-10 text-muted-foreground italic bg-white rounded-3xl border border-dashed border-border/40">
+                            Loading assessments...
+                        </div>
+                    ) : isError ? (
+                        <div className="text-center py-10 bg-white rounded-3xl border border-dashed border-border/40 space-y-3">
+                            <p className="text-destructive text-sm">
+                                {(error as any)?.data?.message || 'Failed to load assessments.'}
+                            </p>
+                            <Button variant="outline" size="sm" onClick={() => refetch()}>
+                                Retry
+                            </Button>
+                        </div>
+                    ) : filteredAssessments.length > 0 ? (
                         filteredAssessments.map((assessment) => (
                             <Card
                                 key={assessment.id}

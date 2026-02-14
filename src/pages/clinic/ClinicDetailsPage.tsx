@@ -1,25 +1,37 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { MapPin, Globe, Mail, Phone, Upload, Check } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
 import { useData } from '../../context/DataContext';
 import { cn } from '../../lib/utils';
-import { useGetClinicQuery } from '../../redux/api/clientsApi';
+import { useGetClinicQuery, useUpdateClinicMutation } from '../../redux/api/clientsApi';
 
 export function ClinicDetailsPage() {
     const { branding, updateBranding } = useData();
-    const { data: clinicResponse, isLoading: clinicLoading, isError: clinicError } = useGetClinicQuery();
+    const { data: clinicResponse, isLoading: clinicLoading, isError: clinicError, refetch: refetchClinic } = useGetClinicQuery();
+    const [updateClinicMutation] = useUpdateClinicMutation();
     const clinic = clinicResponse?.response?.data;
     const clinicAddress = clinic?.address || {};
     const [isLoading, setIsLoading] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
+    const [saveError, setSaveError] = useState<string>('');
     const [tempLogo, setTempLogo] = useState<string | null>(branding.logo);
-    const [tempColor, setTempColor] = useState(branding.color);
+    const [tempLogoFile, setTempLogoFile] = useState<File | null>(null);
+    const [tempColor, setTempColor] = useState(branding.color || '#0066FF');
+    const [clinicNameInput, setClinicNameInput] = useState('');
+
+    useEffect(() => {
+        if (!clinic) return;
+        setClinicNameInput(clinic.name || '');
+        setTempColor(clinic.color || branding.color || '#0066FF');
+        setTempLogo(clinic.logo || branding.logo || null);
+    }, [clinic, branding.color, branding.logo]);
 
     const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            setTempLogoFile(file);
             const reader = new FileReader();
             reader.onloadend = () => {
                 setTempLogo(reader.result as string);
@@ -28,15 +40,35 @@ export function ClinicDetailsPage() {
         }
     };
 
-    const handleSave = (e: React.FormEvent) => {
+    const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
+        setSaveError('');
         setIsLoading(true);
-        updateBranding(tempLogo, tempColor);
-        setTimeout(() => {
+
+        try {
+            const formData = new FormData();
+            formData.append('name', clinicNameInput || clinic?.name || '');
+            formData.append('color', tempColor);
+            if (tempLogoFile) {
+                formData.append('logo', tempLogoFile);
+            }
+
+            const response = await updateClinicMutation(formData).unwrap();
+            const updatedClinic = response?.response?.data;
+
+            updateBranding(
+                updatedClinic?.logo || tempLogo,
+                updatedClinic?.color || tempColor
+            );
+            await refetchClinic();
+
             setIsLoading(false);
             setIsSaved(true);
             setTimeout(() => setIsSaved(false), 2000);
-        }, 1000);
+        } catch (error: any) {
+            setIsLoading(false);
+            setSaveError(error?.data?.message || 'Failed to save clinic branding.');
+        }
     };
 
     const PRESET_COLORS = [
@@ -48,7 +80,7 @@ export function ClinicDetailsPage() {
         '#0F172A'
     ];
 
-    const clinicName = clinic?.name || '';
+    const clinicName = clinicNameInput;
     const clinicEmail = clinic?.email || '';
     const clinicPhone = clinic?.phoneNumber || '';
     const clinicWebsite = '';
@@ -78,7 +110,7 @@ export function ClinicDetailsPage() {
                             )}
                             {!clinicLoading && !clinicError && (
                                 <>
-                                    <Input label="Clinic Name" value={clinicName} readOnly />
+                                    <Input label="Clinic Name" value={clinicName} onChange={(e) => setClinicNameInput(e.target.value)} />
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <Input label="Phone Number" value={clinicPhone} icon={<Phone className="h-4 w-4" />} readOnly />
                                         <Input label="Email Address" value={clinicEmail} icon={<Mail className="h-4 w-4" />} readOnly />
@@ -128,7 +160,10 @@ export function ClinicDetailsPage() {
                                         <img src={tempLogo} alt="Clinic Logo" className="h-24 w-24 rounded-xl object-contain shadow-md" />
                                         <button
                                             type="button"
-                                            onClick={() => setTempLogo(null)}
+                                            onClick={() => {
+                                                setTempLogo(null);
+                                                setTempLogoFile(null);
+                                            }}
                                             className="absolute -top-2 -right-2 p-1 bg-destructive text-white rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
                                         >
                                             <Upload className="h-3 w-3 rotate-180" />
@@ -203,6 +238,9 @@ export function ClinicDetailsPage() {
                             )}
                         </Button>
                     </div>
+                    {saveError && (
+                        <p className="text-sm text-destructive">{saveError}</p>
+                    )}
                 </div>
             </div>
         </form>

@@ -45,7 +45,9 @@ export function OutcomeMeasuresReportModal({ isOpen, onClose, data, clientName }
 
     if (!data) return null;
 
-    const avgScore = Math.round(data.reduce((acc: number, p: any) => acc + p.y, 0) / data.length);
+    const avgScore = data.length > 0
+        ? Math.round(data.reduce((acc: number, p: any) => acc + p.y, 0) / data.length)
+        : 0;
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Clinical Progress Overview" size="xl">

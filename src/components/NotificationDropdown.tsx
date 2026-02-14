@@ -2,7 +2,7 @@ import { Check, Clock } from 'lucide-react';
 import { Button } from './ui/Button';
 
 interface Notification {
-    id: number;
+    id: string | number;
     title: string;
     desc: string;
     time: string;
@@ -12,7 +12,7 @@ interface Notification {
 interface NotificationDropdownProps {
     notifications: Notification[];
     onMarkAllRead: () => void;
-    onRead: (id: number) => void;
+    onRead: (id: string | number) => void;
 }
 
 export function NotificationDropdown({ notifications, onMarkAllRead, onRead }: NotificationDropdownProps) {

@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useOutletContext, useParams } from 'react-router-dom';
 import { OutcomeMeasuresGraph } from '../../components/charts/OutcomeMeasuresGraph';
 import { Select } from '../../components/ui/Select';
 import { Card, CardContent } from '../../components/ui/Card';
@@ -6,79 +7,177 @@ import { TrendingUp, Activity, BarChart3, ArrowUpRight, ArrowDownRight, ChevronR
 import { cn } from '../../lib/utils';
 import { OutcomeMeasuresReportModal } from '../../components/modals/OutcomeMeasuresReportModal';
 import { DatePicker } from '../../components/ui/DatePicker';
+import { useGetAssessmentProgressQuery } from '../../redux/api/assessmentApi';
+import { Button } from '../../components/ui/Button';
+
+type UiFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+const frequencyLabelMap: Record<UiFrequency, string> = {
+    daily: 'Daily',
+    weekly: 'Weekly',
+    monthly: 'Monthly',
+    yearly: 'Yearly',
+};
+
+const formatDateInput = (iso?: string) => {
+    if (!iso) return '';
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toISOString().split('T')[0];
+};
+
+const formatDateDisplay = (dateStr?: string) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('en-US');
+};
+
+const toNumber = (value: unknown, fallback = 0) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const resolveTrendValue = (point: any) => {
+    return toNumber(
+        point?.score ??
+        point?.value ??
+        point?.averageSeverityScore ??
+        point?.avgScore ??
+        point?.severityScore,
+        0
+    );
+};
+
+const resolveTrendDate = (point: any) =>
+    point?.date ??
+    point?.period ??
+    point?.timestamp ??
+    point?.createdAt ??
+    point?.label;
+
+const formatTrendLabel = (dateString: string, frequency: UiFrequency) => {
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return dateString;
+
+    if (frequency === 'daily') return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    if (frequency === 'weekly') return `W${Math.ceil(date.getDate() / 7)}`;
+    if (frequency === 'yearly') return date.toLocaleDateString('en-US', { year: 'numeric' });
+    return date.toLocaleDateString('en-US', { month: 'short' });
+};
 
 export function OutcomeMeasuresPage() {
-    const [frequency, setFrequency] = useState('Monthly');
+    const { id: clientId } = useParams();
+    const outletContext = useOutletContext<{ client?: { name?: string } }>();
+
+    const [frequency, setFrequency] = useState<UiFrequency>('monthly');
     const [isReportOpen, setIsReportOpen] = useState(false);
     const [startDate, setStartDate] = useState('2025-01-01');
     const [endDate, setEndDate] = useState('2025-12-31');
+    const [isFilterHydratedFromApi, setIsFilterHydratedFromApi] = useState(false);
 
-    // Frequency Mapping logic
-    const getFrequencyData = (freq: string) => {
-        const points = [];
-        const count = freq === 'Daily' ? 30 : freq === 'Weekly' ? 12 : freq === 'Monthly' ? 12 : 5;
-        const labels = {
-            Daily: Array.from({ length: 30 }, (_, i) => `${i + 1} Dec`),
-            Weekly: Array.from({ length: 12 }, (_, i) => `W${i + 1}`),
-            Monthly: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-            Yearly: ['2021', '2022', '2023', '2024', '2025']
-        }[freq] || [];
+    const {
+        data: progressResponse,
+        isLoading,
+        isError,
+        error,
+        refetch,
+    } = useGetAssessmentProgressQuery(
+        {
+            clientId: clientId as string,
+            startDate,
+            endDate,
+            frequency,
+        },
+        { skip: !clientId }
+    );
 
-        let lastY = 12;
-        for (let i = 0; i < count; i++) {
-            const delta = (Math.random() - 0.48) * 6;
-            const y = Math.max(2, Math.min(27, Math.round(lastY + delta)));
-            lastY = y;
-            points.push({
-                x: (i / (count - 1)) * 96 + 2,
-                y: y,
-                date: freq === 'Daily' ? `2024-12-${String(i + 1).padStart(2, '0')}` : '2025-01-20',
-                label: labels[i % labels.length]
-            });
+    const progressData = progressResponse?.response?.data;
+
+    useEffect(() => {
+        if (!progressData || isFilterHydratedFromApi) return;
+
+        const responseFrequency = (progressData.frequency || '').toLowerCase() as UiFrequency;
+        if (responseFrequency && ['daily', 'weekly', 'monthly', 'yearly'].includes(responseFrequency)) {
+            setFrequency(responseFrequency);
         }
-        return points;
-    };
 
-    const graphData = useMemo(() => getFrequencyData(frequency), [frequency]);
+        const responseStart = formatDateInput(progressData.dateRange?.startDate);
+        const responseEnd = formatDateInput(progressData.dateRange?.endDate);
+        if (responseStart) setStartDate(responseStart);
+        if (responseEnd) setEndDate(responseEnd);
+
+        setIsFilterHydratedFromApi(true);
+    }, [progressData, isFilterHydratedFromApi]);
+
+    const graphData = useMemo(() => {
+        const trends = progressData?.trends || [];
+        if (trends.length === 0) return [];
+
+        return trends.map((trend: any, index: number) => {
+            const rawDate = resolveTrendDate(trend) || startDate;
+            const y = Math.max(0, Math.min(27, resolveTrendValue(trend)));
+            return {
+                x: trends.length === 1 ? 50 : (index / (trends.length - 1)) * 96 + 2,
+                y,
+                date: formatDateDisplay(rawDate) || rawDate,
+                label: trend?.label || formatTrendLabel(rawDate, frequency),
+            };
+        });
+    }, [progressData?.trends, frequency, startDate]);
 
     const stats = useMemo(() => {
-        const avg = Math.round(graphData.reduce((acc, p) => acc + p.y, 0) / graphData.length);
+        const trendPercentage = toNumber(progressData?.longitudinalTrend?.percentageChange, 0);
+        const trendDirection = (progressData?.longitudinalTrend?.direction || 'stable').toLowerCase();
+        const averageSeverity = toNumber(progressData?.clinicalStabilization?.averageSeverityScore, 0);
+        const attendanceRate = toNumber(progressData?.protocolAdherence?.attendanceRate, 0);
+        const totalAppointments = toNumber(progressData?.protocolAdherence?.totalAppointments, 0);
+        const completedAppointments = toNumber(progressData?.protocolAdherence?.completedAppointments, 0);
+
+        const trendBadge = trendDirection === 'increase' ? 'up' : trendDirection === 'decrease' ? 'down' : 'none';
+
         return [
             {
                 label: 'Longitudinal Trend',
-                value: '+18.4%',
+                value: `${trendPercentage > 0 ? '+' : ''}${trendPercentage.toFixed(1)}%`,
                 icon: TrendingUp,
                 color: 'text-emerald-500',
-                trend: 'up',
+                trend: trendBadge,
                 isPrimary: true,
-                sub: 'Clinical Stabilization'
+                sub: `Clinical ${progressData?.clinicalStabilization?.currentSeverityLevel || 'stabilization'}`
             },
             {
                 label: 'Avg. Severity Score',
-                value: avg.toString(),
+                value: averageSeverity.toString(),
                 icon: BarChart3,
                 color: 'text-slate-900',
                 trend: 'none',
-                sub: 'Protocol Adherence'
+                sub: `${progressData?.totalAssessments || 0} assessments`
             },
             {
                 label: 'Clinical Adherence',
-                value: '94%',
+                value: `${attendanceRate}%`,
                 icon: Activity,
                 color: 'text-primary',
-                trend: 'up',
-                sub: '92% attendance'
+                trend: attendanceRate > 0 ? 'up' : 'none',
+                sub: `${completedAppointments}/${totalAppointments} appointments`
             },
             {
                 label: 'Frequency',
-                value: frequency,
+                value: frequencyLabelMap[(progressData?.frequency as UiFrequency) || frequency] || frequencyLabelMap[frequency],
                 icon: CalendarIcon,
                 color: 'text-slate-900',
                 trend: 'none',
                 sub: 'Reporting Active'
             }
         ];
-    }, [graphData, frequency]);
+    }, [progressData, frequency]);
+
+    const clientName = progressData?.clientName || outletContext?.client?.name || 'Client';
+    const dateRange = {
+        start: formatDateDisplay(progressData?.dateRange?.startDate || startDate) || 'N/A',
+        end: formatDateDisplay(progressData?.dateRange?.endDate || endDate) || 'N/A',
+    };
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -100,12 +199,12 @@ export function OutcomeMeasuresPage() {
                         <Select
                             label="Frequency"
                             value={frequency}
-                            onChange={(e) => setFrequency(e.target.value)}
+                            onChange={(e) => setFrequency(e.target.value as UiFrequency)}
                             options={[
-                                { value: 'Daily', label: 'Daily Analysis' },
-                                { value: 'Weekly', label: 'Weekly Summary' },
-                                { value: 'Monthly', label: 'Monthly Trends' },
-                                { value: 'Yearly', label: 'Yearly Overview' }
+                                { value: 'daily', label: 'Daily Analysis' },
+                                { value: 'weekly', label: 'Weekly Summary' },
+                                { value: 'monthly', label: 'Monthly Trends' },
+                                { value: 'yearly', label: 'Yearly Overview' }
                             ]}
                         />
                     </div>
@@ -114,14 +213,14 @@ export function OutcomeMeasuresPage() {
                         <div className="flex-1 lg:w-[180px]">
                             <DatePicker
                                 label="Start Date"
-                                date={new Date(startDate)}
+                                date={startDate ? new Date(startDate) : undefined}
                                 setDate={(d) => setStartDate(d ? d.toISOString().split('T')[0] : '')}
                             />
                         </div>
                         <div className="flex-1 lg:w-[180px]">
                             <DatePicker
                                 label="End Date"
-                                date={new Date(endDate)}
+                                date={endDate ? new Date(endDate) : undefined}
                                 setDate={(d) => setEndDate(d ? d.toISOString().split('T')[0] : '')}
                             />
                         </div>
@@ -170,15 +269,27 @@ export function OutcomeMeasuresPage() {
                 ))}
             </div>
 
+            {isError && (
+                <Card>
+                    <CardContent className="p-4 flex items-center justify-between gap-3">
+                        <p className="text-sm text-destructive">
+                            Failed to load progress data: {(error as any)?.data?.message || 'Unknown error'}
+                        </p>
+                        <Button variant="outline" size="sm" onClick={() => refetch()}>
+                            Retry
+                        </Button>
+                    </CardContent>
+                </Card>
+            )}
+
             {/* Main Graph Component */}
             <div className="animate-in fade-in duration-700">
                 <OutcomeMeasuresGraph
                     data={graphData}
                     onExport={() => setIsReportOpen(true)}
-                    dateRange={{
-                        start: '01/01/2025',
-                        end: '12/31/2025'
-                    }}
+                    dateRange={dateRange}
+                    insight={progressData?.insights}
+                    isLoading={isLoading}
                 />
             </div>
 
@@ -186,7 +297,7 @@ export function OutcomeMeasuresPage() {
                 isOpen={isReportOpen}
                 onClose={() => setIsReportOpen(false)}
                 data={graphData}
-                clientName="Johnathan Doe"
+                clientName={clientName}
             />
         </div>
     );
