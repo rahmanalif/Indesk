@@ -599,7 +599,7 @@ export interface GetClientByIdResponse {
   };
 }
 
-interface UpdateClientResponse extends CreateClientResponse {}
+type UpdateClientResponse = CreateClientResponse;
 
 export interface CreateClinicalNoteRequest {
   clientId: string;

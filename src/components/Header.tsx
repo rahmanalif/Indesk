@@ -6,7 +6,7 @@ import { Avatar } from './ui/Avatar';
 import { cn } from '../lib/utils';
 import { SearchDropdown } from './SearchDropdown';
 import { NotificationDropdown } from './NotificationDropdown';
-import { useData } from '../context/DataContext';
+import { useAuth } from '../hooks/useAuth';
 import { navItems } from '../config/navigation';
 import {
   useGetNotificationsQuery,
@@ -24,7 +24,12 @@ export function Header({
 }: HeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentUser, logout } = useData();
+  const { user, logout } = useAuth();
+  const displayName =
+    [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() ||
+    user?.email ||
+    'User';
+  const displaySubtitle = user?.email || user?.role || 'User';
 
   // --- Mobile Menu State ---
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -189,10 +194,10 @@ export function Header({
           <Link to="/profile">
             <div className="flex items-center gap-3 pl-1 cursor-pointer hover:opacity-80 transition-all duration-200 group">
               <div className="text-right hidden lg:block">
-                <p className="text-sm font-bold leading-none group-hover:text-primary transition-colors">{currentUser?.name || 'User'}</p>
-                <p className="text-[10px] text-muted-foreground mt-1 font-bold uppercase tracking-widest opacity-70">{currentUser?.email || currentUser?.role || 'User'}</p>
+                <p className="text-sm font-bold leading-none group-hover:text-primary transition-colors">{displayName}</p>
+                <p className="text-[10px] text-muted-foreground mt-1 font-bold uppercase tracking-widest opacity-70">{displaySubtitle}</p>
               </div>
-              <Avatar fallback={currentUser?.name?.[0] || 'U'} className="bg-primary/10 text-primary border-2 border-white shadow-sm ring-2 ring-transparent group-hover:ring-primary/20 h-9 w-9 transition-all" />
+              <Avatar fallback={displayName[0] || 'U'} className="bg-primary/10 text-primary border-2 border-white shadow-sm ring-2 ring-transparent group-hover:ring-primary/20 h-9 w-9 transition-all" />
             </div>
           </Link>
         </div>
@@ -263,7 +268,6 @@ export function Header({
               className="w-full justify-start gap-3 h-12 rounded-xl text-destructive hover:bg-destructive/10"
               onClick={() => {
                 logout();
-                navigate('/login');
                 setIsMobileMenuOpen(false);
               }}
             >

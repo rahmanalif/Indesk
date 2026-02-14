@@ -163,7 +163,8 @@ function seedAppointmentsFromClients(clients: any[]): Appointment[] {
                 const dayVal = dateParts[1].padStart(2, '0');
 
                 const timeParts = parts[1].split(' ');
-                let [hours, mins] = timeParts[0].split(':');
+                const [rawHours, mins] = timeParts[0].split(':');
+                let hours = rawHours;
                 const period = timeParts[1]; // AM/PM
                 if (period === 'PM' && hours !== '12') hours = String(parseInt(hours) + 12);
                 if (period === 'AM' && hours === '12') hours = '00';
