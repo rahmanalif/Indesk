@@ -321,6 +321,7 @@ export function FormsPage() {
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
         documentName={selectedForm?.name}
+        templateId={selectedForm?.id}
       />
     </div>
   );

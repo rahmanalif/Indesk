@@ -639,7 +639,12 @@ export function FormDetailsPage() {
                 </CardContent>
             </Card>
 
-            <ShareDocumentModal isOpen={isShareModalOpen} onClose={() => setIsShareModalOpen(false)} documentName={aboutData.displayName} />
+            <ShareDocumentModal
+                isOpen={isShareModalOpen}
+                onClose={() => setIsShareModalOpen(false)}
+                documentName={aboutData.displayName}
+                templateId={templateId}
+            />
         </div>
     );
 }

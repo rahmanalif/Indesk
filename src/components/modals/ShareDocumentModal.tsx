@@ -4,24 +4,34 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Select } from '../ui/Select';
 import { cn } from '../../lib/utils';
+import { useCreateAssessmentInstanceMutation } from '../../redux/api/assessmentApi';
+import { useGetClientsQuery } from '../../redux/api/clientsApi';
 
 interface ShareDocumentModalProps {
     isOpen: boolean;
     onClose: () => void;
     documentName?: string;
+    templateId?: string;
 }
 
 interface SharedDoc {
     id: string;
     name: string;
     type: string;
+    file?: File;
 }
 
-export function ShareDocumentModal({ isOpen, onClose, documentName = 'ACE: Adverse Childhood Experiences Questionnaire' }: ShareDocumentModalProps) {
+export function ShareDocumentModal({ isOpen, onClose, documentName = 'ACE: Adverse Childhood Experiences Questionnaire', templateId }: ShareDocumentModalProps) {
     const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
     const [instructions, setInstructions] = useState('');
-    const [isSending, setIsSending] = useState(false);
     const [isSent, setIsSent] = useState(false);
+    const [sendError, setSendError] = useState<string | null>(null);
+    const [createAssessmentInstance, { isLoading }] = useCreateAssessmentInstanceMutation();
+    const { data: clientsData, isLoading: clientsLoading, isError: clientsError } = useGetClientsQuery({
+        page: 1,
+        limit: 100,
+        status: 'active',
+    });
 
     const [includedDocs, setIncludedDocs] = useState<SharedDoc[]>([
         { id: '1', name: documentName, type: 'Clinical Outcome Measure' }
@@ -29,17 +39,35 @@ export function ShareDocumentModal({ isOpen, onClose, documentName = 'ACE: Adver
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleSend = () => {
-        if (!selectedPatient || includedDocs.length === 0) return;
-        setIsSending(true);
-        setTimeout(() => {
-            setIsSending(false);
+    const handleSend = async () => {
+        if (!selectedPatient || !templateId || includedDocs.length === 0) return;
+        setSendError(null);
+
+        let documentFile: File | undefined;
+        for (let i = includedDocs.length - 1; i >= 0; i -= 1) {
+            const docFile = includedDocs[i].file;
+            if (docFile) {
+                documentFile = docFile;
+                break;
+            }
+        }
+
+        try {
+            await createAssessmentInstance({
+                clientId: selectedPatient,
+                templateId,
+                note: instructions.trim() ? instructions.trim() : undefined,
+                document: documentFile,
+            }).unwrap();
             setIsSent(true);
             setTimeout(() => {
                 onClose();
                 setIsSent(false);
             }, 2000);
-        }, 1500);
+        } catch (err: any) {
+            const message = err?.data?.message || 'Unable to distribute assessment. Please try again.';
+            setSendError(message);
+        }
     };
 
     const handleUploadClick = () => {
@@ -53,15 +81,40 @@ export function ShareDocumentModal({ isOpen, onClose, documentName = 'ACE: Adver
             const newDoc: SharedDoc = {
                 id: Date.now().toString(),
                 name: file.name,
-                type: 'Uploaded Resource'
+                type: 'Uploaded Resource',
+                file
             };
-            setIncludedDocs([...includedDocs, newDoc]);
+            setIncludedDocs((prev) => [...prev, newDoc]);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
         }
     };
 
     const removeDoc = (id: string) => {
         setIncludedDocs(includedDocs.filter(d => d.id !== id));
     };
+
+    const clients = clientsData?.response?.data?.docs ?? [];
+    const clientOptions = clientsLoading
+        ? [{ value: '', label: 'Loading clients...' }]
+        : clientsError
+            ? [{ value: '', label: 'Unable to load clients' }]
+            : clients.length === 0
+                ? [{ value: '', label: 'No clients found' }]
+                : [
+                    { value: '', label: 'Select Client...' },
+                    ...clients.map((client: any) => {
+                        const fullName = `${client.firstName ?? ''} ${client.lastName ?? ''}`.trim();
+                        const username = client.username || client.user?.username;
+                        const primaryLabel = fullName || username || client.email || 'Unnamed client';
+                        const secondary = client.email && client.email !== primaryLabel ? ` - ${client.email}` : '';
+                        return {
+                            value: client.id,
+                            label: `${primaryLabel}${secondary}`,
+                        };
+                    }),
+                ];
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Clinical Portal Distribution" size="xl">
@@ -82,13 +135,9 @@ export function ShareDocumentModal({ isOpen, onClose, documentName = 'ACE: Adver
                             <Select
                                 value={selectedPatient || ''}
                                 onChange={(e) => setSelectedPatient(e.target.value)}
-                                options={[
-                                    { value: '', label: 'Select Client...' },
-                                    { value: '1', label: 'Sarah Connor (ID: SC-002)' },
-                                    { value: '2', label: 'John Doe (ID: JD-045)' },
-                                    { value: '3', label: 'Mike Miller (ID: MM-089)' }
-                                ]}
+                                options={clientOptions}
                                 className="h-12 border-none bg-muted/30 focus:ring-1 focus:ring-primary/20 rounded-xl font-medium text-foreground px-12"
+                                disabled={clientsLoading}
                             />
                         </div>
                     </div>
@@ -162,14 +211,19 @@ export function ShareDocumentModal({ isOpen, onClose, documentName = 'ACE: Adver
                 </div>
 
                 {/* Actions */}
-                <div className="flex justify-start pt-4">
+                <div className="flex flex-col gap-3 pt-4">
+                    {sendError && (
+                        <div className="text-sm text-red-600 font-medium">
+                            {sendError}
+                        </div>
+                    )}
                     <Button
                         onClick={handleSend}
-                        disabled={isSending || isSent || includedDocs.length === 0}
+                        disabled={isLoading || isSent || includedDocs.length === 0 || !selectedPatient || !templateId}
                         className={`h-12 px-10 rounded-xl font-bold transition-all shadow-lg ${isSent ? 'bg-green-600 hover:bg-green-600' : 'bg-primary hover:bg-primary/90 shadow-primary/20'
                             }`}
                     >
-                        {isSending ? (
+                        {isLoading ? (
                             <div className="flex items-center gap-3">
                                 <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                 Distributing...
