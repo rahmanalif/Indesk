@@ -13,13 +13,18 @@ interface ClinicianProfileModalProps {
 
 export function ClinicianProfileModal({ isOpen, onClose, clinician, onEdit }: ClinicianProfileModalProps) {
     if (!clinician) return null;
+    const specializationList = Array.isArray(clinician.specialization) && clinician.specialization.length > 0
+        ? clinician.specialization
+        : (typeof clinician.specialty === 'string'
+            ? clinician.specialty.split(',').map((item: string) => item.trim()).filter(Boolean)
+            : []);
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Clinician Profile" size="lg">
             <div className="space-y-6 mt-2">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row gap-6 items-start">
-                    <Avatar fallback={clinician.name[0]} className="h-24 w-24 text-2xl border-4 border-white shadow-sm bg-primary/10 text-primary">
+                    <Avatar src={clinician.avatar} fallback={clinician.name[0]} className="h-24 w-24 text-2xl border-4 border-white shadow-sm bg-primary/10 text-primary">
                         {clinician.name.split(' ').map((n: string) => n[0]).join('')}
                     </Avatar>
                     <div className="space-y-2 flex-1">
@@ -38,7 +43,7 @@ export function ClinicianProfileModal({ isOpen, onClose, clinician, onEdit }: Cl
                                 <Mail className="h-3 w-3" /> {clinician.email}
                             </span>
                             <span className="flex items-center gap-1.5 bg-muted/50 px-2 py-1 rounded">
-                                <Phone className="h-3 w-3" /> {clinician.phone}
+                                <Phone className="h-3 w-3" /> {clinician.phoneNumber || 'N/A'}
                             </span>
                         </div>
                     </div>
@@ -48,7 +53,7 @@ export function ClinicianProfileModal({ isOpen, onClose, clinician, onEdit }: Cl
                 <div className="space-y-2">
                     <h4 className="text-sm font-semibold text-foreground">Professional Bio</h4>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                        {clinician.bio}
+                        {clinician.bio || 'No bio provided.'}
                     </p>
                 </div>
 
@@ -67,10 +72,12 @@ export function ClinicianProfileModal({ isOpen, onClose, clinician, onEdit }: Cl
                 {/* Specialization */}
                 <div className="space-y-2 pt-2">
                     <h4 className="text-sm font-semibold text-foreground">Specializations</h4>
-                    <div className="flex gap-2">
-                        <Badge variant="outline">{clinician.specialty}</Badge>
-                        <Badge variant="outline">Anxiety</Badge>
-                        <Badge variant="outline">CBT</Badge>
+                    <div className="flex gap-2 flex-wrap">
+                        {specializationList.length > 0 ? specializationList.map((item: string) => (
+                            <Badge key={item} variant="outline">{item}</Badge>
+                        )) : (
+                            <Badge variant="outline">{clinician.role || 'General'}</Badge>
+                        )}
                     </div>
                 </div>
 

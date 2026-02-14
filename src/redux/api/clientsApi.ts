@@ -215,6 +215,7 @@ export interface ClinicDetails {
   id: string;
   name: string;
   email: string;
+  url?: string | null;
   phoneNumber: string | null;
   countryCode: string | null;
   address: Record<string, any>;
@@ -257,6 +258,24 @@ export interface UpdateClinicResponse {
   response?: {
     data?: ClinicDetails;
   };
+}
+
+export interface UpdateClinicAddress {
+  street?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+}
+
+export interface UpdateClinicRequest {
+  name: string;
+  email: string;
+  color?: string;
+  phoneNumber?: string;
+  countryCode?: string;
+  url?: string;
+  address?: UpdateClinicAddress;
+  logo?: File | null;
 }
 
 export interface InvoiceStatsResponse {
@@ -727,15 +746,35 @@ export const clientsApi = createApi({
       invalidatesTags: ['Clients'],
     }),
 
-    updateClinic: builder.mutation<UpdateClinicResponse, FormData>({
-      query: (body) => ({
-        url: '/clinic',
-        method: 'PUT',
-        body,
-        headers: {
-          'x-skip-content-type': 'true',
-        },
-      }),
+    updateClinic: builder.mutation<UpdateClinicResponse, UpdateClinicRequest>({
+      query: ({ logo, ...body }) => {
+        if (logo) {
+          const formData = new FormData();
+          formData.append('name', body.name);
+          formData.append('email', body.email);
+          if (body.color) formData.append('color', body.color);
+          if (body.phoneNumber) formData.append('phoneNumber', body.phoneNumber);
+          if (body.countryCode) formData.append('countryCode', body.countryCode);
+          if (body.url) formData.append('url', body.url);
+          if (body.address) formData.append('address', JSON.stringify(body.address));
+          formData.append('logo', logo);
+
+          return {
+            url: '/clinic',
+            method: 'PUT',
+            body: formData,
+            headers: {
+              'x-skip-content-type': 'true',
+            },
+          };
+        }
+
+        return {
+          url: '/clinic',
+          method: 'PUT',
+          body,
+        };
+      },
       invalidatesTags: ['Clients'],
     }),
 

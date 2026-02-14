@@ -24,6 +24,13 @@ export function CliniciansPage() {
     const dropdownRef = useRef<HTMLDivElement>(null);
     const { data: clinicResponse, isLoading: clinicLoading, isError: clinicError } = useGetClinicQuery();
     const clinicMembers = clinicResponse?.response?.data?.members || [];
+    const apiOrigin = (() => {
+        try {
+            return new URL(import.meta.env.VITE_CLIENTS_API_BASE_URL).origin;
+        } catch {
+            return '';
+        }
+    })();
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -68,17 +75,27 @@ export function CliniciansPage() {
         const specialty = Array.isArray(member.specialization) && member.specialization.length > 0
             ? member.specialization.join(', ')
             : member.role || 'Clinician';
+        const avatarPath = member.user?.avatar || '';
+        const avatar = avatarPath
+            ? (avatarPath.startsWith('http')
+                ? avatarPath
+                : avatarPath.startsWith('/uploads/')
+                    ? `${apiOrigin}/public${avatarPath}`
+                    : `${apiOrigin}${avatarPath}`)
+            : undefined;
+        const phone = `${member.user?.countryCode || ''}${member.user?.phoneNumber || ''}`.trim();
 
         return {
             id: member.id as string,
             name,
             role: member.role || 'Clinician',
             email: member.user?.email || '',
-            phoneNumber: member.user?.phoneNumber || '',
+            avatar,
+            phoneNumber: phone,
             bio: member.user?.bio || '',
             availability: Array.isArray(member.availability) ? member.availability : [],
             specialization: Array.isArray(member.specialization) ? member.specialization : [],
-            status: 'Available',
+            status: member.user?.isOnline ? 'Available' : 'Offline',
             specialty,
             clients: '-',
         };
@@ -152,7 +169,7 @@ export function CliniciansPage() {
                         <CardContent className="p-6">
                             <div className="flex flex-col items-center text-center">
                                 <div className="relative mb-4">
-                                    <Avatar fallback={clinician.name[0]} className="h-24 w-24 text-2xl border-4 border-white shadow-sm bg-primary/10 text-primary">
+                                    <Avatar src={clinician.avatar} fallback={clinician.name[0]} className="h-24 w-24 text-2xl border-4 border-white shadow-sm bg-primary/10 text-primary">
                                         {clinician.name.split(' ').map((n: string) => n[0]).join('')}
                                     </Avatar>
                                 <div className={`absolute bottom-0 right-0 h-5 w-5 rounded-full border-2 border-white 

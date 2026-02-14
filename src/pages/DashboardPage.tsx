@@ -253,8 +253,8 @@ export function DashboardPage() {
             </Button>
           </div>
         </CardHeader>
-        {!isCliniciansCollapsed && (
-          <CardContent className="p-0 flex-1 overflow-y-auto">
+        <CardContent className="p-0 flex-1 overflow-y-auto">
+          {!isCliniciansCollapsed ? (
             <div className="p-2 space-y-1">
               {/* My Calendar Option (For Admin mainly, or self) */}
               <button
@@ -328,8 +328,54 @@ export function DashboardPage() {
                 );
               })}
             </div>
-          </CardContent>
-        )}
+          ) : (
+            <div className="p-2 flex flex-col items-center gap-2">
+              <button
+                onClick={() => myCalendarId && setSelectedClinicianId(myCalendarId)}
+                className={cn(
+                  "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors",
+                  isMyCalendarSelected
+                    ? "bg-primary text-white border-primary"
+                    : "bg-muted text-muted-foreground border-transparent hover:border-primary/20"
+                )}
+                title="My Calendar"
+                aria-label="My Calendar"
+              >
+                <Avatar fallback="Me" className="bg-transparent text-inherit text-xs" />
+              </button>
+
+              <div className="h-px w-8 bg-border/60 my-1" />
+
+              {clinicians.map((clinician: any) => {
+                const isSelected = selectedClinicianId !== null && String(selectedClinicianId) === String(clinician.id);
+                return (
+                  <button
+                    key={clinician.id}
+                    onClick={() => setSelectedClinicianId(clinician.id)}
+                    className={cn(
+                      "relative rounded-full p-0.5 border-2 transition-colors",
+                      isSelected ? "border-primary" : "border-transparent hover:border-primary/20"
+                    )}
+                    title={clinician.name}
+                    aria-label={clinician.name}
+                  >
+                    <Avatar
+                      src={clinician.avatar}
+                      alt={clinician.name}
+                      fallback={clinician.name?.[0] || 'C'}
+                      className="w-10 h-10"
+                    />
+                    <div className={cn(
+                      "absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white",
+                      clinician.status === 'Available' ? "bg-emerald-500" :
+                        clinician.status === 'In Session' ? "bg-amber-500" : "bg-slate-300"
+                    )} />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
         {/* Footer removed as we don't clear anymore */}
       </Card>
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { useChangePasswordMutation } from '../../redux/api/authApi';
 
 interface ChangePasswordModalProps {
     isOpen: boolean;
@@ -9,14 +10,45 @@ interface ChangePasswordModalProps {
 }
 
 export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
+    const [changePassword] = useChangePasswordMutation();
+    const [isLoading, setIsLoading] = useState(false);
     const [current, setCurrent] = useState('');
     const [newPass, setNewPass] = useState('');
     const [confirm, setConfirm] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // Mock password change
-        onClose();
+
+        if (!current || !newPass || !confirm) {
+            alert('Please fill in all password fields.');
+            return;
+        }
+
+        if (newPass !== confirm) {
+            alert('New password and confirm password do not match.');
+            return;
+        }
+
+        setIsLoading(true);
+        changePassword({
+            oldPassword: current,
+            newPassword: newPass,
+        })
+            .unwrap()
+            .then(() => {
+                alert('Password updated successfully.');
+                setCurrent('');
+                setNewPass('');
+                setConfirm('');
+                onClose();
+            })
+            .catch((error: any) => {
+                const message = error?.data?.message || 'Failed to update password.';
+                alert(message);
+            })
+            .finally(() => {
+                setIsLoading(false);
+            });
     };
 
     return (
@@ -51,7 +83,7 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
                 </div>
                 <div className="flex justify-end gap-3 pt-4 border-t mt-6">
                     <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-                    <Button type="submit">Update Password</Button>
+                    <Button type="submit" isLoading={isLoading}>Update Password</Button>
                 </div>
             </form>
         </Modal>
