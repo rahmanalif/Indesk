@@ -138,6 +138,23 @@ export interface GetAssessmentProgressResponse {
   };
 }
 
+export interface CreateAssessmentInstanceRequest {
+  clientId: string;
+  templateId: string;
+  note?: string;
+  document?: File | null;
+}
+
+export interface CreateAssessmentInstanceResponse {
+  success?: boolean;
+  status?: number;
+  message?: string;
+  response?: {
+    data?: unknown;
+  };
+  data?: unknown;
+}
+
 export interface GetAssessmentProgressParams {
   clientId: string;
   startDate?: string;
@@ -194,7 +211,7 @@ export const assessmentApi = createApi({
   reducerPath: 'assessmentApi',
   baseQuery: fetchBaseQuery({
     baseUrl: import.meta.env.VITE_AUTH_API_BASE_URL,
-    prepareHeaders: (headers, { getState }) => {
+    prepareHeaders: (headers, { getState, arg }) => {
       const state = getState() as RootState;
       const expiresAt = state.auth.tokens?.access?.expiresAt;
       const isReduxTokenValid = expiresAt ? new Date(expiresAt) > new Date() : true;
@@ -209,7 +226,14 @@ export const assessmentApi = createApi({
       if (token) {
         headers.set('Authorization', `Bearer ${token}`);
       }
-      headers.set('Content-Type', 'application/json');
+      const isFormData =
+        typeof arg === 'object' &&
+        arg !== null &&
+        'body' in arg &&
+        arg.body instanceof FormData;
+      if (!isFormData && !headers.has('Content-Type')) {
+        headers.set('Content-Type', 'application/json');
+      }
       return headers;
     },
   }),
@@ -270,11 +294,30 @@ export const assessmentApi = createApi({
         },
       }),
     }),
+    createAssessmentInstance: builder.mutation<CreateAssessmentInstanceResponse, CreateAssessmentInstanceRequest>({
+      query: ({ clientId, templateId, note, document }) => {
+        const formData = new FormData();
+        formData.append('clientId', clientId);
+        formData.append('templateId', templateId);
+        if (note) {
+          formData.append('note', note);
+        }
+        if (document) {
+          formData.append('document', document);
+        }
+        return {
+          url: 'assessment/instance',
+          method: 'POST',
+          body: formData,
+        };
+      },
+    }),
   }),
 });
 
 export const {
   useCreateAssessmentTemplateMutation,
+  useCreateAssessmentInstanceMutation,
   useGetAssessmentTemplatesQuery,
   useGetAssessmentTemplateByIdQuery,
   useGetAssessmentProgressQuery,
