@@ -82,6 +82,23 @@ export interface GetAssessmentTemplatesParams {
   sort?: string;
 }
 
+export interface CreateAssessmentInstanceRequest {
+  clientId: string;
+  templateId: string;
+  note?: string;
+  document?: File | null;
+}
+
+export interface CreateAssessmentInstanceResponse {
+  success?: boolean;
+  status?: number;
+  message?: string;
+  response?: {
+    data?: unknown;
+  };
+  data?: unknown;
+}
+
 export interface AssessmentProgressDateRange {
   startDate?: string;
   endDate?: string;
@@ -136,23 +153,6 @@ export interface GetAssessmentProgressResponse {
   response?: {
     data?: AssessmentProgressPayload;
   };
-}
-
-export interface CreateAssessmentInstanceRequest {
-  clientId: string;
-  templateId: string;
-  note?: string;
-  document?: File | null;
-}
-
-export interface CreateAssessmentInstanceResponse {
-  success?: boolean;
-  status?: number;
-  message?: string;
-  response?: {
-    data?: unknown;
-  };
-  data?: unknown;
 }
 
 export interface GetAssessmentProgressParams {
@@ -272,6 +272,24 @@ export const assessmentApi = createApi({
       }),
       invalidatesTags: [{ type: 'AssessmentTemplate', id: 'LIST' }],
     }),
+    createAssessmentInstance: builder.mutation<CreateAssessmentInstanceResponse, CreateAssessmentInstanceRequest>({
+      query: ({ clientId, templateId, note, document }) => {
+        const formData = new FormData();
+        formData.append('clientId', clientId);
+        formData.append('templateId', templateId);
+        if (note) {
+          formData.append('note', note);
+        }
+        if (document) {
+          formData.append('document', document);
+        }
+        return {
+          url: 'assessment/instance',
+          method: 'POST',
+          body: formData,
+        };
+      },
+    }),
     getAssessmentProgress: builder.query<GetAssessmentProgressResponse, GetAssessmentProgressParams>({
       query: ({ clientId, startDate, endDate, frequency }) => ({
         url: `assessment/progress/${clientId}`,
@@ -293,24 +311,6 @@ export const assessmentApi = createApi({
           sort,
         },
       }),
-    }),
-    createAssessmentInstance: builder.mutation<CreateAssessmentInstanceResponse, CreateAssessmentInstanceRequest>({
-      query: ({ clientId, templateId, note, document }) => {
-        const formData = new FormData();
-        formData.append('clientId', clientId);
-        formData.append('templateId', templateId);
-        if (note) {
-          formData.append('note', note);
-        }
-        if (document) {
-          formData.append('document', document);
-        }
-        return {
-          url: 'assessment/instance',
-          method: 'POST',
-          body: formData,
-        };
-      },
     }),
   }),
 });

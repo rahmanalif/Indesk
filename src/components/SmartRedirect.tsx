@@ -36,7 +36,7 @@ export function SmartRedirect({
 function getBestRoute(
     accessibleRoutes: any[], 
     preferredRoutes?: string[], 
-    fallbackPath: string = '/login'
+    fallbackPath = '/login'
 ): string {
     if (accessibleRoutes.length === 0) {
         return fallbackPath;

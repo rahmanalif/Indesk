@@ -12,6 +12,16 @@ import { ClientsReportModal } from '../components/modals/ClientsReportModal';
 import { Pagination } from '../components/ui/Pagination';
 import { useGetClientsQuery, useCreateClientMutation, type CreateClientRequest } from '../redux/api/clientsApi';
 
+type ClientRow = {
+  id: string;
+  name: string;
+  email: string;
+  status: 'Active' | 'Waiting List' | 'Inactive';
+  nextApt: string;
+  clinician: string;
+  rawClient: any;
+};
+
 export function ClientsPage() {
   const navigate = useNavigate();
   
@@ -57,7 +67,7 @@ export function ClientsPage() {
     return `${dateStr}, ${timeStr}`;
   };
 
-  const clients = useMemo(() => {
+  const clients = useMemo<ClientRow[]>(() => {
     if (!clientsData?.response?.data?.docs) return [];
 
     return clientsData.response.data.docs.map((client: any) => {
@@ -105,9 +115,7 @@ export function ClientsPage() {
     // 3. Client-side sort
     if (sortConfig) {
       result.sort((a, b) => {
-        // @ts-ignore
         const aValue = a[sortConfig.key];
-        // @ts-ignore
         const bValue = b[sortConfig.key];
 
         if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
