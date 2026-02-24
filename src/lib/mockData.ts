@@ -47,8 +47,13 @@ export const MOCK_CLINICIANS = [{
   phone: '+1 (555) 111-2222',
   clients: 24,
   status: 'Available',
-  specialty: 'Psycology',
-  bio: 'Expert in CBT and anxiety disorders.'
+  specialty: 'Psychology',
+  bio: 'Expert in Cognitive Behavioral Therapy (CBT) and anxiety disorders. Dr. Smith has over 12 years of clinical experience helping patients build resilience and healthy coping strategies.',
+  availability: [
+    { day: 'Monday', slots: ['09:00 AM', '10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM'] },
+    { day: 'Wednesday', slots: ['09:00 AM', '10:00 AM', '01:00 PM', '02:00 PM', '04:00 PM'] },
+    { day: 'Friday', slots: ['10:00 AM', '11:00 AM', '02:00 PM', '03:00 PM'] },
+  ]
 }, {
   id: 2,
   name: 'Dr. John Doe',
@@ -58,7 +63,12 @@ export const MOCK_CLINICIANS = [{
   clients: 18,
   status: 'In Session',
   specialty: 'Family Therapy',
-  bio: 'Specializes in family dynamics and child psychology.'
+  bio: 'Specializes in family dynamics and child psychology. Dr. Doe works with families to improve communication and resolve conflicts through evidence-based therapeutic approaches.',
+  availability: [
+    { day: 'Tuesday', slots: ['09:00 AM', '10:00 AM', '11:00 AM', '03:00 PM'] },
+    { day: 'Thursday', slots: ['09:00 AM', '11:00 AM', '01:00 PM', '02:00 PM', '03:00 PM'] },
+    { day: 'Saturday', slots: ['10:00 AM', '11:00 AM', '12:00 PM'] },
+  ]
 }, {
   id: 3,
   name: 'Dr. Emily White',
@@ -68,7 +78,12 @@ export const MOCK_CLINICIANS = [{
   clients: 12,
   status: 'Offline',
   specialty: 'Clinical Social Work',
-  bio: 'Focuses on community support and resource allocation.'
+  bio: 'Focuses on community support, trauma recovery, and resource allocation. Dr. White is passionate about holistic care and connecting clients with the support they need.',
+  availability: [
+    { day: 'Monday', slots: ['01:00 PM', '02:00 PM', '03:00 PM', '04:00 PM'] },
+    { day: 'Wednesday', slots: ['10:00 AM', '11:00 AM', '03:00 PM', '04:00 PM'] },
+    { day: 'Friday', slots: ['09:00 AM', '10:00 AM', '11:00 AM', '01:00 PM'] },
+  ]
 }];
 
 export const SESSION_TYPES = [{

@@ -67,6 +67,21 @@ interface DataContextType {
     addSessionType: (session: Omit<SessionType, 'id'>) => void;
     updateSessionType: (session: SessionType) => void;
     deleteSessionType: (id: number) => void;
+
+    // Public Share Link
+    clinicShareLink: string | null;
+    generateShareLink: () => string;
+    addPublicBooking: (info: {
+        name: string;
+        email: string;
+        phone: string;
+        clinicianName: string;
+        date: string;
+        time: string;
+        sessionType: string;
+        duration?: number;
+        invoiceNumber?: string;
+    }) => void;
 }
 
 // Initial Appointments (Syncing with mockup labels where possible)
@@ -163,8 +178,8 @@ function seedAppointmentsFromClients(clients: any[]): Appointment[] {
                 const dayVal = dateParts[1].padStart(2, '0');
 
                 const timeParts = parts[1].split(' ');
-                const [rawHours, mins] = timeParts[0].split(':');
-                let hours = rawHours;
+                const [hoursRaw, mins] = timeParts[0].split(':');
+                let hours = hoursRaw;
                 const period = timeParts[1]; // AM/PM
                 if (period === 'PM' && hours !== '12') hours = String(parseInt(hours) + 12);
                 if (period === 'AM' && hours === '12') hours = '00';
@@ -214,6 +229,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     const [clients, setClients] = useState<Client[]>(MOCK_CLIENTS as Client[]);
     const [appointments, setAppointments] = useState<Appointment[]>(seedAppointmentsFromClients(MOCK_CLIENTS));
+
+    const [clinicShareLink, setClinicShareLink] = useState<string | null>(() => {
+        return localStorage.getItem('clinic_share_link');
+    });
 
     const [branding, setBranding] = useState<{ logo: string | null; color: string }>(() => {
         const saved = localStorage.getItem('clinic_branding');
@@ -313,6 +332,54 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }));
     };
 
+    const generateShareLink = () => {
+        const token = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+        setClinicShareLink(token);
+        localStorage.setItem('clinic_share_link', token);
+        return token;
+    };
+
+    const addPublicBooking = (info: {
+        name: string;
+        email: string;
+        phone: string;
+        clinicianName: string;
+        date: string;
+        time: string;
+        sessionType: string;
+        duration?: number;
+        invoiceNumber?: string;
+    }) => {
+        const newClientId = Math.max(...clients.map(c => c.id), 0) + 1;
+        const newClient: Client = {
+            id: newClientId,
+            name: info.name,
+            email: info.email,
+            phone: info.phone,
+            address: 'Not provided',
+            status: 'Active',
+            nextApt: `${info.date}, ${info.time}`,
+            clinician: info.clinicianName,
+            gpName: '-',
+            insurance: '-',
+        };
+        setClients(prev => [...prev, newClient]);
+
+        const newApt = {
+            clientName: info.name,
+            clientId: newClientId,
+            clinician: info.clinicianName,
+            date: info.date,
+            time: info.time,
+            duration: info.duration || 50,
+            type: info.sessionType,
+            status: 'pending' as const,
+            color: 'bg-blue-100 border-blue-200 text-blue-700',
+            notes: `Booked via public portal.${info.invoiceNumber ? ` Invoice: ${info.invoiceNumber}` : ''}`,
+        };
+        setAppointments(prev => [...prev, { ...newApt, id: Math.max(...prev.map(a => a.id), 0) + 1 }]);
+    };
+
     const addSessionType = (newSession: Omit<SessionType, 'id'>) => {
         const session = { ...newSession, id: Math.max(...sessionTypes.map(s => s.id), 100) + 1 };
         setSessionTypes([...sessionTypes, session as SessionType]);
@@ -348,7 +415,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
             sessionTypes,
             addSessionType,
             updateSessionType,
-            deleteSessionType
+            deleteSessionType,
+            clinicShareLink,
+            generateShareLink,
+            addPublicBooking,
         }}>
             {children}
         </DataContext.Provider>
