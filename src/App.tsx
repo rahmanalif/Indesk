@@ -11,6 +11,7 @@ import { ClientProfilePage } from './pages/clients/ClientProfilePage';
 import { ClientNotesPage } from './pages/clients/ClientNotesPage';
 import { ClientAssessmentsPage } from './pages/clients/ClientAssessmentsPage';
 import { OutcomeMeasuresPage } from './pages/clients/OutcomeMeasuresPage';
+import { ClientLettersPage } from './pages/clients/ClientLettersPage';
 import { ClinicLayout } from './pages/clinic/ClinicLayout';
 import { ClinicDetailsPage } from './pages/clinic/ClinicDetailsPage';
 import { CliniciansPage } from './pages/clinic/CliniciansPage';
@@ -69,6 +70,7 @@ export function App() {
               <Route path="notes" element={<ClientNotesPage />} />
               <Route path="assessments" element={<ClientAssessmentsPage />} />
               <Route path="measures" element={<OutcomeMeasuresPage />} />
+              <Route path="letters" element={<ClientLettersPage />} />
             </Route>
 
             <Route path="clinic" element={

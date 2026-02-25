@@ -1,5 +1,5 @@
 ﻿
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
     X, User, Calendar, CheckCircle, ChevronRight, Clock,
     ArrowLeft, Phone, Mail, Loader2, Layers, Send, Printer
@@ -7,6 +7,7 @@ import {
 import { useData } from '../../context/DataContext';
 import { MOCK_CLINIC_DETAILS } from '../../lib/mockData';
 import { hexToRgb, brandGradient, brandBg } from '../../lib/branding';
+import { useGetSessionsByClinicianTokenQuery } from '../../redux/api/clientsApi';
 
 export interface BookAppointmentModalProps {
     isOpen: boolean;
@@ -15,7 +16,7 @@ export interface BookAppointmentModalProps {
     preselectedSlot?: { date: string; time: string } | null;
 }
 
-type Step = 1 | 2 | 3 | 4 | 5;
+type Step = 1 | 2 | 3 | 4;
 
 
 
@@ -195,7 +196,7 @@ function openPrintInvoice(opts: {
 
 // --- Component ----------------------------------------------------------------
 export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSlot }: BookAppointmentModalProps) {
-    const { addPublicBooking, branding, sessionTypes } = useData();
+    const { addPublicBooking, branding, sessionTypes: fallbackSessionTypes } = useData();
     const color = branding.color || '#0066FF';
 
     const [step, setStep] = useState<Step>(1);
@@ -206,11 +207,47 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
     const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', phone: '' });
     const [selectedDay, setSelectedDay] = useState<string | null>(null);
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
-    const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null);
+    const [selectedSessionId, setSelectedSessionId] = useState<string | number | null>(null);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const availability = clinician?.availability || [];
-    const selectedSession = sessionTypes.find(s => s.id === selectedSessionId);
+    const clinicianToken = clinician?.clinicianToken || '';
+    const { data: clinicianSessionsResponse, isLoading: isSessionsLoading } = useGetSessionsByClinicianTokenQuery(clinicianToken, {
+        skip: !clinicianToken || !isOpen,
+    });
+
+    const parsedApiSessions = useMemo(() => {
+        const raw = clinicianSessionsResponse?.response?.data as any;
+        const rows = Array.isArray(raw) ? raw : (Array.isArray(raw?.docs) ? raw.docs : []);
+        return rows.map((session: any, index: number) => {
+            const durationMinutes = Number(session?.duration) || 50;
+            const priceNumber = Number(session?.price);
+            return {
+                id: session?.id || session?._id || `api-session-${index}`,
+                name: session?.name || 'Session',
+                durationMinutes,
+                durationLabel: `${durationMinutes} min`,
+                priceLabel: Number.isFinite(priceNumber) && priceNumber >= 0 ? `$${priceNumber}` : (session?.price || '-'),
+            };
+        });
+    }, [clinicianSessionsResponse]);
+
+    const parsedFallbackSessions = useMemo(() => {
+        return fallbackSessionTypes.map((session) => {
+            const durationMatch = String(session.duration || '').match(/\d+/);
+            const durationMinutes = durationMatch ? Number(durationMatch[0]) : 50;
+            return {
+                id: session.id,
+                name: session.name,
+                durationMinutes,
+                durationLabel: session.duration || `${durationMinutes} min`,
+                priceLabel: session.price || '-',
+            };
+        });
+    }, [fallbackSessionTypes]);
+
+    const sessionOptions = parsedApiSessions.length > 0 ? parsedApiSessions : parsedFallbackSessions;
+    const selectedSession = sessionOptions.find((s) => String(s.id) === String(selectedSessionId));
 
     const getDayIsoDate = (dayName: string) => {
         const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -262,18 +299,17 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
         setErrors(e); return Object.keys(e).length === 0;
     };
     const validateStep2 = () => {
-        if (!selectedDay || !selectedSlot) { setErrors({ slot: 'Please select a day and time slot.' }); return false; }
-        setErrors({}); return true;
-    };
-    const validateStep3 = () => {
-        if (!selectedSessionId) { setErrors({ session: 'Please select a session type.' }); return false; }
+        const e: Record<string, string> = {};
+        if (!selectedDay) e.slot = 'Please select a day.';
+        if (!selectedSessionId) e.session = 'Please select a session type.';
+        setErrors(e);
+        if (Object.keys(e).length > 0) return false;
         setErrors({}); return true;
     };
 
     const handleNext = () => {
         if (step === 1 && validateStep1()) setStep(2);
         else if (step === 2 && validateStep2()) setStep(3);
-        else if (step === 3 && validateStep3()) setStep(4);
     };
 
     const handleConfirm = () => {
@@ -287,7 +323,7 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
             if (period === 'AM' && hour === 12) hour = 0;
             const isoTime = `${String(hour).padStart(2, '0')}:${m || '00'}`;
 
-            const durationMinutes = selectedSession?.duration ? parseInt(selectedSession.duration) : 50;
+            const resolvedDuration = selectedSession?.durationMinutes || 50;
 
             addPublicBooking({
                 name: `${formData.firstName} ${formData.lastName}`,
@@ -297,12 +333,12 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                 date: getDayIsoDate(selectedDay!),
                 time: isoTime,
                 sessionType: selectedSession?.name || 'Initial Consultation',
-                duration: durationMinutes,
+                duration: resolvedDuration,
                 invoiceNumber: invoiceRef.current,
             });
             setIsLoading(false);
             setEmailSent(true);
-            setStep(5);
+            setStep(4);
         }, 1200);
     };
 
@@ -314,8 +350,8 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
             phone: formData.phone,
             clinicianName: clinician?.name || '',
             sessionName: selectedSession?.name || 'Appointment',
-            duration: selectedSession?.duration || '',
-            price: selectedSession?.price || '',
+            duration: selectedSession?.durationLabel || '',
+            price: selectedSession?.priceLabel || '',
             date: selectedDay ? getDayFormatted(selectedDay) : '',
             time: selectedSlot || '',
             clinicName: MOCK_CLINIC_DETAILS.name,
@@ -331,9 +367,8 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
 
     const steps = [
         { n: 1, label: 'Your Info', icon: User },
-        { n: 2, label: 'Pick a Slot', icon: Calendar },
-        { n: 3, label: 'Session', icon: Layers },
-        { n: 4, label: 'Confirm', icon: CheckCircle },
+        { n: 2, label: 'Session', icon: Layers },
+        { n: 3, label: 'Confirm', icon: CheckCircle },
     ];
 
     const inputBase = 'w-full h-11 px-3 text-sm border rounded-xl focus:outline-none transition-colors';
@@ -365,7 +400,7 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                 </div>
 
                 {/* Step indicators */}
-                {step < 5 && (
+                {step < 4 && (
                     <div className="bg-white border-b border-slate-100 px-6 py-4 -mt-2">
                         <div className="flex items-center justify-between">
                             {steps.map((s, i) => (
@@ -437,13 +472,13 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                         </div>
                     )}
 
-                    {/* Step 2 - Pick Slot */}
+                    {/* Step 2 - Session */}
                     {step === 2 && (
                         <div className="animate-in fade-in slide-in-from-right-4 duration-200">
                             <p className="text-slate-500 text-sm mb-4">Choose a day and time slot that works for you.</p>
                             <div className="flex flex-wrap gap-2 mb-4">
                                 {availability.map((avail: any) => (
-                                    <button key={avail.day} onClick={() => { setSelectedDay(avail.day); setSelectedSlot(null); setErrors({}); }}
+                                    <button key={avail.day} onClick={() => { setSelectedDay(avail.day); setSelectedSlot(avail?.slots?.[0] || null); setErrors({}); }}
                                         className="px-3 py-2 rounded-xl text-xs font-bold border transition-all"
                                         style={selectedDay === avail.day
                                             ? { backgroundColor: color, color: '#fff', borderColor: color }
@@ -452,40 +487,19 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                                     </button>
                                 ))}
                             </div>
-                            {selectedDay ? (
-                                <div>
-                                    <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-3 flex items-center gap-1.5">
-                                        <Clock className="h-3 w-3" /> {getDayFormatted(selectedDay)}
-                                    </p>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {availability.find((a: any) => a.day === selectedDay)?.slots.map((slot: string) => (
-                                            <button key={slot} onClick={() => { setSelectedSlot(slot); setErrors({}); }}
-                                                className="py-2.5 rounded-xl text-xs font-bold border transition-all"
-                                                style={selectedSlot === slot
-                                                    ? { backgroundColor: color, color: '#fff', borderColor: color }
-                                                    : { backgroundColor: brandBg(color, 0.07), color, borderColor: brandBg(color, 0.2) }}>
-                                                {slot}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            ) : (
+                            {!selectedDay && (
                                 <div className="text-center py-8">
                                     <Calendar className="h-10 w-10 mx-auto mb-2 opacity-30" style={{ color }} />
-                                    <p className="text-slate-400 text-sm">Select a day to see available times</p>
+                                    <p className="text-slate-400 text-sm">Select a day to continue</p>
                                 </div>
                             )}
-                            {errors.slot && <p className="text-red-500 text-xs mt-3">{errors.slot}</p>}
-                        </div>
-                    )}
-
-                    {/* Step 3 - Pick Session */}
-                    {step === 3 && (
-                        <div className="animate-in fade-in slide-in-from-right-4 duration-200">
-                            <p className="text-slate-500 text-sm mb-4">Choose the type of session you'd like to book.</p>
+                            <p className="text-slate-500 text-sm mt-6 mb-4">Choose the type of session you'd like to book.</p>
+                            {isSessionsLoading && (
+                                <p className="text-xs text-slate-400 mb-3">Loading sessions...</p>
+                            )}
                             <div className="space-y-3">
-                                {sessionTypes.map(session => {
-                                    const isSel = selectedSessionId === session.id;
+                                {sessionOptions.map(session => {
+                                    const isSel = String(selectedSessionId) === String(session.id);
                                     return (
                                         <button key={session.id} onClick={() => { setSelectedSessionId(session.id); setErrors({}); }}
                                             className="w-full text-left rounded-2xl border-2 p-4 transition-all hover:shadow-md"
@@ -499,8 +513,8 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                                                     <div>
                                                         <p className="font-bold text-sm text-slate-900">{session.name}</p>
                                                         <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
-                                                            <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{session.duration}</span>
-                                                            <span className="font-bold" style={isSel ? { color } : { color: '#64748b' }}>{session.price}</span>
+                                                            <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{session.durationLabel}</span>
+                                                            <span className="font-bold" style={isSel ? { color } : { color: '#64748b' }}>{session.priceLabel}</span>
                                                         </p>
                                                     </div>
                                                 </div>
@@ -513,12 +527,13 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                                     );
                                 })}
                             </div>
+                            {errors.slot && <p className="text-red-500 text-xs mt-3">{errors.slot}</p>}
                             {errors.session && <p className="text-red-500 text-xs mt-3">{errors.session}</p>}
                         </div>
                     )}
 
-                    {/* Step 4 - Confirm */}
-                    {step === 4 && (
+                    {/* Step 3 - Confirm */}
+                    {step === 3 && (
                         <div className="animate-in fade-in slide-in-from-right-4 duration-200">
                             <p className="text-slate-500 text-sm mb-4">Review your booking before confirming.</p>
                             <div className="rounded-2xl border border-slate-100 overflow-hidden">
@@ -530,8 +545,8 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                                     { label: 'Date', value: selectedDay ? getDayFormatted(selectedDay) : '-' },
                                     { label: 'Time', value: selectedSlot || '-' },
                                     { label: 'Session Type', value: selectedSession?.name || '-' },
-                                    { label: 'Duration', value: selectedSession?.duration || '-' },
-                                    { label: 'Amount Due', value: selectedSession?.price || '-' },
+                                    { label: 'Duration', value: selectedSession?.durationLabel || '-' },
+                                    { label: 'Amount Due', value: selectedSession?.priceLabel || '-' },
                                 ].map((item, i) => (
                                     <div key={item.label} className={`flex items-center justify-between px-4 py-3 ${i % 2 === 0 ? 'bg-slate-50/60' : 'bg-white'}`}>
                                         <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{item.label}</span>
@@ -542,8 +557,8 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                         </div>
                     )}
 
-                    {/* Step 5 - Success + Invoice */}
-                    {step === 5 && (
+                    {/* Step 4 - Success + Invoice */}
+                    {step === 4 && (
                         <div className="animate-in fade-in zoom-in-95 duration-300">
                             {/* Success banner */}
                             <div className="text-center mb-5">
@@ -602,17 +617,17 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                                         <div>
                                             <p className="text-sm font-bold text-slate-900">{selectedSession?.name}</p>
                                             <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                                                <Clock className="h-3 w-3" /> {selectedSession?.duration} · {clinician?.name}
+                                                <Clock className="h-3 w-3" /> {selectedSession?.durationLabel} · {clinician?.name}
                                             </p>
                                         </div>
-                                        <p className="text-base font-black" style={{ color }}>{selectedSession?.price}</p>
+                                        <p className="text-base font-black" style={{ color }}>{selectedSession?.priceLabel}</p>
                                     </div>
                                 </div>
 
                                 {/* Total */}
                                 <div className="px-4 py-3 flex items-center justify-between">
                                     <p className="text-xs text-slate-400 font-semibold">Total Due</p>
-                                    <p className="text-lg font-black" style={{ color }}>{selectedSession?.price}</p>
+                                    <p className="text-lg font-black" style={{ color }}>{selectedSession?.priceLabel}</p>
                                 </div>
                             </div>
                         </div>
@@ -621,7 +636,7 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
 
                 {/* Footer Actions */}
                 <div className="p-5 border-t border-slate-100">
-                    {step === 5 ? (
+                    {step === 4 ? (
                         <div className="flex gap-2">
                             <button
                                 onClick={handleDownloadInvoice}
@@ -645,12 +660,12 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                                 </button>
                             )}
                             <button
-                                onClick={step === 4 ? handleConfirm : handleNext}
+                                onClick={step === 3 ? handleConfirm : handleNext}
                                 disabled={isLoading}
                                 className="flex-1 py-3 text-white font-bold rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-70 text-sm"
                                 style={{ background: brandGradient(color) }}>
                                 {isLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> Confirming...</>
-                                    : step === 4 ? <><CheckCircle className="h-4 w-4" /> Confirm Booking</>
+                                    : step === 3 ? <><CheckCircle className="h-4 w-4" /> Confirm Booking</>
                                         : <>Next <ChevronRight className="h-4 w-4" /></>}
                             </button>
                         </div>

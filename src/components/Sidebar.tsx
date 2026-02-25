@@ -36,11 +36,6 @@ export function Sidebar({
             <img src="/images/inkind logo-04.png" alt="InKind" className="h-12 w-auto object-contain transition-all duration-300 hover:scale-105 scale-[1.7]" />
           </div>
         )}
-        {isCollapsed && (
-          <div className="w-full flex justify-center">
-            <img src="/images/inkind logo-04.png" alt="InKind" className="h-8 w-8 object-contain" />
-          </div>
-        )}
 
         <Button
           variant="ghost"

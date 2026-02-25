@@ -87,6 +87,15 @@ export interface GetSessionsResponse {
   };
 }
 
+export interface GetClinicianSessionsResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response: {
+    data: SessionType[] | { docs: SessionType[] };
+  };
+}
+
 export interface InvoiceItemSession {
   name: string;
   price: number;
@@ -689,6 +698,11 @@ export const clientsApi = createApi({
       providesTags: ['Clients'],
     }),
 
+    getSessionsByClinicianToken: builder.query<GetClinicianSessionsResponse, string>({
+      query: (clinicianToken) => `/appointment/session/${clinicianToken}`,
+      providesTags: ['Clients'],
+    }),
+
     getInvoices: builder.query<GetInvoicesResponse, { page?: number; limit?: number }>({
       query: (params) => ({
         url: '/invoice',
@@ -734,6 +748,11 @@ export const clientsApi = createApi({
 
     getClinic: builder.query<GetClinicResponse, void>({
       query: () => '/clinic',
+      providesTags: ['Clients'],
+    }),
+
+    getPublicClinic: builder.query<GetClinicResponse, string>({
+      query: (publicToken) => `/clinic/public/${publicToken}`,
       providesTags: ['Clients'],
     }),
 
@@ -866,12 +885,14 @@ export const {
   useGetClientByIdQuery,
   useGetClientAppointmentsQuery,
   useGetSessionsQuery,
+  useGetSessionsByClinicianTokenQuery,
   useGetInvoicesQuery,
   useGetInvoiceStatsQuery,
   useGetCurrentSubscriptionQuery,
   useGetClinicTransactionsQuery,
   useGetClinicMembersQuery,
   useGetClinicQuery,
+  useGetPublicClinicQuery,
   usePatchClinicPermissionsMutation,
   useUpdateClinicMutation,
   useCreateInvoiceMutation,

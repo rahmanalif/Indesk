@@ -2,23 +2,26 @@ import { useState } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
 import { Building2, Users, Share2, Copy, CheckCheck, ExternalLink, X } from 'lucide-react';
 import { useData } from '../../context/DataContext';
+import { useGetClinicQuery } from '../../redux/api/clientsApi';
 
 
 
 export function ClinicLayout() {
     const { clinicShareLink, generateShareLink } = useData();
+    const { data: clinicResponse } = useGetClinicQuery();
+    const clinicPublicToken = clinicResponse?.response?.data?.publicToken || null;
     const [showSharePopup, setShowSharePopup] = useState(false);
     const [copied, setCopied] = useState(false);
 
     const handleShare = () => {
-        if (!clinicShareLink) {
+        if (!clinicPublicToken && !clinicShareLink) {
             generateShareLink();
         }
         setShowSharePopup(true);
     };
 
     const getShareUrl = () => {
-        const token = clinicShareLink || '';
+        const token = clinicPublicToken || clinicShareLink || '';
         return `${window.location.origin}/clinic-portal/${token}`;
     };
 

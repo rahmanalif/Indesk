@@ -29,6 +29,36 @@ type ClientDoc = {
   email?: string | null;
 };
 
+const defaultAssistantPrompts = [
+  'Write a psychological report outlining presenting difficulties, psychological formulation, and plan for therapy using EMDR and ACT.',
+  'Give me some exposure ideas for my client who is afraid of heights.',
+  'Write a psychological report outlining how the patient meets criteria for PTSD using DSM-5 and ICD-10 criteria.',
+  'Write a letter to the GP about...',
+  'Give me some ERP ideas for my OCD client who washes their hands in fear of contaminating others.',
+  'Check over my clinic website www.….com and make a feedback questionnaire for my clients based on this.',
+  'Produce a handout with different ideas for emotional regulation, including things to do with others and things when alone.',
+  'Please make a handout on sleep hygiene.',
+  'Can you make a handout for my patient outlining different cognitive diffusion techniques?',
+];
+
+const DEFAULT_PROMPT_INDEX_KEY = 'ai_assistant_default_prompt_index';
+
+const getNextDefaultAssistantPrompt = () => {
+  const fallbackPrompt = defaultAssistantPrompts[0];
+  if (typeof window === 'undefined') return fallbackPrompt;
+
+  const storedValue = window.localStorage.getItem(DEFAULT_PROMPT_INDEX_KEY);
+  const parsedIndex = Number.parseInt(storedValue || '0', 10);
+  const safeIndex = Number.isFinite(parsedIndex) && parsedIndex >= 0
+    ? parsedIndex % defaultAssistantPrompts.length
+    : 0;
+
+  const prompt = defaultAssistantPrompts[safeIndex] || fallbackPrompt;
+  const nextIndex = (safeIndex + 1) % defaultAssistantPrompts.length;
+  window.localStorage.setItem(DEFAULT_PROMPT_INDEX_KEY, String(nextIndex));
+  return prompt;
+};
+
 const toConversationHistory = (messages: ChatMessage[]): AiAssistantMessage[] =>
   messages.map((message) => ({
     role: message.role === 'ai' ? 'assistant' : 'user',
@@ -70,7 +100,7 @@ export function AIAssistancePage() {
   const [messages, setMessages] = useState<ChatMessage[]>([{
     id: 1,
     role: 'ai',
-    text: "Hello Dr. Smith! I'm your Inkind Assistant. How can I help you today? I can summarize client notes, draft emails, or help optimize your schedule."
+    text: getNextDefaultAssistantPrompt(),
   }]);
   const [input, setInput] = useState('');
   const [selectedClient, setSelectedClient] = useState<ClientOption | null>(null);
@@ -261,17 +291,17 @@ export function AIAssistancePage() {
               <Send className="h-4 w-4" />
             </Button>
           </form>
-          <div className="mt-2 flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            <Button variant="outline" size="sm" className="whitespace-nowrap text-xs h-8 px-3" onClick={() => setInput('Draft a follow-up email for James Wilson')}>
-              Draft follow-up email
+          {/* <div className="mt-2 flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            <Button variant="outline" size="sm" className="whitespace-nowrap text-xs h-8 px-3" onClick={() => setInput('Enhance this letter with a more professional and empathetic tone.')}>
+              Enhance letter tone
             </Button>
-            <Button variant="outline" size="sm" className="whitespace-nowrap text-xs h-8 px-3" onClick={() => setInput('Summarize my schedule for today')}>
-              Summarize today's schedule
+            <Button variant="outline" size="sm" className="whitespace-nowrap text-xs h-8 px-3" onClick={() => setInput('Summarize this client case into key points and action items.')}>
+              Summarize client case
             </Button>
-            <Button variant="outline" size="sm" className="whitespace-nowrap text-xs h-8 px-3" onClick={() => setInput('Create an invoice for Emma Thompson')}>
-              Create invoice
+            <Button variant="outline" size="sm" className="whitespace-nowrap text-xs h-8 px-3" onClick={() => setInput('Generate a concise follow-up plan for next session.')}>
+              Create follow-up plan
             </Button>
-          </div>
+          </div> */}
           {requestErrorMessage && (
             <div className="mt-2 text-xs text-red-600">
               {requestErrorMessage || 'Unable to reach the AI assistant right now.'}

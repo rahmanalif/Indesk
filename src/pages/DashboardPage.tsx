@@ -236,11 +236,6 @@ export function DashboardPage() {
               <Users className="w-5 h-5 text-primary" />
               Clinicians
             </CardTitle>
-            {isCliniciansCollapsed && (
-              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Users className="w-5 h-5 text-primary" />
-              </div>
-            )}
             <Button
               type="button"
               variant="ghost"
