@@ -99,6 +99,30 @@ export interface CreateAssessmentInstanceResponse {
   data?: unknown;
 }
 
+export interface GenerateAssessmentAiRequest {
+  topic: string;
+}
+
+export interface GenerateAssessmentAiQuestion {
+  id: number;
+  question: string;
+  options: string[];
+  correctAnswer: number;
+}
+
+export interface GenerateAssessmentAiResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response?: {
+    data?: {
+      topic?: string;
+      estimatedTime?: number;
+      questions?: GenerateAssessmentAiQuestion[];
+    };
+  };
+}
+
 export interface AssessmentProgressDateRange {
   startDate?: string;
   endDate?: string;
@@ -272,6 +296,13 @@ export const assessmentApi = createApi({
       }),
       invalidatesTags: [{ type: 'AssessmentTemplate', id: 'LIST' }],
     }),
+    generateAssessmentWithAi: builder.mutation<GenerateAssessmentAiResponse, GenerateAssessmentAiRequest>({
+      query: (payload) => ({
+        url: 'assessment/ai/generate',
+        method: 'POST',
+        body: payload,
+      }),
+    }),
     createAssessmentInstance: builder.mutation<CreateAssessmentInstanceResponse, CreateAssessmentInstanceRequest>({
       query: ({ clientId, templateId, note, document }) => {
         const formData = new FormData();
@@ -317,6 +348,7 @@ export const assessmentApi = createApi({
 
 export const {
   useCreateAssessmentTemplateMutation,
+  useGenerateAssessmentWithAiMutation,
   useCreateAssessmentInstanceMutation,
   useGetAssessmentTemplatesQuery,
   useGetAssessmentTemplateByIdQuery,

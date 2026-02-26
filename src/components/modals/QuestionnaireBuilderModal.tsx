@@ -4,7 +4,7 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
-import { useCreateAssessmentTemplateMutation } from '../../redux/api/assessmentApi';
+import { useCreateAssessmentTemplateMutation, useGenerateAssessmentWithAiMutation } from '../../redux/api/assessmentApi';
 import type { AssessmentQuestionPayload, AssessmentQuestionType } from '../../redux/api/assessmentApi';
 
 interface Question {
@@ -36,9 +36,12 @@ export function QuestionnaireBuilderModal({
   ]);
 
   const [createAssessmentTemplate, { isLoading: isCreating }] = useCreateAssessmentTemplateMutation();
+  const [generateAssessmentWithAi] = useGenerateAssessmentWithAiMutation();
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [newOptionValue, setNewOptionValue] = useState<{ [key: number]: string }>({});
+  const [showAiTopicInput, setShowAiTopicInput] = useState(false);
+  const [aiTopic, setAiTopic] = useState('');
 
   const mapCategoryToApi = (value: string) => {
     switch (value) {
@@ -64,6 +67,8 @@ export function QuestionnaireBuilderModal({
       setQuestions([{ id: Date.now(), type: 'text', text: '' }]);
       setShowSuccess(false);
       setNewOptionValue({});
+      setShowAiTopicInput(false);
+      setAiTopic('');
     }
   }, [isOpen]);
 
@@ -93,20 +98,49 @@ export function QuestionnaireBuilderModal({
     setQuestions(newQuestions);
   };
 
-  const handleAiGenerate = () => {
-    if (!title) return alert("Please enter a title first so AI knows what to generate!");
+  const handleAiGenerate = async () => {
+    if (!showAiTopicInput) {
+      setShowAiTopicInput(true);
+      return;
+    }
+
+    const topic = aiTopic.trim();
+    if (!topic) return alert('Please enter a topic for AI generation.');
 
     setIsAiLoading(true);
-    // Simulate AI thinking and generating relevant questions
-    setTimeout(() => {
-      const aiQuestions: Question[] = [
-        { id: Date.now() + 1, type: 'multiple-choice', text: `Frequency of symptoms related to ${title}?`, options: ['Daily', 'Weekly', 'Rarely', 'Never'] },
-        { id: Date.now() + 2, type: 'text', text: 'When did you first notice these symptoms?' },
-        { id: Date.now() + 3, type: 'checkbox', text: 'Presence of associated clinical markers', label: 'History of similar conditions' }
-      ];
-      setQuestions(prev => [...prev.filter(q => q.text.trim() !== ''), ...aiQuestions]);
+    try {
+      const response = await generateAssessmentWithAi({ topic }).unwrap();
+      const generatedQuestions = response?.response?.data?.questions || [];
+
+      if (generatedQuestions.length === 0) {
+        alert('AI did not return any questions.');
+        return;
+      }
+
+      const mappedQuestions: Question[] = generatedQuestions.map((item, index) => {
+        const options = Array.isArray(item.options) ? item.options.filter(Boolean) : [];
+        const hasOptions = options.length > 0;
+        return {
+          id: Date.now() + index,
+          type: hasOptions ? 'multiple-choice' : 'text',
+          text: item.question || '',
+          options: hasOptions ? options : undefined,
+        };
+      }).filter((q) => q.text.trim() !== '');
+
+      if (mappedQuestions.length === 0) {
+        alert('AI response did not include valid questions.');
+        return;
+      }
+
+      setQuestions(mappedQuestions);
+      if (!title.trim()) setTitle(topic);
+    } catch (error: any) {
+      const message = error?.data?.message || error?.error || 'Failed to generate questions with AI.';
+      alert(message);
+    } finally {
       setIsAiLoading(false);
-    }, 1500);
+    }
   };
 
   const handleAddOption = (questionId: number) => {
@@ -263,6 +297,20 @@ export function QuestionnaireBuilderModal({
                   {isAiLoading ? "Analyzing..." : "Generate using AI"}
                 </Button>
               </div>
+              {showAiTopicInput && (
+                <div className="mb-5 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <Input
+                    label="Prompt (Please give a brief topic or clinical focus for AI to generate relevant questions)"
+                    placeholder="e.g. Headaches in the middle of the night, less sleep"
+                    value={aiTopic}
+                    onChange={(e) => setAiTopic(e.target.value)}
+                    className="h-12 rounded-xl bg-secondary/20 border-primary/15"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    Enter a topic, then click <strong>Generate using AI</strong> again to auto-fill clinical questions.
+                  </p>
+                </div>
+              )}
 
               {/* Questions List */}
               <div className="space-y-4">
