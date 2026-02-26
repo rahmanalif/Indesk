@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Search, Upload, FileText, Check, Trash2, FilePlus } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+import { Search, Upload, FileText, Check, Trash2, FilePlus, Copy, CheckCheck, ExternalLink } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
@@ -24,6 +24,9 @@ export function ShareDocumentModal({ isOpen, onClose, documentName = 'ACE: Adver
     const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
     const [instructions, setInstructions] = useState('');
     const [isSent, setIsSent] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [assessmentShareToken, setAssessmentShareToken] = useState<string | null>(null);
+    const [copied, setCopied] = useState(false);
     const [sendError, setSendError] = useState<string | null>(null);
     const [createAssessmentInstance, { isLoading }] = useCreateAssessmentInstanceMutation();
     const { data: clientsData, isLoading: clientsLoading, isError: clientsError } = useGetClientsQuery({
@@ -38,6 +41,27 @@ export function ShareDocumentModal({ isOpen, onClose, documentName = 'ACE: Adver
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const hasUploadedDocument = includedDocs.some((doc) => Boolean(doc.file));
+    const getShareUrl = () => {
+        const token = assessmentShareToken || '';
+        return token ? `${window.location.origin}/assessment-portal/${token}` : '';
+    };
+
+    const resetModalState = () => {
+        setSelectedPatient(null);
+        setInstructions('');
+        setIsSent(false);
+        setShowSuccessModal(false);
+        setAssessmentShareToken(null);
+        setCopied(false);
+        setSendError(null);
+        setIncludedDocs([{ id: '1', name: documentName, type: 'Clinical Outcome Measure' }]);
+    };
+
+    useEffect(() => {
+        if (!isOpen) {
+            resetModalState();
+        }
+    }, [isOpen, documentName]);
 
     const handleSend = async () => {
         if (!selectedPatient || !templateId || includedDocs.length === 0) return;
@@ -53,21 +77,38 @@ export function ShareDocumentModal({ isOpen, onClose, documentName = 'ACE: Adver
         }
 
         try {
-            await createAssessmentInstance({
+            const response = await createAssessmentInstance({
                 clientId: selectedPatient,
                 templateId,
                 note: instructions.trim() ? instructions.trim() : undefined,
                 document: documentFile,
             }).unwrap();
+            const token = response?.response?.data?.shareToken || '';
+            if (!token) {
+                throw new Error('Assessment token not found in response.');
+            }
+            setAssessmentShareToken(token);
             setIsSent(true);
-            setTimeout(() => {
-                onClose();
-                setIsSent(false);
-            }, 2000);
+            setShowSuccessModal(true);
         } catch (err: any) {
             const message = err?.data?.message || 'Unable to distribute assessment. Please try again.';
             setSendError(message);
         }
+    };
+    const handleCopy = async () => {
+        const shareUrl = getShareUrl();
+        if (!shareUrl) return;
+        try {
+            await navigator.clipboard.writeText(shareUrl);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2500);
+        } catch {
+            // no-op
+        }
+    };
+    const handleCloseAll = () => {
+        setShowSuccessModal(false);
+        onClose();
     };
 
     const handleUploadClick = () => {
@@ -117,7 +158,8 @@ export function ShareDocumentModal({ isOpen, onClose, documentName = 'ACE: Adver
                 ];
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Clinical Portal Distribution" size="xl">
+        <>
+        <Modal isOpen={isOpen && !showSuccessModal} onClose={onClose} title="Clinical Portal Distribution" size="xl">
             <div className="space-y-8 animate-in fade-in duration-300 p-2 sm:p-0">
                 <input
                     type="file"
@@ -210,7 +252,7 @@ export function ShareDocumentModal({ isOpen, onClose, documentName = 'ACE: Adver
                 </div>
 
                 {/* Instructions */}
-                <div className="space-y-3">
+                {/* <div className="space-y-3">
                     <label className="text-xs font-semibold text-muted-foreground ml-1 uppercase tracking-widest">Clinician Notes for Recipient</label>
                     <textarea
                         className="w-full min-h-[120px] p-4 text-sm bg-muted/30 border-none rounded-xl focus:outline-none focus:ring-1 focus:ring-primary/20 leading-relaxed font-medium placeholder:text-muted-foreground/50 transition-all"
@@ -218,7 +260,7 @@ export function ShareDocumentModal({ isOpen, onClose, documentName = 'ACE: Adver
                         value={instructions}
                         onChange={(e) => setInstructions(e.target.value)}
                     />
-                </div>
+                </div> */}
 
                 {/* Actions */}
                 <div className="flex flex-col gap-3 pt-4">
@@ -229,24 +271,54 @@ export function ShareDocumentModal({ isOpen, onClose, documentName = 'ACE: Adver
                     )}
                     <Button
                         onClick={handleSend}
-                        disabled={isLoading || isSent || includedDocs.length === 0 || !selectedPatient || !templateId}
-                        className={`h-12 px-10 rounded-xl font-bold transition-all shadow-lg ${isSent ? 'bg-green-600 hover:bg-green-600' : 'bg-primary hover:bg-primary/90 shadow-primary/20'
-                            }`}
+                        disabled={isLoading || includedDocs.length === 0 || !selectedPatient || !templateId}
+                        className="h-12 px-10 rounded-xl font-bold transition-all shadow-lg bg-primary hover:bg-primary/90 shadow-primary/20"
                     >
                         {isLoading ? (
                             <div className="flex items-center gap-3">
                                 <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                 Distributing...
                             </div>
-                        ) : isSent ? (
-                            <div className="flex items-center gap-2">
-                                <Check className="h-4 w-4 stroke-[3]" />
-                                Transmission Successful
-                            </div>
                         ) : 'Execute Distribution'}
                     </Button>
                 </div>
             </div>
         </Modal>
+        <Modal isOpen={isOpen && showSuccessModal} onClose={handleCloseAll} title="Distribution Complete" size="lg">
+            <div className="space-y-4 animate-in fade-in duration-300">
+                <div className="rounded-xl border border-green-200 bg-green-50 p-3 flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-600" />
+                    <p className="text-sm font-semibold text-green-700">Assessment Sent to the client succesfully!</p>
+                </div>
+                <div className="rounded-xl border border-border bg-background p-4 space-y-3">
+                    <p className="text-sm font-bold text-foreground">Public Link</p>
+                    <div className="flex items-center gap-2 bg-muted/50 border border-border rounded-xl p-3">
+                        <p className="flex-1 text-xs text-muted-foreground font-mono truncate">{getShareUrl() || 'Generating link...'}</p>
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={handleCopy}
+                            disabled={!getShareUrl()}
+                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all ${copied ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-primary text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed'}`}
+                        >
+                            {copied ? <><CheckCheck className="h-4 w-4" /> Copied!</> : <><Copy className="h-4 w-4" /> Copy Link</>}
+                        </button>
+                        <a
+                            href={getShareUrl() || '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`flex items-center justify-center gap-2 px-4 py-2.5 border border-border rounded-xl text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors ${!getShareUrl() ? 'pointer-events-none opacity-50' : ''}`}
+                        >
+                            <ExternalLink className="h-4 w-4" />
+                            Preview
+                        </a>
+                    </div>
+                </div>
+                <Button onClick={handleCloseAll} className="h-11 w-full rounded-xl font-bold bg-primary hover:bg-primary/90">
+                    Done
+                </Button>
+            </div>
+        </Modal>
+        </>
     );
 }

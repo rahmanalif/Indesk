@@ -41,23 +41,7 @@ const defaultAssistantPrompts = [
   'Can you make a handout for my patient outlining different cognitive diffusion techniques?',
 ];
 
-const DEFAULT_PROMPT_INDEX_KEY = 'ai_assistant_default_prompt_index';
-
-const getNextDefaultAssistantPrompt = () => {
-  const fallbackPrompt = defaultAssistantPrompts[0];
-  if (typeof window === 'undefined') return fallbackPrompt;
-
-  const storedValue = window.localStorage.getItem(DEFAULT_PROMPT_INDEX_KEY);
-  const parsedIndex = Number.parseInt(storedValue || '0', 10);
-  const safeIndex = Number.isFinite(parsedIndex) && parsedIndex >= 0
-    ? parsedIndex % defaultAssistantPrompts.length
-    : 0;
-
-  const prompt = defaultAssistantPrompts[safeIndex] || fallbackPrompt;
-  const nextIndex = (safeIndex + 1) % defaultAssistantPrompts.length;
-  window.localStorage.setItem(DEFAULT_PROMPT_INDEX_KEY, String(nextIndex));
-  return prompt;
-};
+const DEFAULT_ASSISTANT_PROMPT = defaultAssistantPrompts[0];
 
 const toConversationHistory = (messages: ChatMessage[]): AiAssistantMessage[] =>
   messages.map((message) => ({
@@ -100,7 +84,7 @@ export function AIAssistancePage() {
   const [messages, setMessages] = useState<ChatMessage[]>([{
     id: 1,
     role: 'ai',
-    text: getNextDefaultAssistantPrompt(),
+    text: DEFAULT_ASSISTANT_PROMPT,
   }]);
   const [input, setInput] = useState('');
   const [selectedClient, setSelectedClient] = useState<ClientOption | null>(null);
@@ -111,6 +95,8 @@ export function AIAssistancePage() {
     limit: 100,
   });
   const isTyping = isChatting || isDrafting;
+  const hasUserMessages = useMemo(() => messages.some((message) => message.role === 'user'), [messages]);
+  const canSendWithoutTyping = !hasUserMessages && messages.length === 1 && messages[0]?.role === 'ai';
   const requestError = draftError || chatError;
   const requestErrorMessage = getErrorMessage(requestError);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -157,7 +143,7 @@ export function AIAssistancePage() {
   };
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmedInput = input.trim();
+    const trimmedInput = input.trim() || (canSendWithoutTyping ? DEFAULT_ASSISTANT_PROMPT : '');
     if (!trimmedInput || isTyping) return;
     const userMsg = {
       id: Date.now(),
@@ -287,7 +273,7 @@ export function AIAssistancePage() {
                 </div>
               )}
             </div>
-            <Button type="submit" size="icon" disabled={!input.trim() || isTyping} className="h-10 w-10">
+            <Button type="submit" size="icon" disabled={isTyping || (!input.trim() && !canSendWithoutTyping)} className="h-10 w-10">
               <Send className="h-4 w-4" />
             </Button>
           </form>

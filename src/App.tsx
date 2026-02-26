@@ -29,6 +29,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { PublicClinicPage } from './pages/public/PublicClinicPage';
 import { PublicClinicianPage } from './pages/public/PublicClinicianPage';
 import { PublicLandingPage } from './pages/public/PublicLandingPage';
+import { PublicAssessmentPage } from './pages/public/PublicAssessmentPage';
 
 export function App() {
   return (
@@ -40,6 +41,7 @@ export function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/landing" element={<PublicLandingPage />} />
+          <Route path="/assessment-portal/:token" element={<PublicAssessmentPage />} />
           <Route path="/clinic-portal/:linkId" element={<PublicClinicPage />} />
           <Route path="/clinic-portal/:linkId/clinician/:id" element={<PublicClinicianPage />} />
 

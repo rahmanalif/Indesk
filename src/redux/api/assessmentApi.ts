@@ -90,13 +90,74 @@ export interface CreateAssessmentInstanceRequest {
 }
 
 export interface CreateAssessmentInstanceResponse {
-  success?: boolean;
-  status?: number;
-  message?: string;
+  success: boolean;
+  status: number;
+  message: string;
   response?: {
-    data?: unknown;
+    data?: AssessmentInstanceDetails;
   };
-  data?: unknown;
+}
+
+export interface AssessmentInstanceClient {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+export interface AssessmentResponseItem {
+  id?: string;
+  instanceId?: string;
+  questionId: string;
+  answer: string | string[] | number | null;
+  points?: number | null;
+}
+
+export interface AssessmentInstanceDetails {
+  id: string;
+  templateId: string;
+  clientId: string;
+  clinicianId?: string | null;
+  assignedBy?: string | null;
+  status: string;
+  shareToken: string;
+  document?: string | null;
+  note?: string | null;
+  score?: number | null;
+  maxScore?: number | null;
+  completedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  template?: AssessmentTemplate & { questions?: AssessmentQuestion[] };
+  client?: AssessmentInstanceClient | null;
+  responses?: AssessmentResponseItem[];
+}
+
+export interface GetAssessmentByTokenResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response: {
+    data: AssessmentInstanceDetails;
+  };
+}
+
+export interface SubmitAssessmentByTokenRequest {
+  assessmentToken: string;
+  responses: Array<{
+    questionId: string;
+    answer: string | string[] | number | null;
+  }>;
+  submittedByClinician?: boolean;
+}
+
+export interface SubmitAssessmentByTokenResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response: {
+    data: AssessmentInstanceDetails;
+  };
 }
 
 export interface GenerateAssessmentAiRequest {
@@ -343,6 +404,16 @@ export const assessmentApi = createApi({
         },
       }),
     }),
+    getAssessmentByToken: builder.query<GetAssessmentByTokenResponse, string>({
+      query: (assessmentToken) => `assessment/token/${assessmentToken}`,
+    }),
+    submitAssessmentByToken: builder.mutation<SubmitAssessmentByTokenResponse, SubmitAssessmentByTokenRequest>({
+      query: ({ assessmentToken, responses, submittedByClinician = false }) => ({
+        url: `assessment/token/${assessmentToken}/submit`,
+        method: 'POST',
+        body: { responses, submittedByClinician },
+      }),
+    }),
   }),
 });
 
@@ -354,4 +425,6 @@ export const {
   useGetAssessmentTemplateByIdQuery,
   useGetAssessmentProgressQuery,
   useGetAssessmentInstancesQuery,
+  useGetAssessmentByTokenQuery,
+  useSubmitAssessmentByTokenMutation,
 } = assessmentApi;

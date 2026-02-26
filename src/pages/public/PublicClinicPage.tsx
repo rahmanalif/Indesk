@@ -47,7 +47,7 @@ export function PublicClinicPage() {
     return `${apiOrigin}${value}`;
   };
 
-  const color = clinic?.color || branding.color || '#0066FF';
+  const color = '#779362';
   const clinicName = clinic?.name || 'Clinic';
   const clinicLogo = resolveImageUrl(clinic?.logo) || branding.logo;
   const clinicPhone = `${clinic?.countryCode || ''}${clinic?.phoneNumber || ''}`.trim() || '-';
