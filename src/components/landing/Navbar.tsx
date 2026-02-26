@@ -1,0 +1,122 @@
+import React, { useEffect, useState } from 'react';
+import { Menu, X } from 'lucide-react';
+export function Navbar() {
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+  const navLinks = [
+  {
+    name: 'Why InDesk',
+    href: '#why'
+  },
+  {
+    name: 'Features',
+    href: '#features'
+  },
+  {
+    name: 'Pricing',
+    href: '#pricing'
+  },
+  {
+    name: 'FAQ',
+    href: '#faq'
+  }];
+
+  return (
+    <nav
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-cream/90 backdrop-blur-md shadow-sm py-3' : 'bg-transparent py-5'}`}>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center">
+          {/* Logo */}
+          <div className="flex items-center">
+            <a
+              href="#"
+              className="text-2xl font-serif font-bold text-charcoal tracking-tight">
+
+              InDesk<span className="text-terracotta">.</span>
+            </a>
+          </div>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-8">
+            {navLinks.map((link) =>
+            <a
+              key={link.name}
+              href={link.href}
+              className="text-sm font-medium text-charcoal hover:text-terracotta transition-colors">
+
+                {link.name}
+              </a>
+            )}
+          </div>
+
+          {/* Desktop Actions */}
+          <div className="hidden md:flex items-center space-x-6">
+            <a
+              href="/login"
+              className="text-sm font-medium text-charcoal hover:text-terracotta transition-colors">
+
+              Sign In
+            </a>
+            <a
+              href="/login"
+              className="bg-terracotta hover:bg-terracotta-dark text-white text-sm font-medium px-5 py-2.5 rounded-full transition-colors duration-300 shadow-sm hover:shadow-md">
+
+              Start Free Trial
+            </a>
+          </div>
+
+          {/* Mobile Menu Button */}
+          <div className="md:hidden flex items-center">
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="text-charcoal hover:text-terracotta transition-colors"
+              aria-label="Toggle menu">
+
+              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Menu */}
+      {isMobileMenuOpen &&
+      <div className="md:hidden bg-cream border-t border-warm-gray/10 absolute w-full shadow-lg">
+          <div className="px-4 pt-2 pb-6 space-y-1">
+            {navLinks.map((link) =>
+          <a
+            key={link.name}
+            href={link.href}
+            className="block px-3 py-3 text-base font-medium text-charcoal hover:text-terracotta hover:bg-peach/30 rounded-md transition-colors"
+            onClick={() => setIsMobileMenuOpen(false)}>
+
+                {link.name}
+              </a>
+          )}
+            <div className="pt-4 border-t border-warm-gray/10 mt-4 flex flex-col space-y-3">
+              <a
+              href="/login"
+              className="block px-3 py-2 text-base font-medium text-charcoal hover:text-terracotta">
+
+                Sign In
+              </a>
+              <a
+              href="/login"
+              className="block text-center bg-terracotta hover:bg-terracotta-dark text-white text-base font-medium px-5 py-3 rounded-full transition-colors">
+
+                Start Free Trial
+              </a>
+            </div>
+          </div>
+        </div>
+      }
+    </nav>);
+
+}

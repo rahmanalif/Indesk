@@ -26,9 +26,9 @@ import { RolesPage } from './pages/RolesPage';
 import { IntegrationsPage } from './pages/IntegrationsPage';
 import { AIAssistancePage } from './pages/AIAssistancePage';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { SmartRedirect } from './components/SmartRedirect';
 import { PublicClinicPage } from './pages/public/PublicClinicPage';
 import { PublicClinicianPage } from './pages/public/PublicClinicianPage';
+import { PublicLandingPage } from './pages/public/PublicLandingPage';
 
 export function App() {
   return (
@@ -39,12 +39,13 @@ export function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/landing" element={<PublicLandingPage />} />
           <Route path="/clinic-portal/:linkId" element={<PublicClinicPage />} />
           <Route path="/clinic-portal/:linkId/clinician/:id" element={<PublicClinicianPage />} />
 
           {/* Protected Admin Routes */}
           <Route path="/" element={<AdminLayout />}>
-            <Route index element={<SmartRedirect />} />
+            <Route index element={<Navigate to="/landing" replace />} />
 
             <Route path="dashboard" element={
               <ProtectedRoute permission="clinician_dashboard">

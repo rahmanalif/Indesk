@@ -1,4 +1,4 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
 import { SmartRedirect } from './SmartRedirect';
@@ -20,10 +20,11 @@ export function ProtectedRoute({
     requireAllPermissions = true
 }: ProtectedRouteProps) {
     const { user: currentUser, isAuthenticated } = useSelector((state: RootState) => state.auth);
+    const location = useLocation();
 
     // 1. Check Authentication
     if (!isAuthenticated || !currentUser) {
-        return <Navigate to={redirectPath} replace />;
+        return <Navigate to={redirectPath} replace state={{ from: location }} />;
     }
 
     // 2. Check Role Restrictions (if specified)

@@ -30,6 +30,22 @@ export function Header({
     user?.email ||
     'User';
   const displaySubtitle = user?.email || user?.role || 'User';
+  const apiOrigin = (() => {
+    try {
+      return new URL(import.meta.env.VITE_CLIENTS_API_BASE_URL).origin;
+    } catch {
+      return '';
+    }
+  })();
+  const avatarSrc = (() => {
+    const rawAvatar = user?.avatar;
+    if (!rawAvatar) return undefined;
+    if (rawAvatar.startsWith('http')) return rawAvatar;
+    if (!apiOrigin) return rawAvatar;
+    if (rawAvatar.startsWith('/uploads/')) return `${apiOrigin}/public${rawAvatar}`;
+    if (rawAvatar.startsWith('/')) return `${apiOrigin}${rawAvatar}`;
+    return `${apiOrigin}/${rawAvatar}`;
+  })();
 
   // --- Mobile Menu State ---
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -197,7 +213,7 @@ export function Header({
                 <p className="text-sm font-bold leading-none group-hover:text-primary transition-colors">{displayName}</p>
                 <p className="text-[10px] text-muted-foreground mt-1 font-bold uppercase tracking-widest opacity-70">{displaySubtitle}</p>
               </div>
-              <Avatar fallback={displayName[0] || 'U'} className="bg-primary/10 text-primary border-2 border-white shadow-sm ring-2 ring-transparent group-hover:ring-primary/20 h-9 w-9 transition-all" />
+              <Avatar src={avatarSrc} alt={displayName} fallback={displayName[0] || 'U'} className="bg-primary/10 text-primary border-2 border-white shadow-sm ring-2 ring-transparent group-hover:ring-primary/20 h-9 w-9 transition-all" />
             </div>
           </Link>
         </div>

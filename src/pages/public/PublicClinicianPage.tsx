@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Star, Mail, Phone, Clock, Calendar, CheckCircle, Shield } from 'lucide-react';
+import { ArrowLeft, Star, Mail, Phone, Clock, Calendar, Shield, Layers } from 'lucide-react';
 import { BookAppointmentModal } from '@/components/modals/BookAppointmentModal';
 import { useData } from '../../context/DataContext';
-import { useGetPublicClinicQuery } from '../../redux/api/clientsApi';
+import { useGetPublicClinicQuery, useGetSessionsByClinicianTokenQuery } from '../../redux/api/clientsApi';
 import { brandGradient, brandBg } from '../../lib/branding';
 
 const DEFAULT_DAY_SLOTS = ['09:00 AM', '10:30 AM', '12:00 PM', '02:00 PM', '03:30 PM'];
@@ -13,7 +13,7 @@ const toTitleCase = (value: string) => value.charAt(0).toUpperCase() + value.sli
 export function PublicClinicianPage() {
   const { linkId, id } = useParams();
   const navigate = useNavigate();
-  const { branding } = useData();
+  const { branding, sessionTypes: fallbackSessionTypes } = useData();
   const { data: clinicResponse, isLoading, isError } = useGetPublicClinicQuery(linkId || '', {
     skip: !linkId,
   });
@@ -60,6 +60,10 @@ export function PublicClinicianPage() {
   const [preselectedSlot, setPreselectedSlot] = useState<{ date: string; time: string } | null>(null);
 
   const clinician = clinicians.find((c: any) => String(c.id) === String(id));
+  const clinicianToken = clinician?.clinicianToken || '';
+  const { data: clinicianSessionsResponse, isLoading: isSessionsLoading } = useGetSessionsByClinicianTokenQuery(clinicianToken, {
+    skip: !clinicianToken,
+  });
 
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center text-slate-500">Loading clinician profile...</div>;
@@ -83,6 +87,29 @@ export function PublicClinicianPage() {
   }
 
   const availability = clinician.availability || [];
+  const parsedApiSessions = useMemo(() => {
+    const raw = clinicianSessionsResponse?.response?.data as any;
+    const rows = Array.isArray(raw) ? raw : (Array.isArray(raw?.docs) ? raw.docs : []);
+    return rows.map((session: any, index: number) => {
+      const durationMinutes = Number(session?.duration) || 50;
+      const priceNumber = Number(session?.price);
+      return {
+        id: session?.id || session?._id || `api-session-${index}`,
+        name: session?.name || 'Session',
+        durationLabel: `${durationMinutes} min`,
+        priceLabel: Number.isFinite(priceNumber) && priceNumber >= 0 ? `$${priceNumber}` : (session?.price || '-'),
+      };
+    });
+  }, [clinicianSessionsResponse]);
+  const parsedFallbackSessions = useMemo(() => {
+    return fallbackSessionTypes.map((session) => ({
+      id: session.id,
+      name: session.name,
+      durationLabel: session.duration || '50 min',
+      priceLabel: session.price || '-',
+    }));
+  }, [fallbackSessionTypes]);
+  const sessionOptions = parsedApiSessions.length > 0 ? parsedApiSessions : parsedFallbackSessions;
 
   const getDayIsoDate = (dayName: string) => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -102,8 +129,9 @@ export function PublicClinicianPage() {
     return new Date(`${iso}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   };
 
-  const handleSlotClick = (day: string, slot: string) => {
-    setPreselectedSlot({ date: getDayIsoDate(day), time: slot });
+  const handleSessionClick = (day: string) => {
+    const defaultTime = availability.find((a: any) => a.day === day)?.slots?.[0] || '09:00 AM';
+    setPreselectedSlot({ date: getDayIsoDate(day), time: defaultTime });
     setIsBookingOpen(true);
   };
 
@@ -207,9 +235,9 @@ export function PublicClinicianPage() {
             <div className="bg-white rounded-3xl shadow-lg shadow-slate-200/60 border border-slate-100 p-8">
               <h2 className="text-xl font-black text-slate-900 mb-2 flex items-center gap-2">
                 <Calendar className="h-5 w-5" style={{ color }} />
-                Available Time Slots
+                Available Sessions
               </h2>
-              <p className="text-slate-500 text-sm mb-6">Select a day to see available times. Click a slot to book.</p>
+              <p className="text-slate-500 text-sm mb-6">Select a day to see available sessions.</p>
 
               <div className="flex flex-wrap gap-2 mb-6">
                 {availability.map((avail: any) => (
@@ -232,37 +260,44 @@ export function PublicClinicianPage() {
               {selectedDay ? (
                 <div>
                   <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-4 flex items-center gap-2">
-                    <Clock className="h-3.5 w-3.5" /> Available slots - {getDayDate(selectedDay)}
+                    <Layers className="h-3.5 w-3.5" /> Available sessions - {getDayDate(selectedDay)}
                   </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {availability.find((a: any) => a.day === selectedDay)?.slots.map((slot: string) => (
-                      <button
-                        key={slot}
-                        onClick={() => handleSlotClick(selectedDay, slot)}
-                        className="py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-1.5 transition-all border hover:text-white hover:shadow-md"
-                        style={{ backgroundColor: brandBg(color, 0.08), color, borderColor: brandBg(color, 0.2) }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = color;
-                          e.currentTarget.style.color = '#fff';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = brandBg(color, 0.08);
-                          e.currentTarget.style.color = color;
-                        }}
-                      >
-                        <CheckCircle className="h-3.5 w-3.5 shrink-0" />
-                        {slot}
-                      </button>
-                    ))}
-                  </div>
+                  {isSessionsLoading && <p className="text-xs text-slate-400 mb-3">Loading sessions...</p>}
+                  {sessionOptions.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {sessionOptions.map((session: any) => (
+                        <button
+                          key={session.id}
+                          onClick={() => handleSessionClick(selectedDay)}
+                          className="py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-between gap-3 transition-all border hover:text-white hover:shadow-md"
+                          style={{ backgroundColor: brandBg(color, 0.08), color, borderColor: brandBg(color, 0.2) }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = color;
+                            e.currentTarget.style.color = '#fff';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = brandBg(color, 0.08);
+                            e.currentTarget.style.color = color;
+                          }}
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <Layers className="h-3.5 w-3.5 shrink-0" />
+                            {session.name}
+                          </span>
+                          <span className="text-xs font-semibold opacity-80">{session.durationLabel} · {session.priceLabel}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-slate-500 text-sm">No sessions available for this clinician yet.</p>
+                  )}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-10 text-center">
                   <div className="h-16 w-16 rounded-2xl flex items-center justify-center mb-3" style={{ backgroundColor: brandBg(color, 0.1) }}>
                     <Calendar className="h-8 w-8 opacity-30" style={{ color }} />
                   </div>
-                  <p className="text-slate-500 font-medium">Select a day above to view available time slots</p>
-                  <p className="text-slate-400 text-sm mt-1">All times shown in your local timezone</p>
+                  <p className="text-slate-500 font-medium">Select a day above to view available sessions</p>
                 </div>
               )}
             </div>
@@ -278,6 +313,7 @@ export function PublicClinicianPage() {
         }}
         clinician={clinician}
         preselectedSlot={preselectedSlot}
+        brandColor={color}
       />
     </div>
   );

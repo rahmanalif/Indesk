@@ -247,12 +247,6 @@ export function PublicClinicPage() {
 
       <footer className="border-t border-slate-200 bg-white/80 backdrop-blur-sm mt-8">
         <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-slate-500 text-sm">
-            <Globe className="h-4 w-4" />
-            <a href={clinicWebsite} className="hover:underline transition-colors" style={{ color }}>
-              {clinicWebsite}
-            </a>
-          </div>
           <p className="text-slate-400 text-xs">© 2026 {clinicName}. All rights reserved.</p>
         </div>
       </footer>

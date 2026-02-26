@@ -2,7 +2,6 @@ import React, { useState, useRef } from 'react';
 import { Search, Upload, FileText, Check, Trash2, FilePlus } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { Select } from '../ui/Select';
 import { cn } from '../../lib/utils';
 import { useCreateAssessmentInstanceMutation } from '../../redux/api/assessmentApi';
 import { useGetClientsQuery } from '../../redux/api/clientsApi';
@@ -38,6 +37,7 @@ export function ShareDocumentModal({ isOpen, onClose, documentName = 'ACE: Adver
     ]);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const hasUploadedDocument = includedDocs.some((doc) => Boolean(doc.file));
 
     const handleSend = async () => {
         if (!selectedPatient || !templateId || includedDocs.length === 0) return;
@@ -71,7 +71,7 @@ export function ShareDocumentModal({ isOpen, onClose, documentName = 'ACE: Adver
     };
 
     const handleUploadClick = () => {
-        if (!selectedPatient) return;
+        if (!selectedPatient || hasUploadedDocument) return;
         fileInputRef.current?.click();
     };
 
@@ -84,7 +84,7 @@ export function ShareDocumentModal({ isOpen, onClose, documentName = 'ACE: Adver
                 type: 'Uploaded Resource',
                 file
             };
-            setIncludedDocs((prev) => [...prev, newDoc]);
+            setIncludedDocs([newDoc]);
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
@@ -130,15 +130,20 @@ export function ShareDocumentModal({ isOpen, onClose, documentName = 'ACE: Adver
                 <div className="space-y-3">
                     <label className="text-xs font-semibold text-muted-foreground ml-1 uppercase tracking-widest">Target Recipient</label>
                     <div className="flex gap-4">
-                        <div className="relative flex-1 group">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                            <Select
+                        <div className="flex-1 h-12 rounded-xl bg-muted/30 border border-transparent focus-within:ring-1 focus-within:ring-primary/20 group flex items-center gap-2 px-4">
+                            <Search className="h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors shrink-0" />
+                            <select
                                 value={selectedPatient || ''}
                                 onChange={(e) => setSelectedPatient(e.target.value)}
-                                options={clientOptions}
-                                className="h-12 border-none bg-muted/30 focus:ring-1 focus:ring-primary/20 rounded-xl font-medium text-foreground px-12"
                                 disabled={clientsLoading}
-                            />
+                                className="h-full w-full bg-transparent border-none outline-none focus:outline-none focus:ring-0 font-medium text-foreground pr-8"
+                            >
+                                {clientOptions.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -147,16 +152,21 @@ export function ShareDocumentModal({ isOpen, onClose, documentName = 'ACE: Adver
                 <div className={cn("space-y-6 transition-all duration-500", !selectedPatient && "opacity-40 grayscale pointer-events-none select-none")}>
                     {/* Library Selector */}
                     <div className="space-y-3">
-                        <label className="text-xs font-semibold text-muted-foreground ml-1 uppercase tracking-widest">Add Clinical Resources</label>
+                        {/* <label className="text-xs font-semibold text-muted-foreground ml-1 uppercase tracking-widest">Add Clinical Resources</label> */}
                         <div className="flex flex-col sm:flex-row gap-4">
-                            <div className="flex-1">
+                            {/* <div className="flex-1">
                                 <Select
                                     className="h-12 border-none bg-muted/30 focus:ring-1 focus:ring-primary/20 rounded-xl font-medium text-foreground"
                                     options={[{ value: 'all', label: 'All Resources' }, { value: 'forms', label: 'Clinical Forms' }, { value: 'edu', label: 'Documentation' }]}
                                     value="all"
                                 />
-                            </div>
-                            <Button variant="outline" onClick={handleUploadClick} className="h-12 px-6 border-border/40 text-muted-foreground hover:bg-muted/10 hover:text-primary rounded-xl font-bold gap-2 shadow-sm transition-all whitespace-nowrap">
+                            </div> */}
+                            <Button
+                                variant="outline"
+                                onClick={handleUploadClick}
+                                disabled={!selectedPatient || hasUploadedDocument}
+                                className="h-12 px-6 border-border/40 text-muted-foreground hover:bg-muted/10 hover:text-primary rounded-xl font-bold gap-2 shadow-sm transition-all whitespace-nowrap"
+                            >
                                 <Upload className="h-4 w-4" /> Upload Local
                             </Button>
                         </div>
@@ -164,7 +174,7 @@ export function ShareDocumentModal({ isOpen, onClose, documentName = 'ACE: Adver
 
                     {/* Documents Included */}
                     <div className="space-y-3">
-                        <label className="text-xs font-semibold text-muted-foreground ml-1 uppercase tracking-widest">Distribution Queue ({includedDocs.length})</label>
+                        {/* <label className="text-xs font-semibold text-muted-foreground ml-1 uppercase tracking-widest">Distribution Queue ({includedDocs.length})</label> */}
                         <div className="border border-border/40 rounded-xl p-6 lg:p-8 min-h-[160px] bg-muted/10 space-y-4 shadow-inner">
                             {includedDocs.map((doc) => (
                                 <div key={doc.id} className="flex items-center justify-between p-4 bg-white border border-border/40 rounded-xl group shadow-sm transition-all hover:border-primary/30">

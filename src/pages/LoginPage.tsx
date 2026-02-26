@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link, Navigate } from 'react-router-dom';
+import { useNavigate, Link, Navigate, useLocation } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Shield, User, Eye, EyeOff, ArrowRight, AlertCircle } from 'lucide-react';
@@ -7,7 +7,9 @@ import { useAuth } from '../hooks/useAuth';
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, isAuthenticated, isLoading, error, clearError } = useAuth();
+  const fromPath = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
   
   const [role, setRole] = useState<'Admin' | 'Clinician'>('Admin');
   const [showPassword, setShowPassword] = useState(false);
@@ -63,13 +65,11 @@ export function LoginPage() {
     const result = await login(formData.email, formData.password);
     
     if (result.success) {
-      // Redirect based on user role
-      const userRole = result.data?.response.data.role;
-      if (userRole === 'provider' || userRole === 'admin') {
-        navigate('/dashboard');
-      } else {
-        navigate('/');
+      if (fromPath && fromPath !== '/login') {
+        navigate(fromPath, { replace: true });
+        return;
       }
+      navigate('/dashboard', { replace: true });
     }
   };
 
@@ -89,7 +89,7 @@ export function LoginPage() {
   };
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={fromPath || '/dashboard'} replace />;
   }
 
   return (

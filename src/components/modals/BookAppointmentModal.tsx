@@ -14,6 +14,7 @@ export interface BookAppointmentModalProps {
     onClose: () => void;
     clinician: any;
     preselectedSlot?: { date: string; time: string } | null;
+    brandColor?: string;
 }
 
 type Step = 1 | 2 | 3 | 4;
@@ -195,9 +196,9 @@ function openPrintInvoice(opts: {
 }
 
 // --- Component ----------------------------------------------------------------
-export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSlot }: BookAppointmentModalProps) {
+export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSlot, brandColor }: BookAppointmentModalProps) {
     const { addPublicBooking, branding, sessionTypes: fallbackSessionTypes } = useData();
-    const color = branding.color || '#0066FF';
+    const color = brandColor || branding.color || '#0066FF';
 
     const [step, setStep] = useState<Step>(1);
     const [isLoading, setIsLoading] = useState(false);
@@ -675,4 +676,3 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
         </div>
     );
 }
-

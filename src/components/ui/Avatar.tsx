@@ -29,8 +29,8 @@ export function Avatar({
     xl: 'h-20 w-20 text-xl'
   };
   return <div className={cn('relative flex shrink-0 overflow-hidden rounded-full bg-muted', sizeClasses[size], className)} {...props}>
-    {showImage ? <img src={src} alt={alt || 'Avatar'} className="aspect-square h-full w-full object-cover" onError={() => setHasImageError(true)} /> : <div className={cn("flex h-full w-full items-center justify-center bg-primary/10 text-primary font-medium", hasImageError && "bg-muted")}>
-      {hasImageError ? null : fallback}
+    {showImage ? <img src={src} alt={alt || 'Avatar'} className="aspect-square h-full w-full object-cover" onError={() => setHasImageError(true)} /> : <div className={cn("flex h-full w-full items-center justify-center bg-primary/10 text-primary font-medium", hasImageError && "bg-muted text-muted-foreground")}>
+      {fallback}
     </div>}
   </div>;
 }

@@ -327,10 +327,22 @@ export interface SubscriptionPlan {
   description?: string | null;
   price: number;
   clientLimit?: number | null;
+  clinicianLimit?: number | null;
   features?: SubscriptionPlanFeatures;
+  isPopular?: boolean;
+  savings?: string | null;
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface GetAvailablePlansResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response: {
+    data: SubscriptionPlan[];
+  };
 }
 
 export interface SubscriptionClinic {
@@ -724,6 +736,11 @@ export const clientsApi = createApi({
       providesTags: ['Clients'],
     }),
 
+    getAvailablePlans: builder.query<GetAvailablePlansResponse, void>({
+      query: () => '/plans/available',
+      providesTags: ['Clients'],
+    }),
+
     getClinicTransactions: builder.query<GetClinicTransactionsResponse, { page?: number; limit?: number }>({
       query: (params) => ({
         url: '/transaction/clinic',
@@ -889,6 +906,7 @@ export const {
   useGetInvoicesQuery,
   useGetInvoiceStatsQuery,
   useGetCurrentSubscriptionQuery,
+  useGetAvailablePlansQuery,
   useGetClinicTransactionsQuery,
   useGetClinicMembersQuery,
   useGetClinicQuery,
