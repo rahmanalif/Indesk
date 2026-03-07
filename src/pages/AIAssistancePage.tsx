@@ -9,6 +9,7 @@ import type { AiAssistantMessage } from '../redux/api/aiAssistantApi';
 import { useGetClientsQuery } from '../redux/api/clientsApi';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import type { SerializedError } from '@reduxjs/toolkit';
+import { useLocation } from 'react-router-dom';
 
 type ChatMessage = {
   id: number;
@@ -41,7 +42,26 @@ const defaultAssistantPrompts = [
   'Can you make a handout for my patient outlining different cognitive diffusion techniques?',
 ];
 
-const DEFAULT_ASSISTANT_PROMPT = defaultAssistantPrompts[0];
+const ASSISTANT_PROMPT_ROTATION_KEY = 'ai-assistant-prompt-index';
+
+const getNextAssistantPrompt = () => {
+  if (typeof window === 'undefined') {
+    return defaultAssistantPrompts[0];
+  }
+
+  const storedIndex = Number.parseInt(
+    window.localStorage.getItem(ASSISTANT_PROMPT_ROTATION_KEY) || '0',
+    10
+  );
+  const safeIndex = Number.isFinite(storedIndex)
+    ? Math.abs(storedIndex) % defaultAssistantPrompts.length
+    : 0;
+  const nextIndex = (safeIndex + 1) % defaultAssistantPrompts.length;
+
+  window.localStorage.setItem(ASSISTANT_PROMPT_ROTATION_KEY, String(nextIndex));
+
+  return defaultAssistantPrompts[safeIndex];
+};
 
 const toConversationHistory = (messages: ChatMessage[]): AiAssistantMessage[] =>
   messages.map((message) => ({
@@ -81,10 +101,11 @@ const getErrorMessage = (error?: FetchBaseQueryError | SerializedError) => {
 };
 
 export function AIAssistancePage() {
-  const [messages, setMessages] = useState<ChatMessage[]>([{
+  const location = useLocation();
+  const [messages, setMessages] = useState<ChatMessage[]>(() => [{
     id: 1,
     role: 'ai',
-    text: DEFAULT_ASSISTANT_PROMPT,
+    text: getNextAssistantPrompt(),
   }]);
   const [input, setInput] = useState('');
   const [selectedClient, setSelectedClient] = useState<ClientOption | null>(null);
@@ -100,6 +121,7 @@ export function AIAssistancePage() {
   const requestError = draftError || chatError;
   const requestErrorMessage = getErrorMessage(requestError);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const hasHandledInitialRoute = useRef(false);
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({
       behavior: 'smooth'
@@ -130,6 +152,29 @@ export function AIAssistancePage() {
     scrollToBottom();
   }, [messages, isTyping]);
   useEffect(() => {
+    if (location.pathname !== '/ai-assistance') return;
+    if (!hasHandledInitialRoute.current) {
+      hasHandledInitialRoute.current = true;
+      return;
+    }
+
+    setMessages((prev) => {
+      const isIntroOnly =
+        prev.length === 1 &&
+        prev[0]?.role === 'ai' &&
+        !prev.some((message) => message.role === 'user');
+
+      if (!isIntroOnly) return prev;
+
+      return [
+        {
+          ...prev[0],
+          text: getNextAssistantPrompt(),
+        },
+      ];
+    });
+  }, [location.pathname]);
+  useEffect(() => {
     if (selectedClient && !input.includes(`@${selectedClient.name}`)) {
       setSelectedClient(null);
     }
@@ -143,7 +188,7 @@ export function AIAssistancePage() {
   };
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmedInput = input.trim() || (canSendWithoutTyping ? DEFAULT_ASSISTANT_PROMPT : '');
+    const trimmedInput = input.trim() || (canSendWithoutTyping ? messages[0]?.text || '' : '');
     if (!trimmedInput || isTyping) return;
     const userMsg = {
       id: Date.now(),
