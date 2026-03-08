@@ -31,7 +31,7 @@ export function ProtectedRoute({
     if (roles && roles.length > 0) {
         const userRole = currentUser.role.toLowerCase() as UserRole;
         if (!roles.includes(userRole)) {
-            return <SmartRedirect />;
+            return <SmartRedirect fallbackPath="/no-access" />;
         }
     }
 
@@ -39,7 +39,7 @@ export function ProtectedRoute({
     if (permission) {
         const hasAccess = checkPermissions(currentUser, permission, requireAllPermissions);
         if (!hasAccess) {
-            return <SmartRedirect />;
+            return <SmartRedirect fallbackPath="/no-access" />;
         }
     }
 

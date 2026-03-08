@@ -1,8 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
-import { navItems } from '../config/navigation';
-import { checkUserPermission } from '../hooks/permissions';
+import { getAccessibleNavItems } from '../config/navigation';
 
 interface SmartRedirectProps {
     preferredRoutes?: string[];
@@ -11,16 +10,14 @@ interface SmartRedirectProps {
 
 export function SmartRedirect({ 
     preferredRoutes, 
-    fallbackPath = '/' 
+    fallbackPath = '/no-access' 
 }: SmartRedirectProps) {
     const { user } = useSelector((state: RootState) => state.auth);
     const location = useLocation();
     const effectiveFallback = user ? fallbackPath : '/login';
     
     // Get all accessible routes
-    const accessibleRoutes = navItems.filter(item => 
-        checkUserPermission(user, item.permission)
-    );
+    const accessibleRoutes = getAccessibleNavItems(user);
 
     // Determine the best route to redirect to
     const redirectPath = getBestRoute(accessibleRoutes, preferredRoutes, effectiveFallback);

@@ -245,16 +245,28 @@ export function AIAssistancePage() {
       <div className="mb-2 md:mb-4 flex-shrink-0">
         <h1 className="text-xl md:text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
           <Sparkles className="h-5 w-5 md:h-8 md:w-8 text-primary" />
-          AI Assistant
+          Sigmund Freud Your Clinic Assistant
         </h1>
         <p className="text-xs md:text-base text-muted-foreground mt-1">
           Your intelligent partner for clinic management.
         </p>
       </div>
 
-      <Card className="flex-1 flex flex-col overflow-hidden border border-border/50 shadow-sm bg-white md:bg-white/50">
+      <Card
+        className="flex-1 flex flex-col overflow-hidden border border-border/50 shadow-sm"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(248, 246, 239, 0.9), rgba(248, 246, 239, 0.9)), url('/images/Sigmund.jpg')",
+          backgroundSize: '100% auto',
+          backgroundPosition: 'center bottom',
+          backgroundRepeat: 'no-repeat',
+          backgroundColor: '#f8f6ef',
+        }}
+      >
         {/* Chat Area */}
-        <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-4 bg-muted/5 scroll-smooth">
+        <div
+          className="relative flex-1 overflow-y-auto p-3 md:p-4 space-y-4 scroll-smooth"
+        >
           {messages.map(msg => (
             <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
               <Avatar
@@ -285,7 +297,7 @@ export function AIAssistancePage() {
         </div>
 
         {/* Input Area */}
-        <div className="p-3 bg-white border-t border-border/50">
+        <div className="p-3 border-t border-border/50 bg-[rgba(248,246,239,0.92)] backdrop-blur-sm">
           <form onSubmit={handleSend} className="flex gap-2">
             <div className="relative flex-1">
               <Input

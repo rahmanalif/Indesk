@@ -7,7 +7,7 @@ import { cn } from '../lib/utils';
 import { SearchDropdown } from './SearchDropdown';
 import { NotificationDropdown } from './NotificationDropdown';
 import { useAuth } from '../hooks/useAuth';
-import { navItems } from '../config/navigation';
+import { getAccessibleNavItems } from '../config/navigation';
 import {
   useGetNotificationsQuery,
   useGetUnreadCountQuery,
@@ -93,6 +93,7 @@ export function Header({
   });
 
   const unreadCount = unreadCountResponse?.response?.data?.count ?? 0;
+  const accessibleNavItems = getAccessibleNavItems(user);
 
   const markAllRead = async () => {
     try {
@@ -251,7 +252,7 @@ export function Header({
             </div>
 
             <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-2 mb-2">Navigation</div>
-            {navItems.map((item) => {
+            {accessibleNavItems.map((item) => {
               const isActive = location.pathname === item.path;
               const Icon = item.icon;
               return (

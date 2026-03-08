@@ -9,6 +9,13 @@ import { useGetIntegrationsQuery, useLazyGetIntegrationOAuthUrlQuery } from '../
 
 type IntegrationStatus = 'Connected' | 'Disconnected';
 
+const COMING_SOON_INTEGRATION = {
+  id: 'healthcode-coming-soon',
+  name: 'Healthcode',
+  icon: '🏥',
+  description: 'Healthcode integration is coming soon.',
+};
+
 const SUPPORTED_OAUTH_TYPES = new Set([
   'google_calendar',
   'google_meet',
@@ -219,6 +226,23 @@ export function IntegrationsPage() {
           </Card>
           );
         })}
+        <Card className="border-border/50 border-dashed">
+          <CardContent className="p-6 flex flex-col h-full">
+            <div className="flex justify-between items-start mb-4">
+              <div className="text-3xl">{COMING_SOON_INTEGRATION.icon}</div>
+              <Badge variant="secondary">Coming Soon</Badge>
+            </div>
+
+            <h3 className="font-semibold text-lg mb-1">{COMING_SOON_INTEGRATION.name}</h3>
+            <p className="text-sm text-muted-foreground mb-4 flex-1">
+              {COMING_SOON_INTEGRATION.description}
+            </p>
+
+            <Button variant="outline" className="w-full" disabled>
+              Coming Soon
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     )}
 

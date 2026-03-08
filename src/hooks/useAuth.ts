@@ -2,13 +2,15 @@ import { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { setCredentials, logout, clearError, setError, setLoading } from '../redux/slices/authSlice';
-import { useLoginMutation, useLogoutMutation } from '../redux/api/authApi';
+import { useLoginMutation, useLogoutMutation, useRegisterMutation, useVerifyAccountMutation } from '../redux/api/authApi';
 import { RootState } from '../store';
 
 export const useAuth = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [loginApi, { isLoading: apiLoading }] = useLoginMutation();
+  const [registerApi, { isLoading: registerLoading }] = useRegisterMutation();
+  const [verifyAccountApi, { isLoading: verifyLoading }] = useVerifyAccountMutation();
   const [logoutApi] = useLogoutMutation();
 
   const { user, tokens, isAuthenticated, isLoading, error } = useSelector(
@@ -41,6 +43,52 @@ export const useAuth = () => {
     }
   };
 
+  const register = async (firstName: string, lastName: string, email: string, password: string) => {
+    try {
+      dispatch(clearError());
+      dispatch(setLoading(true));
+
+      const response = await registerApi({
+        firstName,
+        lastName,
+        email,
+        password,
+        role: 'user',
+      }).unwrap();
+
+      dispatch(setLoading(false));
+      return { success: true, data: response };
+    } catch (error: any) {
+      const errorMessage = error?.data?.message || error?.message || 'Registration failed. Please try again.';
+      dispatch(setError(errorMessage));
+      return { success: false, error: errorMessage };
+    }
+  };
+
+  const verifyAccount = async (email: string, code: string) => {
+    try {
+      dispatch(clearError());
+      dispatch(setLoading(true));
+
+      const response = await verifyAccountApi({ email, code }).unwrap();
+
+      if (response.success) {
+        dispatch(setCredentials({
+          user: response.response.data,
+          tokens: response.response.tokens,
+        }));
+        dispatch(setLoading(false));
+        return { success: true, data: response };
+      }
+
+      throw new Error(response.message || 'Account verification failed');
+    } catch (error: any) {
+      const errorMessage = error?.data?.message || error?.message || 'Verification failed. Please try again.';
+      dispatch(setError(errorMessage));
+      return { success: false, error: errorMessage };
+    }
+  };
+
   const logoutUser = async () => {
     try {
       const refreshToken = tokens?.refresh?.token;
@@ -64,9 +112,11 @@ export const useAuth = () => {
     user,
     tokens,
     isAuthenticated,
-    isLoading: isLoading || apiLoading,
+    isLoading: isLoading || apiLoading || registerLoading || verifyLoading,
     error,
     login,
+    register,
+    verifyAccount,
     logout: logoutUser,
     clearError: clearAuthError,
   };

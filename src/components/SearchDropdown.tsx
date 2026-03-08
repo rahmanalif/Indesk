@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { User, FileText, CreditCard, LayoutDashboard, Settings } from 'lucide-react';
+import { User, FileText, CreditCard, LayoutDashboard } from 'lucide-react';
+import { usePermissions } from '../hooks/usePermissions';
 
 interface SearchDropdownProps {
   query: string;
@@ -8,18 +9,23 @@ interface SearchDropdownProps {
 
 export function SearchDropdown({ query, onSelect }: SearchDropdownProps) {
   const navigate = useNavigate();
+  const { checkPermission } = usePermissions();
 
   const allLinks = [
-    { path: '/clients', label: 'Manage Clients', sub: 'Go to Client Directory', icon: User, color: 'text-blue-600', bg: 'bg-blue-100' },
-    { path: '/money', label: 'Financial Reports', sub: 'View Money Matters', icon: CreditCard, color: 'text-green-600', bg: 'bg-green-100' },
-    { path: '/invoices', label: 'Invoices', sub: 'View All Invoices', icon: FileText, color: 'text-orange-600', bg: 'bg-orange-100' },
-    { path: '/dashboard', label: 'Dashboard', sub: 'Overview', icon: LayoutDashboard, color: 'text-purple-600', bg: 'bg-purple-100' },
+    { path: '/clients', label: 'Manage Clients', sub: 'Go to Client Directory', icon: User, color: 'text-blue-600', bg: 'bg-blue-100', permission: 'clinician_clients' },
+    { path: '/money', label: 'Financial Reports', sub: 'View Money Matters', icon: CreditCard, color: 'text-green-600', bg: 'bg-green-100', permission: 'clinician_money' },
+    { path: '/invoices', label: 'Invoices', sub: 'View All Invoices', icon: FileText, color: 'text-orange-600', bg: 'bg-orange-100', permission: 'clinician_invoices' },
+    { path: '/dashboard', label: 'Dashboard', sub: 'Overview', icon: LayoutDashboard, color: 'text-purple-600', bg: 'bg-purple-100', permission: 'clinician_dashboard' },
   ];
 
-  const filtered = allLinks.filter(l =>
-    l.label.toLowerCase().includes(query.toLowerCase()) ||
-    l.sub.toLowerCase().includes(query.toLowerCase())
-  );
+  const filtered = allLinks.filter((l) => {
+    if (!checkPermission(l.permission)) return false;
+
+    return (
+      l.label.toLowerCase().includes(query.toLowerCase()) ||
+      l.sub.toLowerCase().includes(query.toLowerCase())
+    );
+  });
 
   const handleSelect = (path: string) => {
     navigate(path);

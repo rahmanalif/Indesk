@@ -2,47 +2,106 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { ArrowLeft, Mail, KeyRound, CheckCircle2, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Mail, KeyRound, CheckCircle2, ArrowRight, AlertCircle } from 'lucide-react';
+import { useForgotPasswordMutation, useResetPasswordMutation } from '../redux/api/authApi';
 
 export function ForgotPasswordPage() {
   const navigate = useNavigate();
+  const [forgotPassword, { isLoading }] = useForgotPasswordMutation();
+  const [resetPassword, { isLoading: isResetting }] = useResetPasswordMutation();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1); // 1: Email, 2: OTP, 3: New Pass, 4: Success
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-  const handleEmailSubmit = (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In real app, send OTP here
-    setStep(2);
+    setError('');
+    setSuccess('');
+
+    if (!email.trim()) {
+      setError('Email is required.');
+      return;
+    }
+
+    try {
+      const response = await forgotPassword({ email: email.trim() }).unwrap();
+      setSuccess(response.message || 'A verification code has been sent to your email.');
+      setStep(2);
+    } catch (err: any) {
+      setError(err?.data?.message || err?.message || 'Failed to send reset code. Please try again.');
+    }
   };
 
   const handleOtpSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Validate OTP
+    setError('');
+
+    if (otp.join('').trim().length !== 6) {
+      setError('Please enter the 6-digit verification code.');
+      return;
+    }
+
     setStep(3);
   };
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Reset Password Logic
-    setStep(4);
+    setError('');
+    setSuccess('');
+
+    if (!password || !confirmPassword) {
+      setError('Please fill in both password fields.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    try {
+      const response = await resetPassword({
+        email: email.trim(),
+        otp: otp.join('').trim(),
+        password,
+      }).unwrap();
+
+      setSuccess(response.message || 'Your password has been successfully reset.');
+      setStep(4);
+    } catch (err: any) {
+      setError(err?.data?.message || err?.message || 'Failed to reset password. Please try again.');
+    }
   };
 
   const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) return;
+    if (!/^\d?$/.test(value)) return;
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
-    // Auto-focus next input could go here
+    if (error) {
+      setError('');
+    }
+  };
+
+  const handleResendCode = async () => {
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await forgotPassword({ email: email.trim() }).unwrap();
+      setSuccess(response.message || 'A new verification code has been sent.');
+    } catch (err: any) {
+      setError(err?.data?.message || err?.message || 'Failed to resend code. Please try again.');
+    }
   };
 
   return (
     <div className="min-h-screen w-full flex bg-background">
-      {/* Left Side - Form */}
       <div className="w-full lg:w-[45%] flex flex-col justify-center px-8 sm:px-12 lg:px-24 xl:px-32 relative bg-white">
-
         <div className="mb-8">
           <Link to="/login" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors">
             <ArrowLeft className="w-4 h-4 mr-2" /> Back to Login
@@ -62,12 +121,25 @@ export function ForgotPasswordPage() {
             {step === 4 && 'Password Reset!'}
           </h1>
           <p className="text-muted-foreground">
-            {step === 1 && 'Enter your email address and we’ll send you a verification code.'}
+            {step === 1 && 'Enter your email address and we will send you a verification code.'}
             {step === 2 && `We sent a 6-digit code to ${email}. Enter it below.`}
             {step === 3 && 'Create a strong password for your account.'}
             {step === 4 && 'Your password has been successfully reset. You can now login.'}
           </p>
         </div>
+
+        {error && (
+          <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span className="text-sm">{error}</span>
+          </div>
+        )}
+
+        {success && (
+          <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            {success}
+          </div>
+        )}
 
         {step === 1 && (
           <form onSubmit={handleEmailSubmit} className="space-y-6">
@@ -80,9 +152,12 @@ export function ForgotPasswordPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="h-11"
+                disabled={isLoading}
               />
             </div>
-            <Button type="submit" className="w-full h-11">Send Reset Code</Button>
+            <Button type="submit" className="w-full h-11" disabled={isLoading}>
+              {isLoading ? 'Sending...' : 'Send Reset Code'}
+            </Button>
           </form>
         )}
 
@@ -93,6 +168,7 @@ export function ForgotPasswordPage() {
                 <Input
                   key={i}
                   type="text"
+                  inputMode="numeric"
                   maxLength={1}
                   className="w-12 h-12 text-center text-lg font-bold"
                   value={digit}
@@ -102,7 +178,15 @@ export function ForgotPasswordPage() {
             </div>
             <Button type="submit" className="w-full h-11">Verify Code</Button>
             <p className="text-xs text-center text-muted-foreground">
-              Didn't receive code? <span className="text-primary font-medium cursor-pointer">Resend</span>
+              Didn't receive code?{' '}
+              <button
+                type="button"
+                onClick={handleResendCode}
+                className="text-primary font-medium"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Sending...' : 'Resend'}
+              </button>
             </p>
           </form>
         )}
@@ -117,6 +201,7 @@ export function ForgotPasswordPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 className="h-11"
+                disabled={isResetting}
               />
             </div>
             <div className="space-y-2">
@@ -127,9 +212,12 @@ export function ForgotPasswordPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 className="h-11"
+                disabled={isResetting}
               />
             </div>
-            <Button type="submit" className="w-full h-11">Reset Password</Button>
+            <Button type="submit" className="w-full h-11" disabled={isResetting}>
+              {isResetting ? 'Resetting...' : 'Reset Password'}
+            </Button>
           </form>
         )}
 
@@ -140,10 +228,8 @@ export function ForgotPasswordPage() {
             </Button>
           </div>
         )}
-
       </div>
 
-      {/* Right Side - Same Illustration for consistency */}
       <div className="hidden lg:block lg:w-[55%] relative overflow-hidden bg-[#E8EAE3]">
         <div className="absolute inset-4 rounded-3xl overflow-hidden shadow-2xl border border-white/20">
           <img

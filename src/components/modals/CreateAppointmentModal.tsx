@@ -10,6 +10,8 @@ import { useData } from '../../context/DataContext';
 import { cn } from '../../lib/utils';
 import { useCreateAppointmentMutation, useGetClientByIdQuery, useGetClinicMembersQuery, useGetSessionsQuery, useGetClientsQuery } from '../../redux/api/clientsApi';
 
+const APPOINTMENT_CLINICIAN_ROLES = new Set(['clinician', 'superadmin', 'admin']);
+
 interface CreateAppointmentModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -72,13 +74,13 @@ export function CreateAppointmentModal({
     }));
   }, [clientsResponse]);
   const { data: clinicMembersResponse } = useGetClinicMembersQuery(
-    { page: 1, limit: 50 },
+    { page: 1, limit: 100 },
     { skip: !isOpen }
   );
   const clinicianOptions = useMemo(() => {
     const members = clinicMembersResponse?.response?.data?.docs || [];
     return members
-      .filter(m => m.role === 'clinician' && m.user)
+      .filter((m) => APPOINTMENT_CLINICIAN_ROLES.has(String(m.role || '').toLowerCase()) && m.user)
       .map((m, idx) => ({
         value: m.id,
         label: `${m.user?.firstName || ''} ${m.user?.lastName || ''}`.trim() || m.user?.email || 'Clinician',

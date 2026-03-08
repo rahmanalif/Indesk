@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { DataProvider } from './context/DataContext';
 import { AdminLayout } from './components/AdminLayout';
 import { LoginPage } from './pages/LoginPage';
@@ -30,6 +31,19 @@ import { PublicClinicPage } from './pages/public/PublicClinicPage';
 import { PublicClinicianPage } from './pages/public/PublicClinicianPage';
 import { PublicLandingPage } from './pages/public/PublicLandingPage';
 import { PublicAssessmentPage } from './pages/public/PublicAssessmentPage';
+import { RootState } from './store';
+import { SmartRedirect } from './components/SmartRedirect';
+import { NoPermissionsPage } from './pages/NoPermissionsPage';
+
+function HomeRedirect() {
+  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
+
+  if (isAuthenticated && user) {
+    return <SmartRedirect preferredRoutes={['/dashboard', '/profile']} fallbackPath="/no-access" />;
+  }
+
+  return <Navigate to="/landing" replace />;
+}
 
 export function App() {
   return (
@@ -47,7 +61,7 @@ export function App() {
 
           {/* Protected Admin Routes */}
           <Route path="/" element={<AdminLayout />}>
-            <Route index element={<Navigate to="/landing" replace />} />
+            <Route index element={<HomeRedirect />} />
 
             <Route path="dashboard" element={
               <ProtectedRoute permission="clinician_dashboard">
@@ -123,6 +137,11 @@ export function App() {
             } />
 
             <Route path="profile" element={<UserProfilePage />} />
+            <Route path="no-access" element={
+              <ProtectedRoute>
+                <NoPermissionsPage />
+              </ProtectedRoute>
+            } />
 
             <Route path="roles" element={
               <ProtectedRoute permission="clinician_permissions">

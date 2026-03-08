@@ -6,41 +6,108 @@ interface LoginCredentials {
   password: string;
 }
 
+interface AuthTokens {
+  access: {
+    token: string;
+    expiresAt: string;
+  };
+  refresh: {
+    token: string;
+    expiresAt: string;
+  };
+}
+
+interface AuthenticatedUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+  avatar: string;
+  isEmailVerified: boolean;
+  fcmToken: string | null;
+  phoneNumber: string | null;
+  countryCode: string | null;
+  isRestricted: boolean;
+  restrictionReason: string | null;
+  bio: string | null;
+  isOnline: boolean;
+  lastSeen: string | null;
+  lastLoginAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface LoginResponse {
   success: boolean;
   status: number;
   message: string;
   response: {
-    data: {
-      id: string;
-      firstName: string;
-      lastName: string;
-      email: string;
-      role: string;
-      avatar: string;
-      isEmailVerified: boolean;
-      fcmToken: string;
-      phoneNumber: string | null;
-      countryCode: string | null;
-      isRestricted: boolean;
-      restrictionReason: string | null;
-      bio: string | null;
-      isOnline: boolean;
-      lastSeen: string | null;
-      lastLoginAt: string;
-      createdAt: string;
-      updatedAt: string;
+    data: AuthenticatedUser;
+    tokens: AuthTokens;
+  };
+}
+
+interface RegisterRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  role: 'user';
+}
+
+interface RegisterResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response: {
+    data: Record<string, never>;
+  };
+}
+
+interface VerifyAccountRequest {
+  email: string;
+  code: string;
+}
+
+interface ForgotPasswordRequest {
+  email: string;
+}
+
+interface ForgotPasswordResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response?: {
+    data?: Record<string, unknown>;
+  };
+}
+
+interface ResetPasswordRequest {
+  email: string;
+  otp: string;
+  password: string;
+}
+
+interface ResetPasswordResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response?: {
+    data?: Record<string, unknown>;
+  };
+}
+
+interface VerifyAccountResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response: {
+    data: AuthenticatedUser & {
+      permissions?: Record<string, boolean>;
+      lastPasswordChangedAt?: string | null;
     };
-    tokens: {
-      access: {
-        token: string;
-        expiresAt: string;
-      };
-      refresh: {
-        token: string;
-        expiresAt: string;
-      };
-    };
+    tokens: AuthTokens;
   };
 }
 
@@ -164,6 +231,34 @@ export const authApi = createApi({
         body: credentials,
       }),
     }),
+    register: builder.mutation<RegisterResponse, RegisterRequest>({
+      query: (body) => ({
+        url: '/auth/register',
+        method: 'POST',
+        body,
+      }),
+    }),
+    verifyAccount: builder.mutation<VerifyAccountResponse, VerifyAccountRequest>({
+      query: (body) => ({
+        url: '/auth/verify-account',
+        method: 'POST',
+        body,
+      }),
+    }),
+    forgotPassword: builder.mutation<ForgotPasswordResponse, ForgotPasswordRequest>({
+      query: (body) => ({
+        url: '/auth/forgot-password',
+        method: 'POST',
+        body,
+      }),
+    }),
+    resetPassword: builder.mutation<ResetPasswordResponse, ResetPasswordRequest>({
+      query: (body) => ({
+        url: '/auth/reset-password',
+        method: 'POST',
+        body,
+      }),
+    }),
     logout: builder.mutation<LogoutResponse, LogoutRequest>({
       query: (body) => ({
         url: '/auth/logout',
@@ -208,6 +303,10 @@ export const authApi = createApi({
 
 export const {
   useLoginMutation,
+  useRegisterMutation,
+  useVerifyAccountMutation,
+  useForgotPasswordMutation,
+  useResetPasswordMutation,
   useLogoutMutation,
   useGetSelfProfileQuery,
   useUpdateSelfProfileMutation,

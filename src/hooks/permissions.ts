@@ -158,3 +158,17 @@ export function checkUserPermission(user: any, requiredPermission?: string): boo
     const userPerms = rolePermissions[userRole];
     return roleCandidates.some(permission => userPerms.includes(permission)) || userPerms.includes('all');
 }
+
+export function hasAnyGrantedPermission(user: any): boolean {
+    if (!user) return false;
+
+    if (user.permissions && typeof user.permissions === 'object') {
+        return Object.values(user.permissions).some((value) => value === true);
+    }
+
+    if (!user.role) return false;
+
+    const userRole = user.role.toLowerCase() as UserRole;
+    const userPerms = rolePermissions[userRole] || [];
+    return userPerms.length > 0;
+}
