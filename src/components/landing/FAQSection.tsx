@@ -22,11 +22,11 @@ export function FAQSection() {
     answer:
     'No contracts, ever. All plans are month-to-month and you can cancel anytime. We also offer annual billing with a 20% discount.'
   },
-  {
-    question: 'Do you offer training for my team?',
-    answer:
-    'Every plan includes free onboarding support. Practice and Enterprise plans include dedicated training sessions and ongoing support from our clinical success team.'
-  },
+  // {
+  //   question: 'Do you offer training for my team?',
+  //   answer:
+  //   'Every plan includes free onboarding support. Practice and Enterprise plans include dedicated training sessions and ongoing support from our clinical success team.'
+  // },
   {
     question: 'Can patients book their own appointments?',
     answer:

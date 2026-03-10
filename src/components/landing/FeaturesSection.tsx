@@ -1,28 +1,31 @@
-import React from 'react';
+import { image } from 'html2canvas/dist/types/css/types/image';
 import { useInView } from '../../hooks/landing/useInView';
 import { Check, CreditCard, Brain, Calendar, Users } from 'lucide-react';
 export function FeaturesSection() {
   const { ref, isInView } = useInView({
-    threshold: 0.1
+    threshold: 0.1,
+    rootMargin: ''
   });
   const features = [
-  {
-    title: 'Smart Clinic Subscriptions',
-    description:
-    'Flexible subscription management for your patients. Set up recurring sessions, manage packages, and automate billing with grace.',
-    icon: CreditCard,
-    bullets: [
-    'Automated recurring billing',
-    'Flexible session packages',
-    'Patient self-service portal',
-    'Smart payment reminders']
+  // {
+  //   title: 'Smart Clinic Subscriptions',
+  //   description:
+  //   'Flexible subscription management for your patients. Set up recurring sessions, manage packages, and automate billing with grace.',
+  //   image: '/landing/loginai5.jpg',
+  //   imageFit: 'cover',
+  //   bullets: [
+  //   'Automated recurring billing',
+  //   'Flexible session packages',
+  //   'Patient self-service portal',
+  //   'Smart payment reminders']
 
-  },
+  // },
   {
     title: 'AI-Powered Assessments',
     description:
     'Leverage validated psychological assessments enhanced with AI insights. Get deeper understanding of patient progress without extra paperwork.',
-    icon: Brain,
+    image: '/landing/loginai5.jpg',
+    imageFit: 'cover',
     bullets: [
     'PHQ-9, GAD-7, and 50+ validated tools',
     'AI-generated progress summaries',
@@ -30,23 +33,24 @@ export function FeaturesSection() {
     'Treatment recommendation support']
 
   },
-  {
-    title: 'Effortless Booking System',
-    description:
-    'A booking experience your patients will love. Online scheduling, automated reminders, and seamless calendar management.',
-    icon: Calendar,
-    bullets: [
-    'Online self-booking portal',
-    'SMS and email reminders',
-    'Multi-location support',
-    'Waitlist management']
+  // {
+  //   title: 'Effortless Booking System',
+  //   description:
+  //   'A booking experience your patients will love. Online scheduling, automated reminders, and seamless calendar management.',
+  //   icon: Calendar,
+  //   bullets: [
+  //   'Online self-booking portal',
+  //   'SMS and email reminders',
+  //   'Multi-location support',
+  //   'Waitlist management']
 
-  },
+  // },
   {
     title: 'Multi-Doctor Practice Management',
     description:
     'Built for growing practices. Manage multiple clinicians, rooms, and schedules without the complexity.',
-    icon: Users,
+    image: '/landing/imageai7.png',
+    imageFit: 'cover',
     bullets: [
     'Individual clinician dashboards',
     'Shared patient records (with permissions)',
@@ -82,16 +86,18 @@ export function FeaturesSection() {
                 className={`w-full lg:w-5/12 ${index % 2 === 1 ? 'lg:order-2' : ''}`}>
 
                   <div className="aspect-[4/3] bg-cream rounded-xl flex items-center justify-center relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-peach/30 to-transparent opacity-50"></div>
+                    <div className="absolute inset-0 ">
+                      <img className='h-full w-full' src={feature.image} alt="" />
+                    </div>
                     <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-terracotta/10 rounded-full blur-2xl"></div>
 
-                    <div className="relative z-10 p-6 bg-white rounded-2xl shadow-sm transform transition-transform duration-500 group-hover:-translate-y-2 border border-warm-gray/5">
+                    {/* <div className="relative z-10 p-6 bg-white rounded-2xl shadow-sm transform transition-transform duration-500 group-hover:-translate-y-2 border border-warm-gray/5">
                       <feature.icon
                       size={64}
                       className="text-terracotta opacity-80"
                       strokeWidth={1} />
 
-                    </div>
+                    </div> */}
                   </div>
                 </div>
 

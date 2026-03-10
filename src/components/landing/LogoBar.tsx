@@ -14,9 +14,10 @@ export function LogoBar() {
   const scrollLogos = [...logos, ...logos];
   return (
     <section className="py-10 bg-white border-b border-warm-gray/10 overflow-hidden">
-      <p className="text-center text-sm font-medium text-warm-gray mb-8 uppercase tracking-widest">
+      {/* client want to hide this section for now */}
+      {/* <p className="text-center text-sm font-medium text-warm-gray mb-8 uppercase tracking-widest">
         Trusted by 500+ Innovative Clinics
-      </p>
+      </p> */}
 
       <div className="relative w-full">
         {/* Edge fade masks */}

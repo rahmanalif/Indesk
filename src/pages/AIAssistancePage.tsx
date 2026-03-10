@@ -248,7 +248,7 @@ export function AIAssistancePage() {
           Sigmund Freud Your Clinic Assistant
         </h1>
         <p className="text-xs md:text-base text-muted-foreground mt-1">
-          Your intelligent partner for clinic management.
+          Your intelligent partner for clinic management. Please remember not to use sensitive information like names and addresses.
         </p>
       </div>
 

@@ -53,17 +53,17 @@ export function HeroSection() {
 
                 Start Your Free Trial
               </Link>
-              <button className="group flex items-center space-x-3 px-6 py-4 rounded-full border border-warm-gray/30 hover:border-terracotta/50 hover:bg-white transition-all duration-300">
+              {/* <button className="group flex items-center space-x-3 px-6 py-4 rounded-full border border-warm-gray/30 hover:border-terracotta/50 hover:bg-white transition-all duration-300">
                 <div className="w-8 h-8 rounded-full bg-terracotta/10 flex items-center justify-center group-hover:bg-terracotta group-hover:text-white transition-colors">
                   <Play size={14} fill="currentColor" />
                 </div>
                 <span className="font-medium text-charcoal group-hover:text-terracotta transition-colors">
                   Watch Demo
                 </span>
-              </button>
+              </button> */}
             </div>
 
-            <div className="flex flex-wrap gap-4 pt-4 text-sm text-warm-gray">
+            {/* <div className="flex flex-wrap gap-4 pt-4 text-sm text-warm-gray">
               <div className="flex items-center">
                 <CheckCircle2 size={16} className="text-terracotta mr-2" />
                 <span>No credit card required</span>
@@ -76,7 +76,7 @@ export function HeroSection() {
                 <CheckCircle2 size={16} className="text-terracotta mr-2" />
                 <span>HIPAA compliant</span>
               </div>
-            </div>
+            </div> */}
           </div>
 
           {/* Right Content - Dashboard Image */}

@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from 'react';
 import { useInView } from '../../hooks/landing/useInView';
 export function MetricsSection() {
   const { ref, isInView } = useInView({
-    threshold: 0.2
+    threshold: 0.2,
+    rootMargin: ''
   });
   const metrics = [
   {
     label: 'Patients Managed',
-    value: '10k+',
+    value: '20k+',
     target: 10000,
     suffix: '+'
   },

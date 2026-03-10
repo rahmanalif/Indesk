@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, Link, Navigate, useLocation } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -10,8 +10,9 @@ export function LoginPage() {
   const location = useLocation();
   const { login, register, verifyAccount, isAuthenticated, isLoading, error, clearError } = useAuth();
   const fromPath = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
+  const isSignupMode = new URLSearchParams(location.search).get('mode') === 'signup';
 
-  const [showSignupPanel, setShowSignupPanel] = useState(false);
+  const [showSignupPanel, setShowSignupPanel] = useState(isSignupMode);
   const [signupStep, setSignupStep] = useState<1 | 2>(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
@@ -43,6 +44,10 @@ export function LoginPage() {
     acceptedTerms: '',
   });
   const [signupSuccess, setSignupSuccess] = useState('');
+
+  useEffect(() => {
+    setShowSignupPanel(isSignupMode);
+  }, [isSignupMode]);
 
   const validateForm = () => {
     const errors = { email: '', password: '' };

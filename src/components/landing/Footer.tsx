@@ -65,7 +65,7 @@ export function Footer() {
               href="#"
               className="text-2xl font-serif font-bold text-white tracking-tight mb-6 block">
 
-              InDesk<span className="text-terracotta">.</span>
+              <img className='h-20 w-auto' src="/landing/logo.png" alt="" />
             </a>
             <p className="text-white/60 text-sm leading-relaxed max-w-xs mb-8">
               Beautiful, intuitive practice management software designed for

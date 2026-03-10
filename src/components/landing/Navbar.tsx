@@ -40,7 +40,7 @@ export function Navbar() {
               href="#"
               className="text-2xl font-serif font-bold text-charcoal tracking-tight">
 
-              InDesk<span className="text-terracotta">.</span>
+              <img className='h-12 w-auto' src="/landing/logo.png" alt="" />
             </a>
           </div>
 
@@ -60,16 +60,16 @@ export function Navbar() {
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-6">
             <a
-              href="/login"
+              href="/login?mode=signup"
               className="text-sm font-medium text-charcoal hover:text-terracotta transition-colors">
 
-              Sign In
+              Sign Up
             </a>
             <a
               href="/login"
               className="bg-terracotta hover:bg-terracotta-dark text-white text-sm font-medium px-5 py-2.5 rounded-full transition-colors duration-300 shadow-sm hover:shadow-md">
 
-              Start Free Trial
+              Sign in
             </a>
           </div>
 
@@ -108,7 +108,7 @@ export function Navbar() {
                 Sign In
               </a>
               <a
-              href="/login"
+              href="/login?mode=signup"
               className="block text-center bg-terracotta hover:bg-terracotta-dark text-white text-base font-medium px-5 py-3 rounded-full transition-colors">
 
                 Start Free Trial

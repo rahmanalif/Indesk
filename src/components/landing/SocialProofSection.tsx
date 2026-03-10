@@ -50,41 +50,43 @@ export function SocialProofSection() {
     practice: 'Kim Mental Health',
     initials: 'DK'
   }];
-
+  //
+  // Client want to hide this section for now 
+  //
   // Duplicate testimonials for seamless looping
-  const row1 = [...testimonials, ...testimonials];
-  const row2 = [...testimonials.reverse(), ...testimonials];
-  return (
-    <section className="py-24 bg-white overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16 text-center">
-        <h2 className="text-4xl md:text-5xl font-serif text-charcoal mb-4">
-          Trusted by Leading Practices
-        </h2>
-        <p className="text-lg text-warm-gray max-w-2xl mx-auto">
-          Join over 500 clinics delivering better care with InDesk.
-        </p>
-      </div>
+  // const row1 = [...testimonials, ...testimonials];
+  // const row2 = [...testimonials.reverse(), ...testimonials];
+  // return (
+  //   <section className="py-24 bg-white overflow-hidden">
+  //     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16 text-center">
+  //       <h2 className="text-4xl md:text-5xl font-serif text-charcoal mb-4">
+  //         Trusted by Leading Practices
+  //       </h2>
+  //       <p className="text-lg text-warm-gray max-w-2xl mx-auto">
+  //         Join over 500 clinics delivering better care with InDesk.
+  //       </p>
+  //     </div>
 
-      <div className="relative w-full">
-        {/* Gradient Masks */}
-        <div className="absolute left-0 top-0 bottom-0 w-20 md:w-40 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
-        <div className="absolute right-0 top-0 bottom-0 w-20 md:w-40 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
+  //     <div className="relative w-full">
+  //       {/* Gradient Masks */}
+  //       <div className="absolute left-0 top-0 bottom-0 w-20 md:w-40 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none"></div>
+  //       <div className="absolute right-0 top-0 bottom-0 w-20 md:w-40 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none"></div>
 
-        {/* Row 1 - Scrolling Left */}
-        <div className="flex mb-8 animate-marquee pause-on-hover w-max">
-          {row1.map((testimonial, index) =>
-          <TestimonialCard key={`row1-${index}`} testimonial={testimonial} />
-          )}
-        </div>
+  //       {/* Row 1 - Scrolling Left */}
+  //       <div className="flex mb-8 animate-marquee pause-on-hover w-max">
+  //         {row1.map((testimonial, index) =>
+  //         <TestimonialCard key={`row1-${index}`} testimonial={testimonial} />
+  //         )}
+  //       </div>
 
-        {/* Row 2 - Scrolling Right */}
-        <div className="flex animate-marquee-reverse pause-on-hover w-max">
-          {row2.map((testimonial, index) =>
-          <TestimonialCard key={`row2-${index}`} testimonial={testimonial} />
-          )}
-        </div>
-      </div>
-    </section>);
+  //       {/* Row 2 - Scrolling Right */}
+  //       <div className="flex animate-marquee-reverse pause-on-hover w-max">
+  //         {row2.map((testimonial, index) =>
+  //         <TestimonialCard key={`row2-${index}`} testimonial={testimonial} />
+  //         )}
+  //       </div>
+  //     </div>
+  //   </section>);
 
 }
 function TestimonialCard({ testimonial }: {testimonial: any;}) {

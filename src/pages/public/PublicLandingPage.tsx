@@ -2,7 +2,6 @@ import { Navbar } from '../../components/landing/Navbar';
 import { HeroSection } from '../../components/landing/HeroSection';
 import { LogoBar } from '../../components/landing/LogoBar';
 import { WhySection } from '../../components/landing/WhySection';
-import { MetricsSection } from '../../components/landing/MetricsSection';
 import { FeaturesSection } from '../../components/landing/FeaturesSection';
 import { SocialProofSection } from '../../components/landing/SocialProofSection';
 import { PricingSection } from '../../components/landing/PricingSection';
@@ -18,13 +17,14 @@ export function PublicLandingPage() {
       <HeroSection />
       <LogoBar />
       <WhySection />
-      <MetricsSection />
+      
       <FeaturesSection />
+      <ComplianceSection />
       <SocialProofSection />
       <PricingSection />
       <FAQSection />
-      <ComplianceSection />
-      <CTASection />
+      
+      {/* <CTASection /> */}
       <Footer />
     </main>
   );

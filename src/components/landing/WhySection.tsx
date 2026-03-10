@@ -1,9 +1,10 @@
-import React from 'react';
+import { image } from 'html2canvas/dist/types/css/types/image';
 import { useInView } from '../../hooks/landing/useInView';
 import { Heart, LayoutDashboard, Sparkles } from 'lucide-react';
 export function WhySection() {
   const { ref, isInView } = useInView({
-    threshold: 0.1
+    threshold: 0.1,
+    rootMargin: ''
   });
   const features = [
   {
@@ -13,7 +14,7 @@ export function WhySection() {
     icon: Heart,
     color: 'bg-peach',
     align: 'left',
-    image: '/landing/why-1.png',
+    image: '/landing/imagesai (2).jpg',
     imageFit: 'cover'
   },
   {
@@ -23,16 +24,17 @@ export function WhySection() {
     icon: LayoutDashboard,
     color: 'bg-beige',
     align: 'right',
-    image: '/images/dashboard.png',
-    imageFit: 'contain'
+    image: '/landing/imagesai (4).jpg',
+    imageFit: 'cover'
   },
   {
     title: 'Technology That Feels Human',
     description:
     'No cold, clinical software here. InDesk brings warmth and thoughtfulness to every interaction, because your patients deserve it.',
-    icon: Sparkles,
     color: 'bg-terracotta/20',
-    align: 'left'
+    align: 'left',
+    image: '/landing/imagesai (3).jpg',
+    imageFit: 'fit'
   }];
 
   return (
@@ -98,7 +100,7 @@ export function WhySection() {
                   {feature.description}
                 </p>
                 <div className="mt-8">
-                  <a
+                  {/* <a
                   href="#"
                   className="text-terracotta font-medium hover:text-terracotta-dark transition-colors inline-flex items-center group">
 
@@ -106,7 +108,7 @@ export function WhySection() {
                     <span className="ml-2 transform transition-transform group-hover:translate-x-1">
                       →
                     </span>
-                  </a>
+                  </a> */}
                 </div>
               </div>
             </div>
