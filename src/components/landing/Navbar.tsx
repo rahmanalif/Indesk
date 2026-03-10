@@ -111,7 +111,7 @@ export function Navbar() {
               href="/login?mode=signup"
               className="block text-center bg-terracotta hover:bg-terracotta-dark text-white text-base font-medium px-5 py-3 rounded-full transition-colors">
 
-                Start Free Trial
+                Sing Up
               </a>
             </div>
           </div>

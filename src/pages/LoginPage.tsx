@@ -408,7 +408,21 @@ export function LoginPage() {
                       className="mt-0.5 h-4 w-4 rounded border-border"
                       disabled={isLoading}
                     />
-                    <span>I agree to the terms and conditions.</span>
+                    <span>
+                      I agree to the{' '}
+                      <Link to="/legal/terms-of-service" className="font-medium text-primary hover:underline">
+                        Terms of Service
+                      </Link>
+                      {', '}
+                      <Link to="/legal/privacy-policy" className="font-medium text-primary hover:underline">
+                        Privacy Policy
+                      </Link>
+                      {' and '}
+                      <Link to="/legal/cookie-policy" className="font-medium text-primary hover:underline">
+                        Cookie Policy
+                      </Link>
+                      .
+                    </span>
                   </label>
                   {signupErrors.acceptedTerms && <p className="text-sm text-red-500">{signupErrors.acceptedTerms}</p>}
                 </div>

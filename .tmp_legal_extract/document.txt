@@ -1,0 +1,451 @@
+
+
+
+
+InDesk
+Practice Management Platform for Psychologists & Therapists
+
+
+
+Legal Policies
+
+
+UK InKind Psychology Ltd
+
+Version 1.0  |  March 2026
+
+
+CONTENTS
+
+1.  Privacy Policy
+2.  Terms of Service
+3.  Terms of Website Use
+4.  Cookie Policy
+5.  Data Processing Agreement
+6.  Acceptable Use Policy
+
+
+All legal enquiries: info@myindesk.com
+
+1. Privacy Policy
+Effective date: March 2026
+
+InDesk is built by clinicians for clinicians. We take data protection seriously — not just because the law requires it, but because our platform handles some of the most sensitive information that exists.
+
+1.1  About This Document
+This Privacy Policy describes how UK InKind Psychology Ltd — the company behind the InDesk practice management platform — collects, uses, and safeguards personal information. It applies to subscribers, website visitors, and the patients or clients whose records practitioners manage through InDesk.
+We hold two distinct roles under data protection law:
+Data controller — for information we collect directly about subscribers and website visitors in order to run our business.
+Data processor — for patient and client records entered by practitioners. In that context, the practitioner is the controller; we act solely on their instructions.
+Our ICO registration number is ZB983152. Data protection enquiries can be directed to info@myindesk.com.
+
+1.2  Our Details
+Company
+UK InKind Psychology Ltd
+Reg. No.
+16096179
+Address
+Blaeford Gordon & Co Ltd 101 Galgate BARNARD CASTLE County Durham, DL12 8ES, United Kingdom
+Email
+info@myindesk.com
+Website
+www.myindesk.com
+ICO Ref.
+ZB983152
+
+1.3  Information We Collect About Subscribers
+Provided directly by you
+Registration details: name, professional title, practice name and address, email, and professional registration number.
+Account configuration: settings and preferences you apply within InDesk.
+Payment details: managed entirely by our payment processor. We do not store card or bank details.
+Communications: support requests, feedback, and any other messages you send us.
+Collected automatically
+Technical identifiers: IP address, device type, operating system, and browser details.
+Usage patterns: feature access, session durations, and navigation behaviour — used to improve the product.
+Cookie data: described in full in our Cookie Policy.
+
+1.4  Patient and Client Records
+When practitioners use InDesk to manage their caseload, they may enter detailed records about individuals in their care. We process this information strictly as a data processor, acting on the practitioner's instructions. It may include names, contact details, clinical notes, assessment outcomes, and treatment records — all of which constitute special category health data under Article 9 of the UK GDPR, and all of which receive our highest level of security and access control.
+We will never use patient records for commercial purposes, marketing, or any purpose beyond delivering the agreed service. Our AI assistant is a general-purpose tool that is entirely isolated from clinical data. It cannot access, read, search, or retrieve any patient records, clinical notes, or personal data stored within your InDesk account. No clinical or patient data is transmitted to or processed by the AI assistant at any time. You must not enter identifiable patient or client information into the AI assistant under any circumstances.
+
+1.5  Why We Process Your Information
+Purpose
+Legal basis
+Notes
+Account creation and management
+Performance of contract
+Billing and payment processing
+Performance of contract
+Customer support
+Legitimate interests
+Keeping your practice running
+Platform improvement
+Legitimate interests
+Aggregated, anonymised data
+Essential account communications
+Legitimate interests
+Cannot be opted out
+Marketing and product news
+Consent
+Withdraw at any time
+Legal and regulatory compliance
+Legal obligation
+e.g. HMRC, ICO
+
+1.6  How Long We Keep Information
+Subscriber account data
+Retained for the duration of your subscription and for seven years after it ends, in line with professional indemnity and contract limitation periods.
+Patient and client records
+You determine how long records are kept within InDesk. When your account closes, Patient Data is deleted from live systems within 45 days. Encrypted system backups are retained for up to 24 months for disaster recovery but cannot be individually accessed or extracted.
+Website and analytics data
+Anonymised analytics are kept for up to 24 months. Identifiable access logs are deleted within 90 days.
+Financial records
+Retained for seven years to meet HMRC obligations.
+
+1.7  Who We Share Information With
+We do not sell or rent personal information. We may share it with:
+Technology partners who help us deliver InDesk — cloud hosting, email infrastructure, payment processing, error monitoring. All operate under data processing agreements and may only use your information as we instruct.
+Professional advisers — solicitors, accountants, and insurers — under strict confidentiality obligations.
+Regulators and law enforcement — where required by law.
+A successor organisation — if InDesk is acquired or merged. You will be notified before any such transfer and your rights will be preserved.
+A full sub-processor list is available on request.
+
+1.8  International Transfers
+We store all personal data within the UK and EEA. If any sub-processor's infrastructure requires a transfer outside these territories, we ensure that an appropriate safeguard — such as a UK International Data Transfer Agreement approved by the ICO — is in place before the transfer occurs.
+
+1.9  How We Keep Your Data Safe
+All data in transit is encrypted using TLS 1.3.
+Data stored at rest is encrypted using AES-256.
+Platform access requires multi-factor authentication.
+Permissions follow the principle of least privilege.
+We carry out regular independent security assessments.
+All team members with data access receive information security training.
+We maintain a documented incident response process and report breaches to the ICO as required.
+
+1.10  Your Rights
+Right
+What this means for you
+Access
+Request a copy of the personal information we hold about you.
+Correction
+Ask us to update any inaccurate or incomplete information.
+Erasure
+Request deletion of your data, subject to legal retention requirements.
+Restriction
+Ask us to pause processing while a dispute is resolved.
+Portability
+Receive your data in a structured, machine-readable format.
+Object
+Object to processing based on legitimate interests, or to direct marketing.
+Withdraw consent
+Withdraw consent at any time where consent is our legal basis.
+
+To exercise any right, write to info@myindesk.com. We will respond within one calendar month. 
+
+1.11  Children
+InDesk is a professional tool for qualified practitioners. We do not knowingly collect personal information directly from children under 18. Where a practitioner records information about a minor as part of their clinical practice, obtaining all necessary consents is the practitioner's responsibility.
+
+1.12  Policy Updates
+We review this policy at least annually. For significant changes, we will notify you by email at least 30 days before they take effect. The current version is always available at www.myindesk.com.
+
+2. Terms of Service
+Effective date: March 2026
+
+These are the terms governing your InDesk subscription. Please read them before you sign up. If anything is unclear, contact us first.
+
+2.1  Definitions
+Agreement — this Terms of Service document, together with the Privacy Policy, Cookie Policy, Data Processing Agreement, and Acceptable Use Policy.
+InDesk / we / us — UK InKind Psychology Ltd 
+Subscriber / you — the practitioner or organisation that creates an InDesk account.
+Platform — the InDesk application, APIs, and supporting infrastructure.
+Patient Data — all information about identifiable individuals entered by Subscribers in the course of clinical practice.
+Subscription — the plan selected by the Subscriber, granting access to the Platform for the agreed term.
+Staff — individuals authorised by the Subscriber to access InDesk under their account.
+Intellectual Property Rights — patents, copyright, trademarks, design rights, database rights, and equivalent rights worldwide.
+
+2.2  Forming This Agreement
+This Agreement comes into effect when you complete account registration. Starting a free trial also constitutes acceptance. These terms govern the entire relationship between us and replace any prior discussions or representations.
+
+2.3  What We Provide
+We grant you a limited, non-exclusive, non-transferable licence to access and use the Platform during your Subscription, solely for managing your clinical practice.
+InDesk is a cloud-hosted service. You are responsible for your own internet connection and device configuration.
+All data is hosted within secure facilities in the UK and EEA.
+We may update the Platform at any time. We will give reasonable advance notice of material changes.
+We target platform availability of 99% or above per calendar month, excluding pre-announced maintenance.
+
+2.4  Free Trial
+New Subscribers may access a free trial period. No payment information is required to begin. At the end of the trial, you may choose a paid plan or allow access to lapse. We will not charge you without your affirmative selection of a paid plan.
+
+2.5  Fees and Payment
+Subscription fees are published on our pricing page and are quoted inclusive of VAT, which is charged at the current applicable rate for UK subscribers.
+Fees are payable monthly in advance unless an annual plan is chosen.
+Subscriptions renew automatically unless cancelled before the renewal date.
+We accept payment by credit or debit card via our secure payment processor.
+If a payment fails, we will notify you and allow reasonable time to resolve it before suspending access.
+Pricing changes take effect with at least 30 days' written notice. You may cancel if you do not accept new pricing.
+
+2.6  Cancellation
+You may cancel at any time from within your account settings. Cancellation takes effect at the end of the current billing period. We do not issue refunds for unused portions, except where required by law.
+After cancellation, you have 30 days to export your data. Following that period, data will be securely deleted from live systems.
+
+2.7  Termination by Us
+We may suspend or terminate access immediately if:
+You are in material breach of this Agreement and have not remedied it within 14 days of written notice.
+Your use of the Platform poses a risk to patient safety or to others.
+We are required to do so by law or by a regulator.
+Your account has been compromised and action is required to protect data.
+In all other circumstances, we will give at least 30 days' written notice.
+
+2.8  Your Responsibilities as Data Controller
+You are the data controller for all patient and client records in InDesk. This means:
+You must have a valid lawful basis for processing the personal data of every individual in your care.
+You must ensure patients and clients are informed that you use InDesk as a data processing platform.
+You must comply with the standards set by your professional body and any applicable regulation.
+You must ensure your Staff only access InDesk to the extent their role requires.
+
+2.9  Support
+Support is available via the in-platform help centre and by emailing info@myindesk.com. We aim to respond within one working day. Please do not include patient names or identifiable clinical information in support messages.
+
+2.10  Intellectual Property
+All Intellectual Property Rights in InDesk — including its code, design, content, and documentation — belong to UK InKind Psychology Ltd or are licensed to us. Your subscription grants you use of the Platform; it does not transfer any ownership rights.
+You retain full ownership of all data you enter into InDesk. We assert no intellectual property rights over your clinical content.
+You must not copy, reverse-engineer, or attempt to extract the source code of any part of InDesk, nor create any derivative product based on it.
+
+2.11  Warranties and Disclaimers
+We will deliver the Platform with reasonable care and skill and maintain appropriate security throughout your Subscription. Beyond this, InDesk is provided on an as-is basis. We do not warrant that it will be error-free, uninterrupted, or suited to every specific requirement.
+InDesk is an administrative and documentation tool. It does not provide clinical guidance, diagnoses, or treatment recommendations. All clinical decisions remain entirely the responsibility of the qualified practitioner. Where the AI Assistant feature is used, it must never be relied upon as a source of clinical fact. AI-generated content can contain errors and must always be reviewed and verified by a qualified practitioner before use.
+
+2.12  AI Assistant
+InDesk includes an AI assistant feature designed to help with general administrative tasks such as drafting correspondence, summarising non-clinical information, and supporting documentation workflows. The following rules govern its use.
+Isolation from clinical data
+The AI assistant has no access to any data held within your InDesk account. It cannot read, retrieve, or process patient records, clinical notes, assessment results, correspondence, or any other information stored in the Platform. This isolation is enforced at a technical level and cannot be overridden.
+Prohibition on entering clinical or patient data
+You must not enter identifiable patient or client information into the AI assistant. This includes names, dates of birth, NHS or other health identifiers, clinical diagnoses, session notes, assessment scores, safeguarding information, or any other personal data relating to an individual in your care. Entering such information into the AI assistant would constitute a data protection breach for which you, as data controller, bear responsibility.
+Clinical reliance
+The AI assistant is not a clinical tool. Outputs must not be used as the basis for clinical decisions, diagnoses, treatment recommendations, or risk assessments. All AI-generated content must be reviewed and verified by a qualified practitioner before use. We accept no liability for loss or harm arising from reliance on AI assistant outputs.
+Data processing
+Prompts you submit to the AI assistant and the responses generated are processed in accordance with our Privacy Policy. You remain responsible for ensuring that any content you submit to the AI assistant complies with your own data protection obligations.
+
+2.13  Limitation of Liability
+Nothing in this Agreement limits our liability for death or personal injury caused by negligence, for fraud, or for any other liability that cannot lawfully be excluded.
+Subject to the above, our total aggregate liability shall not exceed the total fees you paid in the 12-month period before the event giving rise to the claim.
+We are not liable for indirect or consequential loss, loss of profit, loss of revenue, loss of clinical data through your own actions, or loss of professional reputation.
+
+2.14  General Provisions
+Entire agreement
+This Agreement supersedes all prior representations and understandings between the parties.
+Severability
+If any provision is found unenforceable, the remainder continues in full force.
+Waiver
+Failure to enforce any provision is not a waiver of the right to enforce it later.
+Third party rights
+This Agreement does not confer rights on third parties under the Contracts (Rights of Third Parties) Act 1999.
+Force majeure
+Neither party is liable for failure caused by events genuinely outside their reasonable control, provided prompt notice is given and reasonable mitigation steps are taken.
+Assignment
+You may not assign your rights without our prior written consent. We may assign ours as part of a legitimate business restructuring.
+Governing law
+This Agreement is governed by the law of England and Wales. Both parties submit to the exclusive jurisdiction of the courts of England and Wales.
+
+3. Terms of Website Use
+Effective date: March 2026
+
+These Terms of Website Use govern your access to the InDesk website at myindesk.com. By visiting the site, you accept these terms. If you do not agree, please do not continue to use it. These terms should be read alongside our Privacy Policy and Cookie Policy.
+
+3.1  Who We Are
+UK InKind Psychology Ltd, a Limited Company registered in UK 
+
+3.2  Availability and Changes
+We update the site periodically and cannot guarantee that it will always be available or error-free. We may suspend, update, or withdraw access at any time without notice. We may amend these terms at any time; the current version on the site always applies.
+
+3.3  Permitted and Prohibited Uses
+You may browse the site for information about InDesk and engage with publicly available content. The following are not permitted:
+Using the site for any unlawful purpose or in breach of these terms.
+Attempting to gain unauthorised access to any part of the site or its underlying systems.
+Introducing malicious code, viruses, or automated scripts designed to disrupt or damage the site.
+Systematically harvesting or scraping data from the site without our written permission.
+Framing or mirroring the site on another platform.
+Using site content for commercial purposes without obtaining a licence from us.
+
+3.4  Intellectual Property
+All content on the site — text, images, graphics, logos, and software — is owned by UK InKind Psychology Ltd or used under licence and is protected by copyright law. You may download content for personal, non-commercial reference. You must not reproduce, modify, or distribute site content for any other purpose without prior written consent.
+
+3.5  External Links
+Links to third-party websites are provided for convenience only. We do not endorse or take responsibility for the content or privacy practices of any external site. When you leave the InDesk site, we recommend reviewing the policies of wherever you go.
+
+3.6  User Submissions
+If the site allows you to submit content — such as enquiry forms — you are responsible for ensuring that content is accurate, lawful, and does not infringe third-party rights. We may remove any user-submitted content at our discretion.
+
+3.7  No Reliance on Site Content
+Site content is for general information only. It does not constitute clinical, legal, financial, or professional advice. We make reasonable efforts to keep it accurate but cannot guarantee this.
+
+3.8  Our Liability
+We do not exclude liability for death or personal injury caused by negligence, for fraud, or for any liability that cannot lawfully be limited.
+Subject to that, we are not liable for any loss or damage arising from use of the site or reliance on its content, including loss of profits, business opportunity, or reputation.
+
+3.9  Governing Law
+These terms are governed by the law of England and Wales. Disputes are subject to the non-exclusive jurisdiction of the courts of England and Wales. Residents of Scotland or Northern Ireland may also bring proceedings in their local courts.
+
+4. Cookie Policy
+Effective date: March 2026
+
+This Cookie Policy explains what cookies are, which ones InDesk uses, and how you can manage your preferences. Please also read our Privacy Policy for the full picture of how we handle personal data.
+
+4.1  What Is a Cookie?
+A cookie is a small text file stored on your browser or device when you visit a website. Cookies allow sites to recognise your device on return visits, remember preferences, and understand how the site is used. They are not programs and cannot carry viruses.
+First-party cookies are set by InDesk. Third-party cookies are set by services we use, such as analytics tools. Cookies can be session-based (deleted when you close your browser) or persistent (remaining until they expire or you delete them).
+
+4.2  Cookies InDesk Uses
+Essential cookies
+These are necessary for the platform to function. They manage secure logins, session continuity, and protection against cross-site attacks. They do not require consent and cannot be disabled through our cookie settings.
+Secure session management and authentication
+CSRF protection
+Server-side load balancing
+Analytics and performance cookies
+With your consent, we use analytics tools to understand how the site and platform are used. This helps us identify issues and improve the experience. Where possible, data is anonymised.
+Visitor counts and page engagement
+Feature usage patterns
+Performance and error monitoring
+Functionality cookies
+With your consent, these remember your preferences — such as display settings or your last-used view — across visits.
+Marketing cookies
+With your consent, these may show you InDesk-related content on other platforms and help us measure the effectiveness of our marketing. We do not use marketing cookies to track clinical or patient activity.
+
+4.3  Managing Your Preferences
+A consent banner appears on your first visit. You may accept all cookies, accept essential cookies only, or set granular preferences. You can change your choices at any time using the 'Cookie settings' link in the site footer. Clearing cookies from your browser will reset your preferences.
+
+4.4  Third-Party Cookies
+Some cookies come from third-party tools we use. Those providers have their own cookie policies. We do not allow third parties to use cookies placed through InDesk for their own commercial purposes.
+
+4.5  Further Information
+Independent guidance on cookies can be found at ico.org.uk and www.allaboutcookies.org.
+
+4.6  Changes to This Policy
+We update this policy when we introduce new cookies or when the law changes. Material changes will be notified via the consent banner and, where appropriate, by email.
+
+5. Data Processing Agreement
+Effective date: March 2026
+
+This Data Processing Agreement (DPA) is required by Article 28 of the UK GDPR. It governs how InDesk processes patient and client data on your behalf as your data processor. By subscribing to InDesk, you agree to these terms.
+
+5.1  The Parties
+The Controller: you, the InDesk subscriber, who determines the purpose and means of processing patient and client personal data.
+The Processor: UK InKind Psychology Ltd (InDesk), which processes that data on the Controller's behalf to deliver the Platform services.
+
+5.2  Definitions
+In this DPA, terms including Controller, Processor, Data Subject, Personal Data, Special Category Data, Processing, Personal Data Breach, and Supervisory Authority carry the meanings given to them in the UK GDPR and the Data Protection Act 2018.
+
+5.3  What We Process on Your Behalf
+Categories of personal data
+Identification data: names, dates of birth, contact details, addresses.
+Clinical and health data (special category): presenting concerns, diagnoses, therapy notes, assessment outcomes, treatment records, and safeguarding information.
+Administrative data: invoicing and payment status where managed within the Platform.
+Correspondence records: appointment communications and secure messages sent through InDesk.
+Categories of data subjects
+Patients and clients of the Subscriber.
+Third parties referenced in clinical records, such as GPs or other professionals, to the extent referenced by the Subscriber.
+Duration
+Processing continues for as long as the Subscriber's account is active and for any post-termination retention period specified in this DPA or required by law.
+
+5.4  InDesk's Obligations as Processor
+Process only on your instructions
+We will process Patient Data only to deliver the Platform services you have contracted for and only as you direct. If we believe any instruction would breach applicable law, we will inform you promptly.
+Confidentiality of personnel
+Every team member with access to Patient Data is bound by a confidentiality agreement. Access is limited strictly to those who need it to fulfil their role.
+Technical and organisational security
+We maintain security measures appropriate to the risk, including as a minimum:
+Encryption of Patient Data in transit using TLS 1.3.
+Encryption of Patient Data at rest using AES-256.
+Multi-factor authentication for all system access.
+Role-based access controls with comprehensive audit logging.
+Regular penetration testing and vulnerability assessments.
+Tested backup and disaster recovery procedures.
+Sub-processors
+We may engage sub-processors — for cloud hosting, email delivery, error monitoring, and similar functions. We maintain a current sub-processor list, available on request, and will notify you at least 30 days before engaging a new sub-processor or making a material change. You may raise reasonable objections during that period. All sub-processors are bound by obligations equivalent to those in this DPA.
+Assisting with your obligations
+We will provide reasonable assistance to help you meet your data controller obligations, including:
+Responding to data subject rights requests relating to Patient Data held on InDesk.
+Supporting data protection impact assessments where InDesk's processing is relevant.
+Notifying you within 48 hours of becoming aware of an actual or suspected Personal Data Breach affecting Patient Data.
+Data deletion on account closure
+Within 45 days of your account closing, we will securely delete all Patient Data from live production systems. Encrypted backup copies retained for disaster recovery (up to 24 months) cannot be individually accessed or extracted. Please export your data before closure using the tools within the Platform.
+Audit and verification
+On reasonable written notice, we will provide documentation to verify our compliance with this DPA. Where an on-site audit is requested, we reserve the right to agree timing and scope in advance and to recover reasonable costs.
+
+5.5  Your Obligations as Controller
+You must have a valid lawful basis for each category of personal data you process through InDesk.
+You must have provided transparent information to your patients and clients about your use of InDesk as a data processor.
+For special category health data, you must have explicit consent or another Article 9 condition in place.
+You must notify us promptly of any data subject request, complaint, or regulatory enquiry relating to Patient Data on InDesk.
+You must ensure Staff access InDesk only within the bounds of your own data protection arrangements.
+
+5.6  International Data Transfers
+We process Patient Data within the UK and EEA. Where any sub-processor requires a transfer outside these territories, we ensure that an appropriate legal mechanism — such as a UK International Data Transfer Agreement — is in place before the transfer occurs.
+
+5.7  Governing Law
+This DPA is governed by the law of England and Wales and forms part of the Agreement between us.
+
+6. Acceptable Use Policy
+Effective date: March 2026
+
+InDesk is designed to support ethical clinical practice. This policy sets the standards of conduct we expect from everyone who uses the Platform. Compliance is a condition of your subscription.
+
+6.1  Scope
+This Acceptable Use Policy applies to all Subscribers and to any Staff, contractors, or other individuals accessing InDesk under a Subscriber's account. Subscribers are responsible for ensuring all users within their account are aware of and comply with this policy.
+
+6.2  What InDesk Is For
+InDesk is intended to support lawful, ethical healthcare and wellbeing practice. Permitted uses include:
+Managing patient and client records in connection with your registered clinical practice.
+Scheduling appointments, generating clinical notes, and producing correspondence.
+Administering invoicing and payments related to your practice.
+Using clinical documentation and assessment tools within their intended scope.
+Communicating securely with patients and clients in a professional capacity.
+
+6.3  Prohibited Conduct
+Legal and ethical violations
+Any activity that is unlawful under UK law or any jurisdiction in which you operate.
+Recording or storing personal data without a lawful basis or, where required, without the individual's consent.
+Misrepresenting your professional qualifications, registration status, or clinical competencies.
+Platform misuse
+Sharing account credentials with individuals not authorised to access patient data within your practice.
+Allowing multiple named users to share a single user licence.
+Using automated tools or scripts to access, extract, or interact with the Platform.
+Attempting to probe, test, or circumvent the security of the Platform or its infrastructure.
+Uploading or transmitting malicious code of any kind.
+Content standards
+Storing content that is discriminatory, abusive, or harmful to any individual.
+Using InDesk in any way that could facilitate harassment or targeting of a person.
+Uploading material that infringes the intellectual property rights of any third party.
+Professional standards
+Using InDesk in a way that is inconsistent with the code of practice of your professional body (including but not limited to the BPS, BACP, HCPC, UKCP, or equivalent).
+Generating records that do not accurately reflect clinical interactions.
+
+6.4  Safeguarding
+InDesk supports the documentation of clinical work, including safeguarding concerns. The Platform does not provide automated safeguarding alerts or clinical decision support. All safeguarding responsibilities — including mandatory reporting obligations — remain entirely with the qualified practitioner.
+
+6.5  AI Assistant Use
+The AI assistant feature is available to support general administrative tasks. Its use is subject to the following requirements, which form part of this Acceptable Use Policy.
+You must not enter any identifiable patient or client information into the AI assistant. This includes but is not limited to names, dates of birth, health record numbers, clinical diagnoses, therapy or session notes, assessment results, medication details, safeguarding information, or any other personal data relating to individuals in your care.
+You must not use the AI assistant as a substitute for clinical judgement. It must not be used to inform diagnoses, risk assessments, treatment planning, or any clinical decision-making process.
+All AI-generated content must be reviewed and verified before use. You are responsible for the accuracy and appropriateness of any content derived from the AI assistant that you include in clinical records, correspondence, or communications.
+You must ensure that your use of the AI assistant is consistent with the standards and guidance of your professional body, including in relation to record-keeping, consent, and the use of technology in practice.
+
+6.6  Reporting Misuse
+If you become aware of misuse of InDesk — including unauthorised access, a suspected data breach, or conduct that may put a patient at risk — please contact us immediately at info@myindesk.com. All reports are investigated promptly and in confidence.
+
+6.7  Consequences of Breach
+Depending on the nature and severity of a breach, we may:
+Issue a formal written warning.
+Temporarily restrict access to some or all Platform features.
+Suspend the account pending investigation.
+Terminate the account in accordance with the Terms of Service.
+Report conduct to the ICO, a professional regulatory body, or law enforcement where required.
+
+6.8  Policy Updates
+We may update this policy at any time. We will notify you of material changes at least 30 days before they come into effect. Continued use of InDesk after the effective date constitutes acceptance.
+
+
+InDesk  |  UK InKind Psychology Ltd  |  
+info@myindesk.com  |  www.indesk.com
+
+

@@ -35,7 +35,7 @@ export const navItems: NavItem[] = [
     },
     {
         icon: Sparkles,
-        label: 'Sigmund',
+        label: 'Sigmund Freud',
         path: '/ai-assistance',
         permission: 'clinician_ai'
     },

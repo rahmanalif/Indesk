@@ -51,7 +51,7 @@ export function HeroSection() {
                 to="/login"
                 className="bg-terracotta hover:bg-terracotta-dark text-white text-base font-medium px-8 py-4 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1">
 
-                Start Your Free Trial
+                Get Started
               </Link>
               {/* <button className="group flex items-center space-x-3 px-6 py-4 rounded-full border border-warm-gray/30 hover:border-terracotta/50 hover:bg-white transition-all duration-300">
                 <div className="w-8 h-8 rounded-full bg-terracotta/10 flex items-center justify-center group-hover:bg-terracotta group-hover:text-white transition-colors">

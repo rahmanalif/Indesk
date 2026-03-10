@@ -31,6 +31,7 @@ import { PublicClinicPage } from './pages/public/PublicClinicPage';
 import { PublicClinicianPage } from './pages/public/PublicClinicianPage';
 import { PublicLandingPage } from './pages/public/PublicLandingPage';
 import { PublicAssessmentPage } from './pages/public/PublicAssessmentPage';
+import { LegalDocumentPage } from './pages/public/LegalDocumentPage';
 import { RootState } from './store';
 import { SmartRedirect } from './components/SmartRedirect';
 import { NoPermissionsPage } from './pages/NoPermissionsPage';
@@ -55,6 +56,7 @@ export function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/landing" element={<PublicLandingPage />} />
+          <Route path="/legal/:slug" element={<LegalDocumentPage />} />
           <Route path="/assessment-portal/:token" element={<PublicAssessmentPage />} />
           <Route path="/clinic-portal/:linkId" element={<PublicClinicPage />} />
           <Route path="/clinic-portal/:linkId/clinician/:id" element={<PublicClinicianPage />} />

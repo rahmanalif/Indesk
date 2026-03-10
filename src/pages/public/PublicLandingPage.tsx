@@ -19,8 +19,8 @@ export function PublicLandingPage() {
       <WhySection />
       
       <FeaturesSection />
-      <ComplianceSection />
-      <SocialProofSection />
+      {/* <ComplianceSection /> */}
+      {/* <SocialProofSection /> */}
       <PricingSection />
       <FAQSection />
       
