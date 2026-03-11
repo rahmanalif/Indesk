@@ -1,6 +1,5 @@
-import { image } from 'html2canvas/dist/types/css/types/image';
 import { useInView } from '../../hooks/landing/useInView';
-import { Check, CreditCard, Brain, Calendar, Users } from 'lucide-react';
+import { Check } from 'lucide-react';
 export function FeaturesSection() {
   const { ref, isInView } = useInView({
     threshold: 0.1,
@@ -21,16 +20,16 @@ export function FeaturesSection() {
 
   // },
   {
-    title: 'AI-Powered Assessments',
+    title: 'Meet Sigmund - your AI-powered assistant',
     description:
-    'Leverage validated psychological assessments enhanced with AI insights. Get deeper understanding of patient progress without extra paperwork.',
-    image: '/landing/loginai5.jpg',
+    'Sigmund helps with the admin that slows practices down. Draft correspondence, organise non-clinical information, and support documentation workflows so you can spend more time on care.',
+    image: '/images/Sigmund.jpg',
     imageFit: 'cover',
     bullets: [
-    'PHQ-9, GAD-7, and 50+ validated tools',
-    'AI-generated progress summaries',
-    'Automated scoring and tracking',
-    'Treatment recommendation support']
+    'Drafts letters and routine communications',
+    'Supports non-clinical documentation workflows',
+    'Helps organise admin tasks faster',
+    'Keeps the focus on practitioner time and efficiency']
 
   },
   // {
@@ -46,16 +45,16 @@ export function FeaturesSection() {
 
   // },
   {
-    title: 'Multi-Doctor Practice Management',
+    title: 'Integrations, Updates, and Resources',
     description:
-    'Built for growing practices. Manage multiple clinicians, rooms, and schedules without the complexity.',
+    'See what is already available in InDesk, what is coming next, and the resources that help your practice get more from the platform.',
     image: '/landing/imageai7.png',
     imageFit: 'cover',
     bullets: [
-    'Individual clinician dashboards',
-    'Shared patient records (with permissions)',
-    'Room and resource scheduling',
-    'Practice-wide analytics']
+    'Available integrations at a glance',
+    'Incoming product updates and roadmap visibility',
+    'Resources to support setup and day-to-day use',
+    'Clear guidance on what is live now and what is coming soon']
 
   }];
 

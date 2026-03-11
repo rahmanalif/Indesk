@@ -1,14 +1,8 @@
-import React from 'react';
 export function LogoBar() {
   const logos = [
-  'MindfulHealth',
-  'TherapySpace',
-  'ClinicalFlow',
-  'PsychConnect',
-  'WellnessPath',
-  'OpenMind',
-  'CalmBridge',
-  'NeuralCare'];
+  'Inkind Psychology UK',
+  'Psychologist Newcastle',
+  'EGW North Psychology'];
 
   // Duplicate for seamless infinite loop
   const scrollLogos = [...logos, ...logos];

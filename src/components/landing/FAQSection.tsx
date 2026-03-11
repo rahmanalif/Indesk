@@ -3,34 +3,24 @@ import { ChevronDown } from 'lucide-react';
 export function FAQSection() {
   const faqs = [
   {
-    question: 'Is InDesk HIPAA compliant?',
+    question: 'Is InDesk GDPR compliant?',
     answer:
-    'Absolutely. InDesk is fully HIPAA compliant with end-to-end encryption, BAA agreements, and regular security audits. Your patient data is protected with the same standards used by major healthcare institutions.'
+    'Yes. InDesk is built with GDPR requirements in mind, with secure handling of data, clear access controls, and privacy-conscious workflows for modern practices.'
   },
   {
-    question: 'Can I migrate from my current system?',
+    question: 'How does Sigmund help with assessments?',
     answer:
-    'Yes! We offer free data migration from all major practice management platforms including WriteUpp, SimplePractice, and TherapyNotes. Our team handles the entire process.'
-  },
-  {
-    question: 'How does the AI assessment feature work?',
-    answer:
-    'Our AI analyzes validated assessment responses to generate progress summaries and treatment insights. It is designed to augment your clinical judgment, never replace it. All AI features are optional and fully configurable.'
+    'Sigmund can help generate assessments and support storing them within your workflow, while remaining separate from your clinical information. It cannot access, read, or retrieve patient records, clinical notes, or other clinical data stored in InDesk.'
   },
   {
     question: 'Is there a contract or commitment?',
     answer:
-    'No contracts, ever. All plans are month-to-month and you can cancel anytime. We also offer annual billing with a 20% discount.'
+    'No long-term contract is required. Plans are designed to stay flexible, so you are not locked into a lengthy commitment.'
   },
-  // {
-  //   question: 'Do you offer training for my team?',
-  //   answer:
-  //   'Every plan includes free onboarding support. Practice and Enterprise plans include dedicated training sessions and ongoing support from our clinical success team.'
-  // },
   {
-    question: 'Can patients book their own appointments?',
+    question: 'What support and resources are available?',
     answer:
-    'Yes! InDesk includes a beautiful patient-facing booking portal that you can customize with your branding. Patients can book, reschedule, and manage their appointments independently.'
+    'InDesk includes onboarding guidance, practical resources, and ongoing product updates so your team can get up to speed quickly and keep track of what is available now and what is coming next.'
   }];
 
   return (

@@ -1,6 +1,5 @@
-import { image } from 'html2canvas/dist/types/css/types/image';
 import { useInView } from '../../hooks/landing/useInView';
-import { Heart, LayoutDashboard, Sparkles } from 'lucide-react';
+import { Heart } from 'lucide-react';
 export function WhySection() {
   const { ref, isInView } = useInView({
     threshold: 0.1,
@@ -10,7 +9,7 @@ export function WhySection() {
   {
     title: 'Built by Therapists, for Therapists',
     description:
-    'We understand the unique challenges of running a psychology practice. InDesk was designed from the ground up with input from over 200 practicing clinicians.',
+    'We understand the unique challenges of running a psychology practice. InDesk was designed from the ground up with input from 20 practicing clinicians.',
     icon: Heart,
     color: 'bg-peach',
     align: 'left',
@@ -18,22 +17,21 @@ export function WhySection() {
     imageFit: 'cover'
   },
   {
-    title: 'Your Entire Practice, One Dashboard',
+    title: 'Track What Matters',
     description:
-    'From initial assessment to ongoing treatment plans, every aspect of patient care flows through a single, intuitive interface.',
-    icon: LayoutDashboard,
+    "Visualise patient progress at a glance. InDesk automatically plots outcome measure scores over time - PHQ-9, GAD-7, PCL-5, and more - so you can see what's working, spot trends early, and share meaningful progress updates with patients and referrers alike. No spreadsheets. No manual charting. Just clear, clinical insight built into every session.",
     color: 'bg-beige',
     align: 'right',
-    image: '/landing/imagesai (4).jpg',
+    image: '/landing/loginai5.jpg',
     imageFit: 'cover'
   },
   {
-    title: 'Technology That Feels Human',
+    title: 'Track What Matters',
     description:
-    'No cold, clinical software here. InDesk brings warmth and thoughtfulness to every interaction, because your patients deserve it.',
+    "Visualise patient progress at a glance. InDesk automatically plots outcome measure scores over time - PHQ-9, GAD-7, PCL-5, and more - so you can see what's working, spot trends early, and share meaningful progress updates with patients and referrers alike. No spreadsheets. No manual charting. Just clear, clinical insight built into every session.",
     color: 'bg-terracotta/20',
     align: 'left',
-    image: '/landing/imagesai (3).jpg',
+    image: '/landing/imagesai (4).jpg',
     imageFit: 'fit'
   }];
 
