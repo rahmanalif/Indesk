@@ -12,6 +12,7 @@ type ViewMode = 'day' | 'week' | 'month';
 export function Calendar({ filteredAppointments }: { filteredAppointments?: any[] }) {
   const [view, setView] = useState<ViewMode>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [hasAutoFocused, setHasAutoFocused] = useState(false);
 
   const { appointments: allAppointments, addAppointment, updateAppointment } = useData();
 
@@ -27,6 +28,25 @@ export function Calendar({ filteredAppointments }: { filteredAppointments?: any[
     source?: 'day' | 'week' | 'month';
   }>({});
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+
+  useEffect(() => {
+    if (hasAutoFocused) return;
+    if (appointments.length === 0) return;
+
+    const datedAppointments = appointments
+      .map((apt: any) => {
+        if (!apt?.date) return null;
+        const date = parseLocalDate(apt.date);
+        return Number.isNaN(date.getTime()) ? null : date;
+      })
+      .filter(Boolean) as Date[];
+
+    if (datedAppointments.length === 0) return;
+
+    datedAppointments.sort((a, b) => a.getTime() - b.getTime());
+    setCurrentDate(datedAppointments[0]);
+    setHasAutoFocused(true);
+  }, [appointments, hasAutoFocused]);
 
   // Helper to format date range for header
   const getDateRangeLabel = () => {

@@ -8,7 +8,7 @@ import { Select } from '../ui/Select';
 import { DatePicker } from '../ui/DatePicker';
 import { Textarea } from '../ui/Textarea';
 import { Checkbox } from '../ui/Checkbox';
-import { Download, Edit2, Plus, Trash2, Loader2, Calendar, Clock } from 'lucide-react';
+import { Download, Edit2, Plus, Trash2, Loader2, Calendar, Clock, ChevronDown } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { 
   useGetClientsQuery, 
@@ -35,9 +35,10 @@ interface InvoicePreviewModalProps {
   onSave?: (invoice: any) => void;
   invoice?: any; // If null, creating new
   mode?: 'view' | 'edit';
+  fixedClientId?: string;
 }
 
-export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = 'view' }: InvoicePreviewModalProps) {
+export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = 'view', fixedClientId }: InvoicePreviewModalProps) {
   const { branding } = useData();
   const { data: clinicResponse } = useGetClinicQuery();
   const clinic = clinicResponse?.response?.data;
@@ -72,6 +73,7 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
   const [taxRate, setTaxRate] = useState(0);
   const [notes, setNotes] = useState('');
   const [invoiceStatus, setInvoiceStatus] = useState<'draft' | 'pending' | 'sent' | 'paid' | 'overdue'>('draft');
+  const [isAppointmentsOpen, setIsAppointmentsOpen] = useState(false);
 
   // RTK Query hooks
   const { data: clientsData, isLoading: clientsLoading } = useGetClientsQuery({
@@ -116,7 +118,7 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
       
       if (invoice) {
         // If editing existing invoice
-        setSelectedClientId(invoice.clientId || invoice.client?.id || '');
+        setSelectedClientId(fixedClientId || invoice.clientId || invoice.client?.id || '');
         setInvoiceDate(invoice.issueDate ? new Date(invoice.issueDate) : new Date());
         setDueDate(invoice.dueDate ? new Date(invoice.dueDate) : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000));
         setTaxRate(invoice.tax || 0);
@@ -148,7 +150,7 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
       } else {
         // Creating new invoice
         setIsEditing(true);
-        setSelectedClientId('');
+        setSelectedClientId(fixedClientId || '');
         setSelectedAppointmentIds([]);
         setInvoiceDate(new Date());
         setDueDate(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000));
@@ -157,8 +159,10 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
         setNotes('');
         setInvoiceStatus('draft');
       }
+
+      setIsAppointmentsOpen(false);
     }
-  }, [isOpen, invoice, mode]);
+  }, [isOpen, invoice, mode, fixedClientId]);
 
   // When client changes, reset selected appointments and appointment-linked items
   useEffect(() => {
@@ -421,7 +425,7 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
   }, [appointments]);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={isEditing ? "Edit Invoice" : "Invoice Preview"} size="xl">
+    <Modal isOpen={isOpen} onClose={onClose} title={isEditing ? "Create Invoice" : "Invoice Preview"} size="xl">
       <div className="flex flex-col gap-6 mt-4">
         <div id="invoice-content" className="bg-white border text-slate-800 p-8 rounded-sm shadow-sm min-h-[600px] flex flex-col relative overflow-hidden">
           <div className="flex justify-between items-start border-b pb-8 mb-8">
@@ -467,7 +471,20 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
           <div className="flex justify-between mb-8">
             <div className="w-1/3">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Bill To</label>
-              {isEditing ? (
+              {fixedClientId ? (
+                selectedClient ? (
+                  <div className="space-y-3">
+                    <div className="mt-3 p-3 bg-gray-50 rounded-md text-sm">
+                      <div className="font-medium">{selectedClient.firstName} {selectedClient.lastName}</div>
+                      <div className="text-gray-600">{selectedClient.email}</div>
+                      <div className="text-gray-600">{formatPhone(selectedClient)}</div>
+                      <div className="text-gray-600">{formatAddress(selectedClient)}</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-gray-400 italic">Loading client...</div>
+                )
+              ) : isEditing ? (
                 <div className="space-y-3">
                   <div className="relative">
                     <Select
@@ -531,45 +548,65 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
           {/* Available Appointments Section */}
           {isEditing && selectedClientId && (
             <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-              <h3 className="text-sm font-semibold text-blue-800 mb-3 flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Available Appointments for Invoice
-              </h3>
-              
-              {appointmentsLoading ? (
-                <div className="flex items-center gap-2 text-blue-600">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Loading appointments...
+              <button
+                type="button"
+                onClick={() => setIsAppointmentsOpen((prev) => !prev)}
+                className="w-full flex items-center justify-between gap-3 text-left"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <Calendar className="h-4 w-4 text-blue-700 shrink-0" />
+                  <div>
+                    <h3 className="text-sm font-semibold text-blue-800">Available Appointments for Invoice</h3>
+                    <p className="text-xs text-blue-700/80">
+                      {appointmentsLoading
+                        ? 'Loading appointments...'
+                        : `${availableAppointments.length} appointment${availableAppointments.length === 1 ? '' : 's'} available`}
+                    </p>
+                  </div>
                 </div>
-              ) : availableAppointments.length === 0 ? (
-                <div className="text-sm text-blue-700">
-                  {appointments.length === 0 
-                    ? 'No appointments found for this client'
-                    : 'All appointments are already invoiced'
-                  }
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {availableAppointments.map((appointment) => (
-                    <div key={appointment.id} className="flex items-center gap-3 p-2 bg-white rounded border hover:bg-blue-50">
-                      <Checkbox
-                        checked={selectedAppointmentIds.includes(appointment.id)}
-                        onCheckedChange={() => handleAppointmentToggle(appointment.id, appointment)}
-                        disabled={appointment.invoiceId !== null}
-                      />
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">{appointment.session?.name}</div>
-                        <div className="text-xs text-gray-500 flex items-center gap-2">
-                          <Clock className="h-3 w-3" />
-                          {formatDate(appointment.startTime)} at {formatTime(appointment.startTime)}
-                          <span className="mx-1">-</span>
-                          Duration: {appointment.session?.duration} min
-                          <span className="mx-1">-</span>
-                          ${appointment.session?.price}
-                        </div>
-                      </div>
+                <ChevronDown
+                  className={`h-4 w-4 text-blue-700 transition-transform duration-200 ${isAppointmentsOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
+
+              {isAppointmentsOpen && (
+                <div className="mt-4">
+                  {appointmentsLoading ? (
+                    <div className="flex items-center gap-2 text-blue-600">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading appointments...
                     </div>
-                  ))}
+                  ) : availableAppointments.length === 0 ? (
+                    <div className="text-sm text-blue-700">
+                      {appointments.length === 0
+                        ? 'No appointments found for this client'
+                        : 'All appointments are already invoiced'
+                      }
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                      {availableAppointments.map((appointment) => (
+                        <div key={appointment.id} className="flex items-center gap-3 p-2 bg-white rounded border hover:bg-blue-50">
+                          <Checkbox
+                            checked={selectedAppointmentIds.includes(appointment.id)}
+                            onCheckedChange={() => handleAppointmentToggle(appointment.id, appointment)}
+                            disabled={appointment.invoiceId !== null}
+                          />
+                          <div className="flex-1">
+                            <div className="font-medium text-sm">{appointment.session?.name}</div>
+                            <div className="text-xs text-gray-500 flex items-center gap-2">
+                              <Clock className="h-3 w-3" />
+                              {formatDate(appointment.startTime)} at {formatTime(appointment.startTime)}
+                              <span className="mx-1">-</span>
+                              Duration: {appointment.session?.duration} min
+                              <span className="mx-1">-</span>
+                              ${appointment.session?.price}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

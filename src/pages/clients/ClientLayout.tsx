@@ -5,6 +5,7 @@ import {
     FileText,
     ArrowLeft,
     History as HistoryIcon,
+    Receipt,
     Phone,
     Mail,
     Calendar as CalendarIcon,
@@ -13,6 +14,7 @@ import {
 } from 'lucide-react';
 import { ClientHistoryModal } from '../../components/modals/ClientHistoryModal';
 import { CreateAppointmentModal } from '../../components/modals/CreateAppointmentModal';
+import { InvoicePreviewModal } from '../../components/modals/InvoicePreviewModal';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Avatar } from '../../components/ui/Avatar';
@@ -61,6 +63,7 @@ export function ClientLayout() {
 
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     const [isBookingOpen, setIsBookingOpen] = useState(false);
+    const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -151,6 +154,14 @@ export function ClientLayout() {
                                         Letter
                                     </Button>
                                     <Button
+                                        variant="outline"
+                                        onClick={() => setIsInvoiceOpen(true)}
+                                        className="h-10 lg:h-11 px-6 rounded-xl bg-secondary/10 border-primary/5 font-bold text-[10px] uppercase tracking-widest hover:bg-secondary/20 transition-all shrink-0"
+                                    >
+                                        <Receipt className="h-4 w-4 mr-2" />
+                                        Invoice
+                                    </Button>
+                                    <Button
                                         onClick={() => setIsBookingOpen(true)}
                                         className="h-10 lg:h-11 px-6 rounded-xl shadow-sm font-bold text-[10px] uppercase tracking-widest transition-all shrink-0"
                                     >
@@ -199,6 +210,13 @@ export function ClientLayout() {
                 isOpen={isBookingOpen}
                 onClose={() => setIsBookingOpen(false)}
                 fixedClient={{ id: client.id, name: client.name }}
+            />
+
+            <InvoicePreviewModal
+                isOpen={isInvoiceOpen}
+                onClose={() => setIsInvoiceOpen(false)}
+                mode="edit"
+                fixedClientId={client.id}
             />
         </div>
     );
