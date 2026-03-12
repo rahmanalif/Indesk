@@ -264,7 +264,7 @@ export function IntegrationsPage() {
                 ? 'Authorize & Connect'
                 : isConnected
                   ? 'Manage Settings'
-                  : 'Unavailable';
+                  : 'Upcoming';
             const isDisabled = isConnecting || (!hasOAuth && !isConnected);
 
             return (

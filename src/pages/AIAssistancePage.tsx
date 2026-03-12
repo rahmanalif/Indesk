@@ -245,7 +245,7 @@ export function AIAssistancePage() {
       <div className="mb-2 md:mb-4 flex-shrink-0">
         <h1 className="text-xl md:text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
           <Sparkles className="h-5 w-5 md:h-8 md:w-8 text-primary" />
-          Sigmund Freud Your Clinic Assistant
+          Sigmund Your Clinic Assistant
         </h1>
         <p className="text-xs md:text-base text-muted-foreground mt-1">
           Your intelligent partner for clinic management. Please remember not to use sensitive information like names and addresses.
