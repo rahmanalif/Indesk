@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { Save, User, Shield, AlertCircle, Clock, Video } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -8,6 +8,7 @@ import { Badge } from '../../components/ui/Badge';
 import { DatePicker } from '../../components/ui/DatePicker';
 import { Select } from '../../components/ui/Select';
 import { useUpdateClientMutation } from '../../redux/api/clientsApi';
+import { useGetIntegrationsQuery } from '../../redux/api/integrationApi';
 
 type ClientOutletContext = {
     client: {
@@ -21,8 +22,10 @@ type ClientOutletContext = {
 };
 
 export function ClientProfilePage() {
+    const navigate = useNavigate();
     const { client, clientRaw } = useOutletContext<ClientOutletContext>();
     const [updateClient, { isLoading }] = useUpdateClientMutation();
+    const { data: integrationsResponse } = useGetIntegrationsQuery();
 
     const [formData, setFormData] = useState({
         firstName: '',
@@ -76,18 +79,48 @@ export function ClientProfilePage() {
 
     if (!client) return null;
 
+    const integrationsRaw = integrationsResponse?.response?.data;
+    const integrations = Array.isArray(integrationsRaw) ? integrationsRaw : integrationsRaw?.docs || [];
+    const isIntegrationConnected = (type: string) =>
+        integrations.some((integration: any) => {
+            const normalizedType = String(integration?.type || integration?.name || '')
+                .toLowerCase()
+                .replace(/[\s-]+/g, '_');
+            const normalizedStatus = String(integration?.status || '').toLowerCase();
+            const matchesType = normalizedType === type;
+            const isConnected = normalizedStatus === 'connected' || integration?.isConnected === true;
+            return matchesType && isConnected;
+        });
+
+    const zoomConnected = isIntegrationConnected('zoom');
+    const googleMeetConnected = isIntegrationConnected('google_meet');
+
     const appointments = (clientRaw?.appointments || []).map((apt: any) => {
         const start = apt?.startTime ? new Date(apt.startTime) : null;
         const end = apt?.endTime ? new Date(apt.endTime) : null;
         const duration = start && end ? Math.round((end.getTime() - start.getTime()) / 60000) : 0;
+        const normalizedMeetingType = String(apt.meetingType || '').toLowerCase().replace(/[\s-]+/g, '_');
+        const provider = normalizedMeetingType === 'google_meet'
+            ? 'google_meet'
+            : apt.zoomJoinUrl || apt.zoomStartUrl || normalizedMeetingType === 'zoom'
+                ? 'zoom'
+                : 'video';
+        const joinUrl = provider === 'zoom'
+            ? apt.zoomJoinUrl || apt.zoomStartUrl || null
+            : null;
+        const isProviderConnected = provider === 'google_meet' ? googleMeetConnected : provider === 'zoom' ? zoomConnected : zoomConnected || googleMeetConnected;
+        const providerLabel = provider === 'google_meet' ? 'Google Meet' : provider === 'zoom' ? 'Zoom' : 'Video Session';
+
         return {
             id: apt.id,
             date: start ? start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-',
             time: start ? start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '-',
             duration: duration || 0,
-            type: apt.meetingType ? apt.meetingType.toUpperCase() : 'Session',
+            type: providerLabel,
             status: apt.status || 'pending',
-            videoLink: apt.zoomJoinUrl || 'https://zoom.us'
+            videoLink: joinUrl,
+            provider,
+            isProviderConnected,
         };
     });
 
@@ -264,15 +297,26 @@ export function ClientProfilePage() {
                                         <Badge variant="outline" className="text-[10px]">{apt.status}</Badge>
                                     </div>
                                     <p className="text-xs font-medium text-primary">{apt.type}</p>
-                                    <Button
-                                                size="sm"
-                                                variant="secondary"
-                                                className="w-full bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
-                                                onClick={() => window.open(apt.videoLink || 'https://zoom.us', '_blank')}
-                                            >
-                                                <Video className="h-4 w-4 mr-2" />
-                                                Join Zoom
-                                            </Button>
+                                    {apt.isProviderConnected && apt.videoLink ? (
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="secondary"
+                                            className="w-full bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+                                            onClick={() => window.open(apt.videoLink, '_blank')}
+                                        >
+                                            <Video className="h-4 w-4 mr-2" />
+                                            {apt.provider === 'google_meet' ? 'Join Google Meet' : 'Join Zoom'}
+                                        </Button>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={() => navigate('/integrations')}
+                                            className="w-full rounded-lg border border-dashed border-amber-300 bg-amber-50 px-3 py-2 text-left text-xs font-medium text-amber-800 hover:bg-amber-100 transition-colors"
+                                        >
+                                            Please connect Zoom or Google Meet in Integrations to enable session joining.
+                                        </button>
+                                    )}
                                         </div>
                                     ))}
                                 </div>
