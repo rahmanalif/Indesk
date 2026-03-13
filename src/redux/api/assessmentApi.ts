@@ -50,6 +50,15 @@ export interface CreateAssessmentTemplateResponse {
   data?: AssessmentTemplate;
 }
 
+export interface DeleteAssessmentTemplateResponse {
+  success?: boolean;
+  status?: number;
+  message?: string;
+  response?: {
+    data?: AssessmentTemplate | null;
+  };
+}
+
 export interface GetAssessmentTemplatesResponse {
   success: boolean;
   status: number;
@@ -357,6 +366,16 @@ export const assessmentApi = createApi({
       }),
       invalidatesTags: [{ type: 'AssessmentTemplate', id: 'LIST' }],
     }),
+    deleteAssessmentTemplate: builder.mutation<DeleteAssessmentTemplateResponse, string>({
+      query: (templateId) => ({
+        url: `assessment/template/${templateId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (result, error, templateId) => [
+        { type: 'AssessmentTemplate', id: templateId },
+        { type: 'AssessmentTemplate', id: 'LIST' },
+      ],
+    }),
     generateAssessmentWithAi: builder.mutation<GenerateAssessmentAiResponse, GenerateAssessmentAiRequest>({
       query: (payload) => ({
         url: 'assessment/ai/generate',
@@ -419,6 +438,7 @@ export const assessmentApi = createApi({
 
 export const {
   useCreateAssessmentTemplateMutation,
+  useDeleteAssessmentTemplateMutation,
   useGenerateAssessmentWithAiMutation,
   useCreateAssessmentInstanceMutation,
   useGetAssessmentTemplatesQuery,

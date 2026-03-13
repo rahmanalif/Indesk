@@ -49,6 +49,91 @@ const mapApiQuestionType = (type?: string) => {
     return 'text';
 };
 
+const getQuestionPoints = (question: any) => {
+    return typeof question?.points === 'number' && question.points > 0 ? question.points : 1;
+};
+
+const getOptionIndexScore = (selectedValue: string, options: string[] = []) => {
+    const selectedIndex = options.findIndex((option) => option === selectedValue);
+    if (selectedIndex <= 0) return 0;
+    return selectedIndex;
+};
+
+const getQuestionScore = (question: any, answer: any) => {
+    const basePoints = getQuestionPoints(question);
+
+    if (question?.type === 'checkbox') {
+        return answer === true ? basePoints : 0;
+    }
+
+    if (question?.type === 'multiple-choice') {
+        if (typeof answer !== 'string' || !answer.trim()) return 0;
+        return getOptionIndexScore(answer, question.options || []) * basePoints;
+    }
+
+    return 0;
+};
+
+const getMaxQuestionScore = (question: any) => {
+    const basePoints = getQuestionPoints(question);
+
+    if (question?.type === 'checkbox') {
+        return basePoints;
+    }
+
+    if (question?.type === 'multiple-choice') {
+        const optionCount = Array.isArray(question.options) ? question.options.length : 0;
+        return Math.max(optionCount - 1, 0) * basePoints;
+    }
+
+    return 0;
+};
+
+const buildScoringBands = (totalScore: number, maxScore: number) => {
+    if (maxScore <= 0) {
+        return [
+            {
+                t: 'N/A',
+                d: 'This assessment does not currently define any scoreable questions.',
+                matches: true,
+            }
+        ];
+    }
+
+    const lowUpper = Math.max(1, Math.ceil(maxScore * 0.33));
+    const mediumUpper = Math.max(lowUpper + 1, Math.ceil(maxScore * 0.66));
+    const bands = [
+        {
+            t: '0',
+            d: 'No elevated scoring indicators were captured from the completed responses.',
+            matches: totalScore === 0,
+        },
+        {
+            t: `1 - ${lowUpper}`,
+            d: 'Low-level scoring indicators present. Clinical review may still be helpful with context.',
+            matches: totalScore > 0 && totalScore <= lowUpper,
+        },
+    ];
+
+    if (mediumUpper <= maxScore) {
+        bands.push({
+            t: `${lowUpper + 1} - ${mediumUpper}`,
+            d: 'Moderate scoring indicators present. Review alongside the full clinical picture.',
+            matches: totalScore > lowUpper && totalScore <= mediumUpper,
+        });
+    }
+
+    if (mediumUpper < maxScore) {
+        bands.push({
+            t: `${mediumUpper + 1} - ${maxScore}`,
+            d: 'Higher scoring indicators present. Timely clinician follow-up is recommended.',
+            matches: totalScore > mediumUpper,
+        });
+    }
+
+    return bands;
+};
+
 export function FormDetailsPage() {
     const { id: templateId } = useParams();
     const navigate = useNavigate();
@@ -196,10 +281,47 @@ export function FormDetailsPage() {
     };
 
     const progress = currentStep === -1 ? 0 : ((currentStep + 1) / questions.length) * 100;
-    const calculateScore = () => {
-        return Object.values(answers).filter(val =>
-            val === true || (typeof val === 'string' && val.trim().length > 0 && val !== 'Never')
-        ).length;
+    const detailedResults = questions.map((question, index) => {
+        const answer = answers[question.id];
+        const score = getQuestionScore(question, answer);
+        const maxScore = getMaxQuestionScore(question);
+
+        return {
+            id: question.id,
+            index,
+            orderLabel: typeof question.order === 'number' ? question.order + 1 : index + 1,
+            text: question.text,
+            type: question.type,
+            answer,
+            score,
+            maxScore,
+            points: getQuestionPoints(question),
+        };
+    });
+
+    const totalScore = detailedResults.reduce((sum, item) => sum + item.score, 0);
+    const maxScore = detailedResults.reduce((sum, item) => sum + item.maxScore, 0);
+    const scoreRatio = maxScore > 0 ? totalScore / maxScore : 0;
+    const riskBadgeLabel =
+        totalScore === 0
+            ? 'No Clinical Flags'
+            : scoreRatio >= 0.67
+                ? 'High Priority Review'
+                : scoreRatio >= 0.34
+                    ? 'Moderate Review'
+                    : 'Low Priority Review';
+    const scoringBands = buildScoringBands(totalScore, maxScore);
+
+    const formatAnswer = (result: typeof detailedResults[number]) => {
+        if (result.type === 'checkbox') {
+            return typeof result.answer === 'boolean' ? (result.answer ? 'Yes' : 'No') : 'N/A';
+        }
+
+        if (result.type === 'text') {
+            return typeof result.answer === 'string' && result.answer.trim().length > 0 ? result.answer : 'No written response';
+        }
+
+        return typeof result.answer === 'string' && result.answer.trim().length > 0 ? result.answer : 'N/A';
     };
 
     return (
@@ -517,14 +639,17 @@ export function FormDetailsPage() {
                                             <div className="relative h-32 w-32 sm:h-40 sm:w-40 rounded-full bg-white flex flex-col items-center justify-center border-[3px] border-primary/20 shadow-xl">
                                                 <span className="text-[10px] font-bold uppercase tracking-widest text-primary/70 mb-1">Total Score</span>
                                                 <span className="text-4xl sm:text-6xl font-black text-foreground">
-                                                    {calculateScore()}
+                                                    {totalScore}
                                                 </span>
                                             </div>
                                             <div className="px-4 py-1 rounded-full bg-primary/10 border border-primary/20">
                                                 <span className="text-[10px] font-bold text-primary uppercase tracking-wider">
-                                                    {calculateScore() >= 4 ? 'High Risk Potential' : 'Review Required'}
+                                                    {riskBadgeLabel}
                                                 </span>
                                             </div>
+                                            <p className="text-xs font-semibold text-muted-foreground">
+                                                Max score: <span className="text-foreground">{maxScore}</span>
+                                            </p>
                                         </div>
                                         <div className="lg:col-span-9 w-full overflow-hidden">
                                             <div className="rounded-2xl border border-primary/10 overflow-x-auto bg-white/50 shadow-sm">
@@ -536,14 +661,8 @@ export function FormDetailsPage() {
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-primary/10">
-                                                        {[
-                                                            { t: '0', d: 'Minimal concern for toxic stress.', s: 0 },
-                                                            { t: '1 - 3', d: 'Intermediate risk profile. Evaluation required.', s: 1 },
-                                                            { t: '4 or more', d: 'Elevated clinical risk for toxic stress protocols.', s: 4 }
-                                                        ].map((row, i) => {
-                                                            const isMatch = (row.s === 0 && calculateScore() === 0) ||
-                                                                (row.s === 1 && calculateScore() >= 1 && calculateScore() <= 3) ||
-                                                                (row.s === 4 && calculateScore() >= 4);
+                                                        {scoringBands.map((row, i) => {
+                                                            const isMatch = row.matches;
                                                             return (
                                                                 <tr key={i} className={cn("transition-colors", isMatch ? "bg-primary/10" : "hover:bg-white/40")}>
                                                                     <td className="px-4 sm:px-8 py-5">
@@ -578,26 +697,25 @@ export function FormDetailsPage() {
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-border/40 font-medium">
-                                                {questions.map((q, idx) => {
-                                                    const isAffirmative = answers[q.id] === true || (typeof answers[q.id] === 'string' && answers[q.id].trim().length > 0 && answers[q.id] !== 'Never');
+                                                {detailedResults.map((result) => {
                                                     return (
-                                                        <tr key={q.id} className="hover:bg-muted/5 transition-colors">
+                                                        <tr key={result.id} className="hover:bg-muted/5 transition-colors">
                                                             <td className="px-6 py-4">
                                                                 <div className="flex gap-3">
-                                                                    <span className="text-muted-foreground text-xs tabular-nums">{idx + 1}.</span>
-                                                                    <span className="text-foreground leading-relaxed">{q.text}</span>
+                                                                    <span className="text-muted-foreground text-xs tabular-nums">{result.orderLabel}.</span>
+                                                                    <span className="text-foreground leading-relaxed">{result.text}</span>
                                                                 </div>
                                                             </td>
                                                             <td className="px-6 py-4 text-center">
                                                                 <div className={cn(
                                                                     "px-3 py-1 rounded-md text-[10px] font-bold uppercase border",
-                                                                    isAffirmative ? "bg-primary/10 border-primary/20 text-primary" : "bg-muted/30 border-transparent text-muted-foreground opacity-50"
+                                                                    result.score > 0 ? "bg-primary/10 border-primary/20 text-primary" : "bg-muted/30 border-transparent text-muted-foreground"
                                                                 )}>
-                                                                    {typeof answers[q.id] === 'boolean' ? (answers[q.id] ? 'Yes' : 'No') : (answers[q.id] || 'N/A')}
+                                                                    {formatAnswer(result)}
                                                                 </div>
                                                             </td>
                                                             <td className="px-6 py-4 text-right tabular-nums font-bold text-foreground">
-                                                                {isAffirmative ? 1 : 0}
+                                                                {result.score}{result.maxScore > 0 ? ` / ${result.maxScore}` : ''}
                                                             </td>
                                                         </tr>
                                                     );
@@ -608,24 +726,23 @@ export function FormDetailsPage() {
 
                                     {/* Mobile Cards */}
                                     <div className="md:hidden space-y-4">
-                                        {questions.map((q, idx) => {
-                                            const isAffirmative = answers[q.id] === true || (typeof answers[q.id] === 'string' && answers[q.id].trim().length > 0 && answers[q.id] !== 'Never');
+                                        {detailedResults.map((result) => {
                                             return (
-                                                <Card key={q.id} className="p-5 border-none shadow-sm bg-white">
+                                                <Card key={result.id} className="p-5 border-none shadow-sm bg-white">
                                                     <div className="flex gap-4 mb-4">
-                                                        <span className="text-xs font-black text-primary/40 tabular-nums">{(idx + 1).toString().padStart(2, '0')}</span>
-                                                        <p className="text-sm font-bold text-foreground leading-relaxed">{q.text}</p>
+                                                        <span className="text-xs font-black text-primary/40 tabular-nums">{String(result.orderLabel).padStart(2, '0')}</span>
+                                                        <p className="text-sm font-bold text-foreground leading-relaxed">{result.text}</p>
                                                     </div>
                                                     <div className="flex items-center justify-between pt-4 border-t border-border/40">
                                                         <div className={cn(
                                                             "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest",
-                                                            isAffirmative ? "bg-primary/10 text-primary" : "bg-muted/30 text-muted-foreground"
+                                                            result.score > 0 ? "bg-primary/10 text-primary" : "bg-muted/30 text-muted-foreground"
                                                         )}>
-                                                            {typeof answers[q.id] === 'boolean' ? (answers[q.id] ? 'Yes' : 'No') : (answers[q.id] || 'N/A')}
+                                                            {formatAnswer(result)}
                                                         </div>
                                                         <div className="text-right">
                                                             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-0.5">Score</span>
-                                                            <span className="text-lg font-black text-foreground">{isAffirmative ? 1 : 0}</span>
+                                                            <span className="text-lg font-black text-foreground">{result.score}{result.maxScore > 0 ? `/${result.maxScore}` : ''}</span>
                                                         </div>
                                                     </div>
                                                 </Card>

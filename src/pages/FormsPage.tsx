@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, FileText, ChevronDown, Search, Share2 } from 'lucide-react';
+import { Plus, FileText, Search, Share2, Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Select } from '../components/ui/Select';
@@ -8,7 +8,7 @@ import { Input } from '../components/ui/Input';
 import { QuestionnaireBuilderModal } from '../components/modals/QuestionnaireBuilderModal';
 import { EditFormModal } from '../components/modals/EditFormModal';
 import { ShareDocumentModal } from '../components/modals/ShareDocumentModal';
-import { useGetAssessmentTemplatesQuery } from '../redux/api/assessmentApi';
+import { useDeleteAssessmentTemplateMutation, useGetAssessmentTemplatesQuery } from '../redux/api/assessmentApi';
 
 const CATEGORY_TO_API: Record<string, string> = {
   'General Clinical': 'general_clinical',
@@ -29,6 +29,29 @@ const getCategoryLabel = (value?: string) => {
   return API_CATEGORY_LABELS[value] || value;
 };
 
+const getFriendlyDeleteErrorMessage = (formName: string, error: any) => {
+  const rawMessage = error?.data?.message || error?.message || '';
+  const normalizedMessage = String(rawMessage).toLowerCase();
+
+  if (
+    normalizedMessage.includes('assessmentinstance_templateid_fkey') ||
+    normalizedMessage.includes('violates restrict setting of foreign key constraint') ||
+    normalizedMessage.includes('foreign key constraint')
+  ) {
+    return `You can't delete "${formName}" because it has already been shared or used in patient assessments.`;
+  }
+
+  if (error?.status === 404) {
+    return `This assessment no longer exists. Please refresh the page.`;
+  }
+
+  if (error?.status === 403) {
+    return `You don't have permission to delete this assessment.`;
+  }
+
+  return `Couldn't delete "${formName}" right now. Please try again.`;
+};
+
 export function FormsPage() {
   const navigate = useNavigate();
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
@@ -36,6 +59,8 @@ export function FormsPage() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [selectedForm, setSelectedForm] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [deletingFormId, setDeletingFormId] = useState<string | null>(null);
+  const [deleteFeedback, setDeleteFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [ageFilter, setAgeFilter] = useState('Any');
@@ -57,6 +82,7 @@ export function FormsPage() {
     page: currentPage,
     sort: 'createdAt:desc',
   });
+  const [deleteAssessmentTemplate] = useDeleteAssessmentTemplateMutation();
 
   const apiForms = useMemo(() => {
     const docs = templatesResponse?.response?.data?.docs ?? [];
@@ -100,6 +126,30 @@ export function FormsPage() {
     e.stopPropagation();
     setSelectedForm(form);
     setIsShareModalOpen(true);
+  };
+
+  const handleDelete = async (e: React.MouseEvent, form: any) => {
+    e.stopPropagation();
+    const shouldDelete = window.confirm(`Delete assessment "${form.name}"? This action cannot be undone.`);
+    if (!shouldDelete) return;
+
+    setDeleteFeedback(null);
+    setDeletingFormId(form.id);
+
+    try {
+      const response = await deleteAssessmentTemplate(form.id).unwrap();
+      setDeleteFeedback({
+        type: 'success',
+        message: response?.message || `"${form.name}" was deleted successfully.`,
+      });
+    } catch (error: any) {
+      setDeleteFeedback({
+        type: 'error',
+        message: getFriendlyDeleteErrorMessage(form.name, error),
+      });
+    } finally {
+      setDeletingFormId(null);
+    }
   };
 
   const resetFilters = () => {
@@ -196,6 +246,17 @@ export function FormsPage() {
       </div>
 
       <Card className="border-none shadow-sm overflow-hidden rounded-xl">
+        {deleteFeedback && (
+          <div
+            className={`px-6 py-3 text-sm font-medium border-b ${
+              deleteFeedback.type === 'success'
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                : 'bg-red-50 text-red-700 border-red-100'
+            }`}
+          >
+            {deleteFeedback.message}
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="bg-muted/50 text-muted-foreground font-medium border-b border-border/50">
@@ -260,7 +321,17 @@ export function FormsPage() {
                       >
                         <Share2 className="h-3.5 w-3.5 mr-2" /> Share
                       </Button>
-                      <ChevronDown className="h-4 w-4 text-muted-foreground -rotate-90" />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={(e) => handleDelete(e, form)}
+                        isLoading={deletingFormId === form.id}
+                        disabled={deletingFormId !== null && deletingFormId !== form.id}
+                        className="text-destructive hover:bg-destructive/10 h-8 px-3"
+                        aria-label={`Delete ${form.name}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                      </Button>
                     </div>
                   </td>
                 </tr>
