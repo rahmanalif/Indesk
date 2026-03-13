@@ -30,7 +30,12 @@ export function ClientAssessmentsPage() {
             page: 1,
             sort: '-createdAt',
         },
-        { skip: !id }
+        {
+            skip: !id,
+            pollingInterval: 10000,
+            refetchOnFocus: true,
+            refetchOnReconnect: true,
+        }
     );
 
     const assessments = (data?.response?.data?.docs ?? []).map((item: any, index: number) => {
@@ -39,17 +44,20 @@ export function ClientAssessmentsPage() {
         const normalizedStatus = rawStatus === 'completed' ? 'Completed' : 'In Progress';
         const rawDate = item.completedAt || item.createdAt || item.updatedAt;
         const parsedDate = rawDate ? new Date(rawDate) : null;
+        const sortTimestamp = parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate.getTime() : 0;
 
         return {
             id: String(item.id || item._id || index),
+            templateId: String(item.templateId || template.id || 'ace'),
             name: template.title || template.name || 'Assessment',
             date: parsedDate && !Number.isNaN(parsedDate.getTime())
                 ? parsedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                 : '-',
             status: normalizedStatus,
             score: item.score ?? item.totalScore ?? null,
+            sortTimestamp,
         };
-    });
+    }).sort((a, b) => b.sortTimestamp - a.sortTimestamp);
 
     const filteredAssessments = assessments.filter(a => {
         const matchesSearch = a.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -136,7 +144,7 @@ export function ClientAssessmentsPage() {
                                             <tr
                                                 key={assessment.id}
                                                 className="hover:bg-muted/5 transition-colors cursor-pointer group"
-                                                onClick={() => assessment.status === 'Completed' && navigate(`/forms/ace?tab=results&clientId=${id}&resultsOnly=true`)}
+                                                onClick={() => assessment.status === 'Completed' && navigate(`/forms/${assessment.templateId}?tab=results&clientId=${id}&resultsOnly=true&instanceId=${assessment.id}`)}
                                             >
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
@@ -197,7 +205,7 @@ export function ClientAssessmentsPage() {
                             <Card
                                 key={assessment.id}
                                 className="p-4 active:scale-[0.98] transition-all cursor-pointer border-none shadow-sm bg-white"
-                                onClick={() => assessment.status === 'Completed' && navigate(`/forms/ace?tab=results&clientId=${id}&resultsOnly=true`)}
+                                onClick={() => assessment.status === 'Completed' && navigate(`/forms/${assessment.templateId}?tab=results&clientId=${id}&resultsOnly=true&instanceId=${assessment.id}`)}
                             >
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex items-center gap-3">
@@ -232,4 +240,3 @@ export function ClientAssessmentsPage() {
         </div>
     );
 }
-

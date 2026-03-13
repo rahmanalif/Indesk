@@ -151,6 +151,15 @@ export interface GetAssessmentByTokenResponse {
   };
 }
 
+export interface GetAssessmentInstanceByIdResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response: {
+    data: AssessmentInstanceDetails;
+  };
+}
+
 export interface SubmitAssessmentByTokenRequest {
   assessmentToken: string;
   responses: Array<{
@@ -423,6 +432,9 @@ export const assessmentApi = createApi({
         },
       }),
     }),
+    getAssessmentInstanceById: builder.query<GetAssessmentInstanceByIdResponse, string>({
+      query: (instanceId) => `assessment/instance/${instanceId}`,
+    }),
     getAssessmentByToken: builder.query<GetAssessmentByTokenResponse, string>({
       query: (assessmentToken) => `assessment/token/${assessmentToken}`,
     }),
@@ -445,6 +457,7 @@ export const {
   useGetAssessmentTemplateByIdQuery,
   useGetAssessmentProgressQuery,
   useGetAssessmentInstancesQuery,
+  useGetAssessmentInstanceByIdQuery,
   useGetAssessmentByTokenQuery,
   useSubmitAssessmentByTokenMutation,
 } = assessmentApi;

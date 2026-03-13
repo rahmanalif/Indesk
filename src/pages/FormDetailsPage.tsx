@@ -7,7 +7,7 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { ShareDocumentModal } from '../components/modals/ShareDocumentModal';
 import { cn } from '../lib/utils';
-import { useGetAssessmentTemplateByIdQuery } from '../redux/api/assessmentApi';
+import { useGetAssessmentInstanceByIdQuery, useGetAssessmentTemplateByIdQuery } from '../redux/api/assessmentApi';
 
 // Mock Data
 const MOCK_FORM_DETAILS = {
@@ -134,13 +134,33 @@ const buildScoringBands = (totalScore: number, maxScore: number) => {
     return bands;
 };
 
+const mapQuestionsFromApi = (apiQuestions: any[] = []) => {
+    const sortedQuestions = [...apiQuestions].sort((a: any, b: any) => {
+        const aOrder = typeof a?.order === 'number' ? a.order : 0;
+        const bOrder = typeof b?.order === 'number' ? b.order : 0;
+        return aOrder - bOrder;
+    });
+
+    return sortedQuestions.map((q: any, index: number) => ({
+        id: q.id || index + 1,
+        text: q.question || '',
+        type: mapApiQuestionType(q.type),
+        options: Array.isArray(q.options) ? q.options : undefined,
+        label: q.type === 'yes_no' ? 'Yes, this applies' : undefined,
+        points: typeof q.points === 'number' ? q.points : undefined,
+        order: typeof q.order === 'number' ? q.order : index,
+    }));
+};
+
 export function FormDetailsPage() {
     const { id: templateId } = useParams();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const resultsOnly = searchParams.get('resultsOnly') === 'true';
     const clientId = searchParams.get('clientId');
+    const instanceId = searchParams.get('instanceId');
     const initialTab = searchParams.get('tab') || (resultsOnly ? 'results' : 'about');
+    const hasInstanceResults = Boolean(resultsOnly && instanceId);
 
     const [activeTab, setActiveTab] = useState(initialTab);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -169,16 +189,48 @@ export function FormDetailsPage() {
         error: templateErrorDetails,
         refetch: refetchTemplate,
     } = useGetAssessmentTemplateByIdQuery(templateId ?? '', {
-        skip: !templateId || isCustomForm || isAceForm,
+        skip: !templateId || isCustomForm || isAceForm || hasInstanceResults,
+    });
+    const {
+        data: instanceResponse,
+        isLoading: instanceLoading,
+        isError: instanceError,
+        error: instanceErrorDetails,
+        refetch: refetchInstance,
+    } = useGetAssessmentInstanceByIdQuery(instanceId ?? '', {
+        skip: !instanceId,
     });
 
     useEffect(() => {
-        if (!templateId) return;
+        if (!templateId && !instanceId) return;
 
         setQuestions([]);
         setAnswers({});
         setCurrentStep(-1);
-        setActiveTab(initialTab);
+        setActiveTab(hasInstanceResults ? 'results' : initialTab);
+
+        if (hasInstanceResults) {
+            const instance = instanceResponse?.response?.data;
+            const instanceTemplate = instance?.template;
+            if (instance && instanceTemplate) {
+                setAboutData({
+                    name: instanceTemplate.title || '',
+                    displayName: instanceTemplate.title || '',
+                    description: instanceTemplate.description || '',
+                    category: getCategoryLabel(instanceTemplate.category),
+                    clientAge: (instanceTemplate as any).clientAge || 'Adults',
+                    staffAccess: 'Clinical',
+                });
+                setQuestions(mapQuestionsFromApi(instanceTemplate.questions || []));
+
+                const mappedAnswers = (instance.responses || []).reduce((acc: Record<string | number, any>, response: any) => {
+                    acc[response.questionId] = response.answer;
+                    return acc;
+                }, {});
+                setAnswers(mappedAnswers);
+            }
+            return;
+        }
 
         if (templateId.startsWith('custom-')) {
             const customForms = JSON.parse(localStorage.getItem('custom_forms') || '[]');
@@ -223,32 +275,39 @@ export function FormDetailsPage() {
                 clientAge: (apiTemplate as any).clientAge || 'Adults',
                 staffAccess: 'Clinical',
             });
+            setQuestions(mapQuestionsFromApi(apiTemplate.questions || []));
 
-            const sortedQuestions = [...(apiTemplate.questions || [])].sort((a: any, b: any) => {
-                const aOrder = typeof a?.order === 'number' ? a.order : 0;
-                const bOrder = typeof b?.order === 'number' ? b.order : 0;
-                return aOrder - bOrder;
-            });
-
-            const mappedQuestions = sortedQuestions.map((q: any, index: number) => ({
-                id: q.id || index + 1,
-                text: q.question || '',
-                type: mapApiQuestionType(q.type),
-                options: Array.isArray(q.options) ? q.options : undefined,
-                label: q.type === 'yes_no' ? 'Yes, this applies' : undefined,
-                points: typeof q.points === 'number' ? q.points : undefined,
-                order: typeof q.order === 'number' ? q.order : index,
-            }));
-
-            setQuestions(mappedQuestions);
-
-        if (!apiTemplate.description) {
-            setActiveTab('sample');
+            if (!apiTemplate.description) {
+                setActiveTab('sample');
+            }
         }
-    }
-    }, [templateId, templateResponse, initialTab]);
+    }, [templateId, instanceId, templateResponse, instanceResponse, initialTab, hasInstanceResults]);
 
-    if (!isCustomForm && !isAceForm && templateLoading) {
+    if (hasInstanceResults && instanceLoading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                    <p className="mt-2 text-muted-foreground">Loading assessment results...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (hasInstanceResults && instanceError) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-center text-red-600">
+                    <p>Unable to load assessment results.</p>
+                    <Button variant="outline" className="mt-4" onClick={() => refetchInstance()}>
+                        Retry
+                    </Button>
+                </div>
+            </div>
+        );
+    }
+
+    if (!hasInstanceResults && !isCustomForm && !isAceForm && templateLoading) {
         return (
             <div className="flex items-center justify-center h-64">
                 <div className="text-center">
@@ -259,7 +318,7 @@ export function FormDetailsPage() {
         );
     }
 
-    if (!isCustomForm && !isAceForm && templateError) {
+    if (!hasInstanceResults && !isCustomForm && !isAceForm && templateError) {
         return (
             <div className="flex items-center justify-center h-64">
                 <div className="text-center text-red-600">
@@ -280,9 +339,17 @@ export function FormDetailsPage() {
         setIsEditingAbout(false);
     };
 
+    const instanceData = instanceResponse?.response?.data;
+    const instanceScore = typeof instanceData?.score === 'number' ? instanceData.score : null;
+    const instanceMaxScore = typeof instanceData?.maxScore === 'number' ? instanceData.maxScore : null;
+    const instanceNote = instanceData?.note?.trim() || '';
+
     const progress = currentStep === -1 ? 0 : ((currentStep + 1) / questions.length) * 100;
     const detailedResults = questions.map((question, index) => {
         const answer = answers[question.id];
+        const matchingResponse = hasInstanceResults
+            ? (instanceData?.responses || []).find((response: any) => response.questionId === question.id)
+            : null;
         const score = getQuestionScore(question, answer);
         const maxScore = getMaxQuestionScore(question);
 
@@ -293,14 +360,14 @@ export function FormDetailsPage() {
             text: question.text,
             type: question.type,
             answer,
-            score,
+            score: typeof matchingResponse?.points === 'number' ? matchingResponse.points : score,
             maxScore,
             points: getQuestionPoints(question),
         };
     });
 
-    const totalScore = detailedResults.reduce((sum, item) => sum + item.score, 0);
-    const maxScore = detailedResults.reduce((sum, item) => sum + item.maxScore, 0);
+    const totalScore = instanceScore ?? detailedResults.reduce((sum, item) => sum + item.score, 0);
+    const maxScore = instanceMaxScore ?? detailedResults.reduce((sum, item) => sum + item.maxScore, 0);
     const scoreRatio = maxScore > 0 ? totalScore / maxScore : 0;
     const riskBadgeLabel =
         totalScore === 0
@@ -344,7 +411,7 @@ export function FormDetailsPage() {
                         <p className="text-muted-foreground text-sm font-medium uppercase tracking-widest mt-1">Clinical Protocol ID: #IMS-882-01</p>
                     </div>
                 </div>
-                {activeTab === 'results' && (
+                {activeTab === 'results' && hasInstanceResults && (
                     <Button
                         variant="outline"
                         onClick={() => setIsShareModalOpen(true)}
@@ -358,7 +425,7 @@ export function FormDetailsPage() {
             {/* Navigation Tabs */}
             {!resultsOnly && (
                 <div className="flex gap-2 border-b border-border/40 overflow-x-auto no-scrollbar">
-                    {['about', 'sample', 'results'].map((tab) => {
+                    {['about', 'sample'].map((tab) => {
                         if (tab === 'about' && !aboutData.description) return null;
 
                         return (
@@ -627,7 +694,9 @@ export function FormDetailsPage() {
                         <div className="animate-in fade-in slide-in-from-bottom-5 duration-700">
                             <div className="p-8 border-b border-border/40 bg-white">
                                 <h2 className="text-xl font-bold text-foreground">Assessment Results: {aboutData.displayName}</h2>
-                                <p className="text-sm text-muted-foreground mt-1">Generated on {new Date().toLocaleDateString()}</p>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                    Generated on {instanceData?.completedAt ? new Date(instanceData.completedAt).toLocaleDateString() : new Date().toLocaleDateString()}
+                                </p>
                             </div>
 
                             <div className="p-8 space-y-12">
@@ -681,6 +750,15 @@ export function FormDetailsPage() {
                                         </div>
                                     </div>
                                 </div>
+
+                                {instanceNote && (
+                                    <div className="space-y-3">
+                                        <h3 className="text-lg font-bold text-foreground">Clinical Summary</h3>
+                                        <div className="rounded-2xl border border-border/40 bg-muted/10 p-6 text-sm leading-7 text-foreground whitespace-pre-line">
+                                            {instanceNote}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Detailed Results Table */}
                                 <div className="space-y-6">
