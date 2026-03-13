@@ -156,6 +156,7 @@ const resolveOAuthMeta = (integration: any) => {
 
 export function IntegrationsPage() {
   const [selectedIntegration, setSelectedIntegration] = useState<string | null>(null);
+  const [selectedIntegrationMode, setSelectedIntegrationMode] = useState<'connect' | 'disconnect'>('connect');
   const [connectingType, setConnectingType] = useState<string | null>(null);
   const [oauthErrorState, setOauthErrorState] = useState<{ title: string; message: string } | null>(null);
 
@@ -184,12 +185,19 @@ export function IntegrationsPage() {
 
   const handleAction = async (integration: any) => {
     const { oauthType, hasOAuth, connectKey } = resolveOAuthMeta(integration);
+    const isConnected = integration.status === 'Connected';
+    const isUpcoming = !hasOAuth && !isConnected;
+
+    if (isConnected) {
+      setSelectedIntegrationMode('disconnect');
+      setSelectedIntegration(integration.name);
+      return;
+    }
+
     const shouldAuthorize = hasOAuth;
 
     if (!shouldAuthorize) {
-      if (integration.status === 'Connected') {
-        setSelectedIntegration(integration.name);
-      }
+      if (isUpcoming) return;
       return;
     }
 
@@ -256,14 +264,15 @@ export function IntegrationsPage() {
           {integrationList.map((integration) => {
             const { hasOAuth, connectKey } = resolveOAuthMeta(integration);
             const isConnected = integration.status === 'Connected';
+            const isUpcoming = !hasOAuth && !isConnected;
             const isConnecting = connectingType === connectKey;
             const Icon = LUCIDE_ICON_BY_KEY[integration.iconKey] || Plug;
             const label = isConnecting
               ? 'Authorize & Connect'
-              : hasOAuth
+              : isConnected
+                ? 'Disconnect'
+                : hasOAuth
                 ? 'Authorize & Connect'
-                : isConnected
-                  ? 'Manage Settings'
                   : 'Upcoming';
             const isDisabled = isConnecting || (!hasOAuth && !isConnected);
 
@@ -274,9 +283,11 @@ export function IntegrationsPage() {
                     <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                       <Icon className="h-6 w-6" />
                     </div>
-                    <Badge variant={integration.status === 'Connected' ? 'success' : 'secondary'}>
-                      {integration.status}
-                    </Badge>
+                    {!isUpcoming && (
+                      <Badge variant={integration.status === 'Connected' ? 'success' : 'secondary'}>
+                        {integration.status}
+                      </Badge>
+                    )}
                   </div>
 
                   <h3 className="mb-1 text-lg font-semibold">{integration.name}</h3>
@@ -295,7 +306,10 @@ export function IntegrationsPage() {
 
                   {integration.status === 'Connected' && (
                     <button
-                      onClick={() => setSelectedIntegration(integration.name)}
+                      onClick={() => {
+                        setSelectedIntegrationMode('connect');
+                        setSelectedIntegration(integration.name);
+                      }}
                       className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-primary"
                     >
                       View Permissions <ExternalLink className="h-3 w-3" />
@@ -332,6 +346,7 @@ export function IntegrationsPage() {
         isOpen={!!selectedIntegration}
         onClose={() => setSelectedIntegration(null)}
         integrationName={selectedIntegration || ''}
+        mode={selectedIntegrationMode}
       />
 
       <Modal

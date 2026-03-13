@@ -48,7 +48,7 @@ export function FeaturesSection() {
     title: 'Integrations, Updates, and Resources',
     description:
     'See what is already available in InDesk, what is coming next, and the resources that help your practice get more from the platform.',
-    image: '/landing/imageai7.png',
+    image: '/landing/chobi.jpg',
     imageFit: 'cover',
     bullets: [
     'Available integrations at a glance',
