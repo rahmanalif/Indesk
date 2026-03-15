@@ -10,6 +10,7 @@ import { useGetClientsQuery } from '../redux/api/clientsApi';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import type { SerializedError } from '@reduxjs/toolkit';
 import { useLocation } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 
 type ChatMessage = {
   id: number;
@@ -31,16 +32,16 @@ type ClientDoc = {
 };
 
 const defaultAssistantPrompts = [
-  'Write a psychological report outlining presenting difficulties, psychological formulation, and plan for therapy using EMDR and ACT.',
-  'Give me some exposure ideas for my client who is afraid of heights.',
-  'Write a psychological report outlining how the patient meets criteria for PTSD using DSM-5 and ICD-10 criteria.',
-  'Write a letter to the GP about...',
-  'Give me some ERP ideas for my OCD client who washes their hands in fear of contaminating others.',
+  'Example: Write a psychological report outlining presenting difficulties, psychological formulation, and plan for therapy using EMDR and ACT.',
+  'Example: Give me some exposure ideas for my client who is afraid of heights.',
+  'Example: Write a psychological report outlining how the patient meets criteria for PTSD using DSM-5 and ICD-10 criteria.',
+  'Example: Write a letter to the GP about...',
+  'Example: Give me some ERP ideas for my OCD client who washes their hands in fear of contaminating others.',
   'Check over my clinic website www.….com and make a feedback questionnaire for my clients based on this.',
-  'Produce a handout with different ideas for emotional regulation, including things to do with others and things when alone.',
-  'Please make a handout on sleep hygiene.',
-  'Can you make a handout for my patient outlining different cognitive diffusion techniques?',
-];
+  'Example: Produce a handout with different ideas for emotional regulation, including things to do with others and things when alone.',
+  'Example: Please make a handout on sleep hygiene.',
+  'Example: Can you make a handout for my patient outlining different cognitive diffusion techniques?',
+].map((prompt) => (prompt.startsWith('Example: ') ? prompt : `Example: ${prompt}`));
 
 const ASSISTANT_PROMPT_ROTATION_KEY = 'ai-assistant-prompt-index';
 
@@ -102,6 +103,7 @@ const getErrorMessage = (error?: FetchBaseQueryError | SerializedError) => {
 
 export function AIAssistancePage() {
   const location = useLocation();
+  const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>(() => [{
     id: 1,
     role: 'ai',
@@ -120,6 +122,34 @@ export function AIAssistancePage() {
   const canSendWithoutTyping = !hasUserMessages && messages.length === 1 && messages[0]?.role === 'ai';
   const requestError = draftError || chatError;
   const requestErrorMessage = getErrorMessage(requestError);
+  const apiOrigin = useMemo(() => {
+    try {
+      return new URL(import.meta.env.VITE_CLIENTS_API_BASE_URL).origin;
+    } catch {
+      return '';
+    }
+  }, []);
+  const userAvatarSrc = useMemo(() => {
+    const rawAvatar = user?.avatar;
+    if (!rawAvatar) return undefined;
+    if (rawAvatar.startsWith('http')) return rawAvatar;
+    if (!apiOrigin) return rawAvatar;
+    if (rawAvatar.startsWith('/uploads/')) return `${apiOrigin}/public${rawAvatar}`;
+    if (rawAvatar.startsWith('/')) return `${apiOrigin}${rawAvatar}`;
+    return `${apiOrigin}/${rawAvatar}`;
+  }, [apiOrigin, user?.avatar]);
+  const userAvatarFallback = useMemo(() => {
+    const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim();
+    if (fullName) {
+      return fullName
+        .split(' ')
+        .map((part) => part[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase();
+    }
+    return (user?.email?.[0] || 'U').toUpperCase();
+  }, [user?.email, user?.firstName, user?.lastName]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasHandledInitialRoute = useRef(false);
   const scrollToBottom = () => {
@@ -188,14 +218,15 @@ export function AIAssistancePage() {
   };
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmedInput = input.trim() || (canSendWithoutTyping ? messages[0]?.text || '' : '');
+    const typedInput = input.trim();
+    const trimmedInput = typedInput || (canSendWithoutTyping ? messages[0]?.text || '' : '');
     if (!trimmedInput || isTyping) return;
-    const userMsg = {
+    const userMsg: ChatMessage = {
       id: Date.now(),
       role: 'user',
       text: trimmedInput
     };
-    const nextMessages = [...messages, userMsg];
+    const nextMessages = typedInput && canSendWithoutTyping ? [userMsg] : [...messages, userMsg];
     setMessages(nextMessages);
     setInput('');
 
@@ -222,7 +253,7 @@ export function AIAssistancePage() {
         aiText = response?.response?.data?.message || aiText;
       }
 
-      const aiMsg = {
+      const aiMsg: ChatMessage = {
         id: Date.now() + 1,
         role: 'ai',
         text: aiText
@@ -257,8 +288,8 @@ export function AIAssistancePage() {
         style={{
           backgroundImage:
             "linear-gradient(rgba(248, 246, 239, 0.9), rgba(248, 246, 239, 0.9)), url('/images/Sigmund.jpg')",
-          backgroundSize: '100% auto',
-          backgroundPosition: 'center bottom',
+          backgroundSize: 'auto calc(100% + 200px)',
+          backgroundPosition: 'center -250px',
           backgroundRepeat: 'no-repeat',
           backgroundColor: '#f8f6ef',
         }}
@@ -270,7 +301,9 @@ export function AIAssistancePage() {
           {messages.map(msg => (
             <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
               <Avatar
-                fallback={msg.role === 'ai' ? <Bot className="h-4 w-4 md:h-5 md:w-5" /> : 'SS'}
+                src={msg.role === 'ai' ? '/images/SigmundBhai.jpg' : userAvatarSrc}
+                alt={msg.role === 'ai' ? 'Sigmund' : 'User avatar'}
+                fallback={msg.role === 'ai' ? <Bot className="h-4 w-4 md:h-5 md:w-5" /> : userAvatarFallback}
                 className={msg.role === 'ai' ? 'bg-primary text-white h-8 w-8' : 'bg-muted h-8 w-8'}
               />
               <div
@@ -285,7 +318,12 @@ export function AIAssistancePage() {
           ))}
           {isTyping && (
             <div className="flex gap-3">
-              <Avatar fallback={<Bot className="h-4 w-4" />} className="bg-primary text-white h-8 w-8" />
+              <Avatar
+                src="/images/SigmundBhai.jpg"
+                alt="Sigmund"
+                fallback={<Bot className="h-4 w-4" />}
+                className="bg-primary text-white h-8 w-8"
+              />
               <div className="bg-white border border-border/50 p-3 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-1">
                 <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce" />
                 <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce delay-75" />

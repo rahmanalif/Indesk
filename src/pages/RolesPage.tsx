@@ -117,7 +117,7 @@ export function RolesPage() {
                                         onClick={() => handleManagePermissions(role.name)}
                                     >
                                         <Settings className="h-4 w-4" />
-                                        Manage Permission
+                                        Manage Permissions
                                     </Button>
                                 </div>
                             )}

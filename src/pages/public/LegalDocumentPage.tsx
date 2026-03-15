@@ -15,7 +15,7 @@ export function LegalDocumentPage() {
 
   return (
     <main className="min-h-screen bg-cream text-charcoal">
-      <Navbar />
+      <Navbar mode="sticky" forceSolid />
 
       <section className="relative overflow-hidden border-b border-charcoal/10 bg-gradient-to-b from-[#fcf3ea] via-cream to-cream">
         <div
@@ -27,7 +27,7 @@ export function LegalDocumentPage() {
           }}
         />
 
-        <div className="relative mx-auto flex min-h-[360px] max-w-5xl flex-col justify-end px-4 pb-14 pt-24 sm:px-6 lg:px-8">
+        <div className="relative mx-auto flex min-h-[360px] max-w-5xl flex-col justify-end px-4 pb-14 pt-16 sm:px-6 lg:px-8">
           <Link
             to="/landing"
             className="mb-8 inline-flex w-fit items-center gap-2 text-sm font-medium text-charcoal/70 transition-colors hover:text-terracotta"
@@ -57,7 +57,7 @@ export function LegalDocumentPage() {
 
       <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="grid gap-12 lg:grid-cols-[240px_minmax(0,1fr)]">
-          <aside className="lg:sticky lg:top-10 lg:self-start">
+          <aside className="lg:sticky lg:top-28 lg:self-start">
             <div className="rounded-2xl border border-charcoal/10 bg-white p-6 shadow-sm">
               <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-charcoal/50">
                 Included Policies

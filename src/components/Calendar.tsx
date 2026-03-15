@@ -7,9 +7,15 @@ import { AppointmentModal } from './AppointmentModal';
 import { CreateAppointmentModal } from './modals/CreateAppointmentModal';
 import { useData } from '../context/DataContext';
 
-type ViewMode = 'day' | 'week' | 'month';
+export type ViewMode = 'day' | 'week' | 'month';
 
-export function Calendar({ filteredAppointments }: { filteredAppointments?: any[] }) {
+export function Calendar({
+  filteredAppointments,
+  onRangeChange,
+}: {
+  filteredAppointments?: any[];
+  onRangeChange?: (range: { currentDate: Date; view: ViewMode }) => void;
+}) {
   const [view, setView] = useState<ViewMode>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [hasAutoFocused, setHasAutoFocused] = useState(false);
@@ -47,6 +53,10 @@ export function Calendar({ filteredAppointments }: { filteredAppointments?: any[
     setCurrentDate(datedAppointments[0]);
     setHasAutoFocused(true);
   }, [appointments, hasAutoFocused]);
+
+  useEffect(() => {
+    onRangeChange?.({ currentDate, view });
+  }, [currentDate, onRangeChange, view]);
 
   // Helper to format date range for header
   const getDateRangeLabel = () => {

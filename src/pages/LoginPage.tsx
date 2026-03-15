@@ -264,14 +264,15 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen w-full flex bg-background">
-      <div className="w-full lg:w-[54%] flex flex-col justify-center px-8 sm:px-12 lg:px-16 xl:px-20 relative bg-white">
-        <div className="mb-12">
-          <div className="flex justify-center mb-10">
+    <div className="h-screen w-full overflow-hidden flex bg-background">
+      <div className="w-full lg:w-[54%] h-full overflow-y-auto flex flex-col justify-center px-8 py-6 sm:px-12 lg:px-16 xl:px-20 relative bg-white">
+        <div className="w-full max-w-xl mx-auto">
+        <div className="mb-8">
+          <div className="flex justify-center mb-6">
             <img
               src="/images/inkind logo-04.png"
               alt="Inkind Suite"
-              className="h-40 w-auto object-contain"
+              className="h-24 lg:h-32 w-auto object-contain"
             />
           </div>
 
@@ -498,7 +499,7 @@ export function LoginPage() {
               </form>
             )}
 
-            <div className="mt-8 text-center">
+            <div className="mt-6 text-center">
               <p className="text-xs text-muted-foreground">
                 Already have an account?{' '}
                 <button
@@ -595,7 +596,7 @@ export function LoginPage() {
               </Button>
             </form>
 
-            <div className="mt-8 text-center">
+            <div className="mt-6 text-center">
               <p className="text-xs text-muted-foreground">
                 Don't have an account?{' '}
                 <button
@@ -612,12 +613,13 @@ export function LoginPage() {
             </div>
           </>
         )}
+        </div>
       </div>
 
-      <div className="hidden lg:block lg:w-[70%] relative overflow-hidden bg-[#E8EAE3]">
-        <div className="absolute inset-2 rounded-3xl overflow-hidden shadow-2xl border border-white/20 ">
+      <div className="hidden lg:block lg:w-[46%] h-full relative overflow-hidden bg-[#E8EAE3]">
+        <div className="h-full w-full">
           <img
-            src="/images/logindemo3.png"
+            src="/images/logindemo4.png"
             alt="Therapy Session Illustration"
             className="h-full w-full object-cover object-center hover:scale-105 transition-transform duration-1000 ease-in-out"
           />

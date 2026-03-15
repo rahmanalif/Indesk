@@ -1,8 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { Menu, X } from 'lucide-react';
-export function Navbar() {
+import { Link, useLocation } from 'react-router-dom';
+
+type NavbarProps = {
+  mode?: 'fixed' | 'sticky';
+  forceSolid?: boolean;
+};
+
+export function Navbar({ mode = 'fixed', forceSolid = false }: NavbarProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const location = useLocation();
+  const isLandingPage = location.pathname === '/landing';
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
@@ -28,20 +37,22 @@ export function Navbar() {
     href: '#faq'
   }];
 
+  const getNavHref = (href: string) => (isLandingPage ? href : `/landing${href}`);
+
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-cream/90 backdrop-blur-md shadow-sm py-3' : 'bg-transparent py-5'}`}>
+      className={`${mode === 'sticky' ? 'sticky' : 'fixed'} top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled || forceSolid ? 'bg-cream/90 backdrop-blur-md shadow-sm py-3' : 'bg-transparent py-5'}`}>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center">
           {/* Logo */}
           <div className="flex items-center">
-            <a
-              href="#"
+            <Link
+              to="/landing"
               className="text-2xl font-serif font-bold text-charcoal tracking-tight">
 
               <img className='h-12 w-auto' src="/landing/logo.png" alt="" />
-            </a>
+            </Link>
           </div>
 
           {/* Desktop Navigation */}
@@ -49,7 +60,7 @@ export function Navbar() {
             {navLinks.map((link) =>
             <a
               key={link.name}
-              href={link.href}
+              href={getNavHref(link.href)}
               className="text-sm font-medium text-charcoal hover:text-terracotta transition-colors">
 
                 {link.name}
@@ -59,18 +70,18 @@ export function Navbar() {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-6">
-            <a
-              href="/login?mode=signup"
+            <Link
+              to="/login?mode=signup"
               className="text-sm font-medium text-charcoal hover:text-terracotta transition-colors">
 
               Sign Up
-            </a>
-            <a
-              href="/login"
+            </Link>
+            <Link
+              to="/login"
               className="bg-terracotta hover:bg-terracotta-dark text-white text-sm font-medium px-5 py-2.5 rounded-full transition-colors duration-300 shadow-sm hover:shadow-md">
 
               Sign in
-            </a>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -93,7 +104,7 @@ export function Navbar() {
             {navLinks.map((link) =>
           <a
             key={link.name}
-            href={link.href}
+            href={getNavHref(link.href)}
             className="block px-3 py-3 text-base font-medium text-charcoal hover:text-terracotta hover:bg-peach/30 rounded-md transition-colors"
             onClick={() => setIsMobileMenuOpen(false)}>
 
@@ -101,18 +112,18 @@ export function Navbar() {
               </a>
           )}
             <div className="pt-4 border-t border-warm-gray/10 mt-4 flex flex-col space-y-3">
-              <a
-              href="/login"
+              <Link
+              to="/login"
               className="block px-3 py-2 text-base font-medium text-charcoal hover:text-terracotta">
 
                 Sign In
-              </a>
-              <a
-              href="/login?mode=signup"
+              </Link>
+              <Link
+              to="/login?mode=signup"
               className="block text-center bg-terracotta hover:bg-terracotta-dark text-white text-base font-medium px-5 py-3 rounded-full transition-colors">
 
                 Sing Up
-              </a>
+              </Link>
             </div>
           </div>
         </div>

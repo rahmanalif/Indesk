@@ -23,7 +23,8 @@ export function FeaturesSection() {
     title: 'Meet Sigmund - your AI-powered assistant',
     description:
     'Sigmund helps with the admin that slows practices down. Draft correspondence, organise non-clinical information, and support documentation workflows so you can spend more time on care.',
-    image: '/images/Sigmund.jpg',
+    video: '/images/freud.mp4',
+    poster: '/images/Sigmund.jpg',
     imageFit: 'cover',
     bullets: [
     'Drafts letters and routine communications',
@@ -48,7 +49,7 @@ export function FeaturesSection() {
     title: 'Integrations, Updates, and Resources',
     description:
     'See what is already available in InDesk, what is coming next, and the resources that help your practice get more from the platform.',
-    image: '/landing/chobi.jpg',
+    image: '/landing/imagesai (4).jpg',
     imageFit: 'cover',
     bullets: [
     'Available integrations at a glance',
@@ -84,11 +85,25 @@ export function FeaturesSection() {
                 <div
                 className={`w-full lg:w-5/12 ${index % 2 === 1 ? 'lg:order-2' : ''}`}>
 
-                  <div className="aspect-[4/3] bg-cream rounded-xl flex items-center justify-center relative overflow-hidden group">
-                    <div className="absolute inset-0 ">
-                      <img className='h-full w-full' src={feature.image} alt="" />
-                    </div>
-                    <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-terracotta/10 rounded-full blur-2xl"></div>
+	                  <div className="aspect-[4/3] bg-cream rounded-xl flex items-center justify-center relative overflow-hidden group">
+	                    <div className="absolute inset-0 ">
+	                      {'video' in feature ? (
+	                        <video
+	                          className="h-full w-full object-cover"
+	                          autoPlay
+	                          muted
+	                          loop
+	                          playsInline
+	                          preload="metadata"
+	                          poster={feature.poster}
+	                        >
+	                          <source src={feature.video} type="video/mp4" />
+	                        </video>
+	                      ) : (
+	                        <img className="h-full w-full object-cover" src={feature.image} alt="" loading="lazy" />
+	                      )}
+	                    </div>
+	                    <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-terracotta/10 rounded-full blur-2xl"></div>
 
                     {/* <div className="relative z-10 p-6 bg-white rounded-2xl shadow-sm transform transition-transform duration-500 group-hover:-translate-y-2 border border-warm-gray/5">
                       <feature.icon

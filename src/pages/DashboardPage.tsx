@@ -1,15 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Calendar } from '../components/Calendar';
+import type { ViewMode } from '../components/Calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Avatar } from '../components/ui/Avatar';
 import { useData } from '../context/DataContext';
-import { MOCK_CLINICIANS } from '../lib/mockData';
 import { Check, ChevronLeft, ChevronRight, Users } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { useGetAppointmentsQuery } from '../redux/api/invoiceApi';
-import { useGetClinicMembersQuery } from '../redux/api/clientsApi';
-import { useSelector } from 'react-redux';
-import type { RootState } from '../store';
+import { useGetCalendarAppointmentsQuery, useGetClinicMembersQuery } from '../redux/api/clientsApi';
 import { Button } from '../components/ui/Button';
 const statusColors: Record<string, string> = {
   confirmed: 'bg-blue-100 border-blue-200 text-blue-700',
@@ -41,42 +38,51 @@ const getDurationMinutes = (start?: string, end?: string, fallback?: number) => 
   return fallback ?? 30;
 };
 
-const normalizeName = (name?: string) => (name || '').replace(/^Dr\.?\s+/i, '').trim().toLowerCase();
+const ALL_CALENDARS_KEY = 'all-calendars';
 
-const mergeClinicians = (primary: any[], secondary: any[]) => {
-  const map = new Map<string, any>();
-  const add = (clinician: any) => {
-    if (!clinician) return;
-    const keys = [];
-    if (clinician.id) keys.push(`id:${clinician.id}`);
-    if (clinician.userId) keys.push(`user:${clinician.userId}`);
-    if (clinician.name) keys.push(`name:${normalizeName(clinician.name)}`);
+const formatApiDate = (date: Date) => date.toLocaleDateString('en-CA');
 
-    const existing = keys.map(k => map.get(k)).find(Boolean);
-    if (existing) {
-      existing.avatar = existing.avatar || clinician.avatar;
-      existing.role = existing.role || clinician.role;
-      existing.status = existing.status || clinician.status;
-      existing.userId = existing.userId || clinician.userId;
-      existing.name = existing.name || clinician.name;
-      keys.forEach(k => map.set(k, existing));
-      return;
-    }
+const getCalendarRange = (date: Date, view: ViewMode) => {
+  if (view === 'day') {
+    const day = formatApiDate(date);
+    return { startDate: day, endDate: day };
+  }
 
-    const entry = { ...clinician };
-    keys.forEach(k => map.set(k, entry));
+  if (view === 'week') {
+    const start = new Date(date);
+    const weekday = start.getDay();
+    const offset = weekday === 0 ? -6 : 1 - weekday;
+    start.setDate(start.getDate() + offset);
+
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+
+    return {
+      startDate: formatApiDate(start),
+      endDate: formatApiDate(end),
+    };
+  }
+
+  const start = new Date(date.getFullYear(), date.getMonth(), 1);
+  const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+
+  return {
+    startDate: formatApiDate(start),
+    endDate: formatApiDate(end),
   };
-
-  primary.forEach(add);
-  secondary.forEach(add);
-
-  return Array.from(new Set(map.values()));
 };
 
 export function DashboardPage() {
-  const { appointments, currentUser } = useData();
-  const authUser = useSelector((state: RootState) => state.auth.user);
+  const { appointments } = useData();
   const [isCliniciansCollapsed, setIsCliniciansCollapsed] = useState(false);
+  const [calendarView, setCalendarView] = useState<ViewMode>('month');
+  const [calendarDate, setCalendarDate] = useState(new Date());
+  const [selectedCalendarKey, setSelectedCalendarKey] = useState<string>(ALL_CALENDARS_KEY);
+
+  const calendarRange = useMemo(
+    () => getCalendarRange(calendarDate, calendarView),
+    [calendarDate, calendarView]
+  );
 
   const {
     data: appointmentsResponse,
@@ -84,94 +90,47 @@ export function DashboardPage() {
     isError: appointmentsError,
     error: appointmentsErrorDetails,
     refetch: refetchAppointments,
-  } = useGetAppointmentsQuery({ page: 1, limit: 100 });
+  } = useGetCalendarAppointmentsQuery({
+    ...calendarRange,
+    view: calendarView,
+    clinicianId: selectedCalendarKey === ALL_CALENDARS_KEY ? undefined : selectedCalendarKey,
+  });
 
-  const { data: clinicMembersResponse } = useGetClinicMembersQuery({ page: 1, limit: 100 });
+  const {
+    data: clinicMembersResponse,
+    isLoading: clinicMembersLoading,
+  } = useGetClinicMembersQuery({ page: 1, limit: 100 });
 
   const clinicMembers = clinicMembersResponse?.response?.data?.docs ?? [];
-  const apiClinicians = clinicMembers.map((member: any) => {
-    const firstName = member.user?.firstName || '';
-    const lastName = member.user?.lastName || '';
-    const displayName = [firstName, lastName].filter(Boolean).join(' ');
-    return {
-      id: member.id,
-      userId: member.userId,
-      name: displayName ? `Dr. ${displayName}` : 'Clinician',
-      role: member.role || 'Clinician',
-      status: member.user?.isOnline ? 'Available' : 'Offline',
-      avatar: member.user?.avatar,
-    };
-  });
-
-  const appointmentClinicians = useMemo(() => {
-    const docs = appointmentsResponse?.response?.data?.docs ?? [];
-    const map = new Map<string, any>();
-
-    docs.forEach((apt: any) => {
-      const clinicianUser = apt.clinician?.user;
-      const clinicianId = apt.clinicianId || clinicianUser?.id;
-      if (!clinicianId) return;
-
-      const firstName = clinicianUser?.firstName || '';
-      const lastName = clinicianUser?.lastName || '';
-      const displayName = [firstName, lastName].filter(Boolean).join(' ');
-      const name = displayName ? `Dr. ${displayName}` : 'Clinician';
-      const key = String(clinicianId);
-
-      if (!map.has(key)) {
-        map.set(key, {
-          id: clinicianId,
-          userId: clinicianUser?.id,
-          name,
-          role: 'Clinician',
-          status: 'Available',
-          avatar: clinicianUser?.avatar,
-        });
-      }
-    });
-
-    return Array.from(map.values());
-  }, [appointmentsResponse]);
-
-  // Default to currentUser's ID if they are a clinician, otherwise null (or keep prev logic)
-  // The requirement: "the person logged in as a clinician will have his caledner"
-  // "admin will have his calender"
-  const [selectedClinicianId, setSelectedClinicianId] = useState<string | number | null>(null);
 
   const clinicians = useMemo(() => {
-    const merged = mergeClinicians(appointmentClinicians, apiClinicians);
-    if (merged.length > 0) return merged;
-    return MOCK_CLINICIANS;
-  }, [appointmentClinicians, apiClinicians]);
-  const currentUserName = authUser
-    ? [authUser.firstName, authUser.lastName].filter(Boolean).join(' ')
-    : currentUser?.name;
+    return clinicMembers.map((member: any) => {
+      const firstName = member.user?.firstName || '';
+      const lastName = member.user?.lastName || '';
+      const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
 
-  const myClinician = clinicians.find((member: any) => {
-    if (authUser?.id && member.userId === authUser.id) return true;
-    if (currentUserName && member.name) {
-      return normalizeName(member.name) === normalizeName(currentUserName);
-    }
-    return false;
-  });
+      return {
+        id: String(member.id),
+        userId: member.userId,
+        name: fullName || member.user?.email || 'Unknown clinician',
+        role: member.role || member.user?.role || '',
+        status: member.user?.isOnline ? 'Available' : 'Offline',
+        avatar: member.user?.avatar,
+      };
+    });
+  }, [clinicMembers]);
 
   useEffect(() => {
-    if (selectedClinicianId !== null) return;
-    if (myClinician?.id) {
-      setSelectedClinicianId(myClinician.id);
-      return;
-    }
-    if (currentUser?.role === 'Clinician' && currentUser?.id) {
-      setSelectedClinicianId(currentUser.id);
-      return;
-    }
-    if (clinicians.length > 0) {
-      setSelectedClinicianId(clinicians[0].id);
-    }
-  }, [selectedClinicianId, myClinician, currentUser, clinicians]);
+    setSelectedCalendarKey(ALL_CALENDARS_KEY);
+  }, []);
 
   const apiAppointments = useMemo(() => {
-    const docs = appointmentsResponse?.response?.data?.docs ?? [];
+    const rawData = appointmentsResponse?.response?.data;
+    const docs = Array.isArray(rawData)
+      ? rawData
+      : Array.isArray(rawData?.docs)
+        ? rawData.docs
+        : [];
     return docs
       .map((apt: any) => {
         const client = apt.client ? `${apt.client.firstName} ${apt.client.lastName}`.trim() : 'Unknown Client';
@@ -201,25 +160,11 @@ export function DashboardPage() {
       .filter(Boolean);
   }, [appointmentsResponse]);
 
-  // Filter appointments based on selection
   const filteredAppointments = useMemo(() => {
-    const sourceAppointments = apiAppointments.length > 0 ? apiAppointments : appointments;
-    if (!selectedClinicianId) return sourceAppointments;
+    return apiAppointments.length > 0 ? apiAppointments : appointments;
+  }, [apiAppointments, appointments]);
 
-    return sourceAppointments.filter((apt: any) => {
-      if (apt.clinicianId) {
-        if (String(apt.clinicianId) === String(selectedClinicianId)) {
-          return true;
-        }
-      }
-      const clinician = clinicians.find((c: any) => c.id === selectedClinicianId);
-      if (!clinician) return false;
-      return apt.clinician === clinician.name;
-    });
-  }, [apiAppointments, appointments, selectedClinicianId, clinicians]);
-
-  const myCalendarId = myClinician?.id ?? currentUser?.id ?? null;
-  const isMyCalendarSelected = myCalendarId !== null && String(selectedClinicianId) === String(myCalendarId);
+  const isMyCalendarSelected = selectedCalendarKey === ALL_CALENDARS_KEY;
   const showAppointmentsLoading = appointmentsLoading && apiAppointments.length === 0;
   const showAppointmentsError = appointmentsError && apiAppointments.length === 0;
 
@@ -253,7 +198,7 @@ export function DashboardPage() {
             <div className="p-2 space-y-1">
               {/* My Calendar Option (For Admin mainly, or self) */}
               <button
-                onClick={() => myCalendarId && setSelectedClinicianId(myCalendarId)}
+                onClick={() => setSelectedCalendarKey(ALL_CALENDARS_KEY)}
                 className={cn(
                   "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all duration-200 border",
                   isMyCalendarSelected
@@ -276,57 +221,59 @@ export function DashboardPage() {
 
               <div className="h-px bg-border/50 my-2 mx-2" />
 
-              {/* Clinician List */}
-              {clinicians.map((clinician: any) => {
-                // specific logic: don't show "Me" twice if I'm a clinician in the list?
-                // The user said "only selected the profile will show the clinicians profile"
-                // Let's just list them all.
-                const isSelected = selectedClinicianId !== null && String(selectedClinicianId) === String(clinician.id);
-                return (
-                  <button
-                    key={clinician.id}
-                    onClick={() => setSelectedClinicianId(clinician.id)}
-                    className={cn(
-                      "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all duration-200 border group",
-                      isSelected
-                        ? "bg-primary/5 border-primary/20 shadow-sm"
-                        : "hover:bg-muted/50 border-transparent"
-                    )}
-                  >
-                    <div className="relative">
-                      <Avatar
-                        src={clinician.avatar}
-                        alt={clinician.name}
-                        fallback={clinician.name?.[0] || 'C'}
-                        className={cn(
-                          "w-10 h-10 border-2 transition-colors",
-                          isSelected ? "border-primary" : "border-transparent group-hover:border-primary/20"
-                        )}
-                      />
-                      <div className={cn(
-                        "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white",
-                        clinician.status === 'Available' ? "bg-emerald-500" :
-                          clinician.status === 'In Session' ? "bg-amber-500" : "bg-slate-300"
-                      )} />
-                    </div>
+              {clinicMembersLoading ? (
+                <div className="px-3 py-4 text-sm text-muted-foreground">Loading clinicians...</div>
+              ) : clinicians.length === 0 ? (
+                <div className="px-3 py-4 text-sm text-muted-foreground">No clinicians found.</div>
+              ) : (
+                clinicians.map((clinician: any) => {
+                  const isSelected = selectedCalendarKey === String(clinician.id);
+                  return (
+                    <button
+                      key={clinician.id}
+                      onClick={() => setSelectedCalendarKey(String(clinician.id))}
+                      className={cn(
+                        "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all duration-200 border group",
+                        isSelected
+                          ? "bg-primary/5 border-primary/20 shadow-sm"
+                          : "hover:bg-muted/50 border-transparent"
+                      )}
+                    >
+                      <div className="relative">
+                        <Avatar
+                          src={clinician.avatar}
+                          alt={clinician.name}
+                          fallback={clinician.name?.[0] || 'C'}
+                          className={cn(
+                            "w-10 h-10 border-2 transition-colors",
+                            isSelected ? "border-primary" : "border-transparent group-hover:border-primary/20"
+                          )}
+                        />
+                        <div className={cn(
+                          "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white",
+                          clinician.status === 'Available' ? "bg-emerald-500" :
+                            clinician.status === 'In Session' ? "bg-amber-500" : "bg-slate-300"
+                        )} />
+                      </div>
 
-                    <div className="flex-1 min-w-0">
-                      <p className={cn("font-medium truncate", isSelected ? "text-primary" : "text-foreground")}>
-                        {clinician.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {clinician.role || 'Clinician'}
-                      </p>
-                    </div>
-                    {isSelected && <Check className="w-4 h-4 text-primary" />}
-                  </button>
-                );
-              })}
+                      <div className="flex-1 min-w-0">
+                        <p className={cn("font-medium truncate", isSelected ? "text-primary" : "text-foreground")}>
+                          {clinician.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {clinician.role || 'Clinician'}
+                        </p>
+                      </div>
+                      {isSelected && <Check className="w-4 h-4 text-primary" />}
+                    </button>
+                  );
+                })
+              )}
             </div>
           ) : (
             <div className="p-2 flex flex-col items-center gap-2">
               <button
-                onClick={() => myCalendarId && setSelectedClinicianId(myCalendarId)}
+                onClick={() => setSelectedCalendarKey(ALL_CALENDARS_KEY)}
                 className={cn(
                   "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors",
                   isMyCalendarSelected
@@ -341,12 +288,12 @@ export function DashboardPage() {
 
               <div className="h-px w-8 bg-border/60 my-1" />
 
-              {clinicians.map((clinician: any) => {
-                const isSelected = selectedClinicianId !== null && String(selectedClinicianId) === String(clinician.id);
+              {!clinicMembersLoading && clinicians.map((clinician: any) => {
+                const isSelected = selectedCalendarKey === String(clinician.id);
                 return (
                   <button
                     key={clinician.id}
-                    onClick={() => setSelectedClinicianId(clinician.id)}
+                    onClick={() => setSelectedCalendarKey(String(clinician.id))}
                     className={cn(
                       "relative rounded-full p-0.5 border-2 transition-colors",
                       isSelected ? "border-primary" : "border-transparent hover:border-primary/20"
@@ -393,7 +340,13 @@ export function DashboardPage() {
             </div>
           </div>
         ) : (
-          <Calendar filteredAppointments={filteredAppointments} />
+          <Calendar
+            filteredAppointments={filteredAppointments}
+            onRangeChange={({ currentDate, view }) => {
+              setCalendarDate(currentDate);
+              setCalendarView(view);
+            }}
+          />
         )}
       </div>
     </div>

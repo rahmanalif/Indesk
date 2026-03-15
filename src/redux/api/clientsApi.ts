@@ -72,6 +72,53 @@ export interface GetClientAppointmentsResponse {
   };
 }
 
+export interface CalendarAppointment {
+  id: string;
+  clinicId: string;
+  clinicianId: string | null;
+  clientId: string;
+  sessionId: string | null;
+  status: string;
+  startTime: string | null;
+  endTime: string | null;
+  note: string | null;
+  meetingType: string | null;
+  zoomJoinUrl: string | null;
+  zoomStartUrl: string | null;
+  client?: {
+    id: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    email?: string | null;
+  } | null;
+  session?: {
+    id?: string;
+    name?: string | null;
+    duration?: number | null;
+    price?: number | null;
+    color?: string | null;
+  } | null;
+  clinician?: {
+    id?: string;
+    role?: string | null;
+    user?: {
+      id?: string;
+      firstName?: string | null;
+      lastName?: string | null;
+      avatar?: string | null;
+    } | null;
+  } | null;
+}
+
+export interface GetCalendarAppointmentsResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response?: {
+    data?: CalendarAppointment[] | { docs?: CalendarAppointment[] };
+  };
+}
+
 export interface GetSessionsResponse {
   success: boolean;
   status: number;
@@ -493,6 +540,14 @@ interface CreateAppointmentResponse {
   };
 }
 
+export interface GetCalendarAppointmentsParams {
+  startDate?: string;
+  endDate?: string;
+  clinicianId?: string;
+  status?: 'pending' | 'completed' | 'cancelled' | 'scheduled';
+  view?: 'month' | 'week' | 'day';
+}
+
 export interface CreateClinicMemberRequest {
   email: string;
   role: string;
@@ -697,12 +752,20 @@ export const clientsApi = createApi({
     
     getClientById: builder.query<GetClientByIdResponse, string>({
       query: (id) => `/client/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Clients', id }],
+      providesTags: (_result, _error, id) => [{ type: 'Clients', id }],
     }),
 
     getClientAppointments: builder.query<GetClientAppointmentsResponse, string>({
       query: (clientId) => `/appointment/client/${clientId}`,
-      providesTags: (result, error, clientId) => [{ type: 'Clients', id: clientId }],
+      providesTags: (_result, _error, clientId) => [{ type: 'Clients', id: clientId }],
+    }),
+
+    getCalendarAppointments: builder.query<GetCalendarAppointmentsResponse, GetCalendarAppointmentsParams>({
+      query: (params) => ({
+        url: '/appointment/calendar/clinic',
+        params,
+      }),
+      providesTags: ['Clients'],
     }),
 
     getSessions: builder.query<GetSessionsResponse, void>({
@@ -874,7 +937,7 @@ export const clientsApi = createApi({
         method: 'PUT',
         body,
       }),
-      invalidatesTags: (result, error, { clientId }) => [{ type: 'Clients', id: clientId }, 'Clients'],
+      invalidatesTags: (_result, _error, { clientId }) => [{ type: 'Clients', id: clientId }, 'Clients'],
     }),
     
     deleteClient: builder.mutation({
@@ -891,7 +954,7 @@ export const clientsApi = createApi({
         method: 'POST',
         body,
       }),
-      invalidatesTags: (result, error, { clientId }) => [{ type: 'Clients', id: clientId }],
+      invalidatesTags: (_result, _error, { clientId }) => [{ type: 'Clients', id: clientId }],
     }),
   }),
 });
@@ -901,6 +964,7 @@ export const {
   useCreateClientMutation,
   useGetClientByIdQuery,
   useGetClientAppointmentsQuery,
+  useGetCalendarAppointmentsQuery,
   useGetSessionsQuery,
   useGetSessionsByClinicianTokenQuery,
   useGetInvoicesQuery,
