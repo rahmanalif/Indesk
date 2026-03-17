@@ -22,8 +22,8 @@ export function WhySection() {
     "Visualise patient progress at a glance. InDesk automatically plots outcome measure scores over time - PHQ-9, GAD-7, PCL-5, and more - so you can see what's working, spot trends early, and share meaningful progress updates with patients and referrers alike. No spreadsheets. No manual charting. Just clear, clinical insight built into every session.",
     color: 'bg-beige',
     align: 'right',
-    image: '/landing/loginai5.jpg',
-    imageFit: 'cover'
+    image: '/landing/chobi.jpg',
+    imageFit: 'scale-down'
   },
   // {
   //   title: 'Track What Matters',
