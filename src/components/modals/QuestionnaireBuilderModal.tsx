@@ -18,11 +18,13 @@ interface Question {
 interface QuestionnaireBuilderModalProps {
   isOpen: boolean;
   onClose: () => void;
+  mode?: 'manual' | 'ai';
 }
 
 export function QuestionnaireBuilderModal({
   isOpen,
-  onClose
+  onClose,
+  mode = 'manual',
 }: QuestionnaireBuilderModalProps) {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('General');
@@ -42,6 +44,7 @@ export function QuestionnaireBuilderModal({
   const [newOptionValue, setNewOptionValue] = useState<{ [key: number]: string }>({});
   const [showAiTopicInput, setShowAiTopicInput] = useState(false);
   const [aiTopic, setAiTopic] = useState('');
+  const hasVisibleQuestions = questions.some((q) => q.text.trim() !== '' || q.type !== 'text' || (q.options && q.options.length > 0));
 
   const mapCategoryToApi = (value: string) => {
     switch (value) {
@@ -64,13 +67,13 @@ export function QuestionnaireBuilderModal({
       setTitle('');
       setCategory('General Clinical');
       setDescription('');
-      setQuestions([{ id: Date.now(), type: 'text', text: '' }]);
+      setQuestions(mode === 'ai' ? [] : [{ id: Date.now(), type: 'text', text: '' }]);
       setShowSuccess(false);
       setNewOptionValue({});
-      setShowAiTopicInput(false);
+      setShowAiTopicInput(mode === 'ai');
       setAiTopic('');
     }
-  }, [isOpen]);
+  }, [isOpen, mode]);
 
   const addQuestion = () => {
     setQuestions([...questions, {
@@ -135,6 +138,9 @@ export function QuestionnaireBuilderModal({
 
       setQuestions(mappedQuestions);
       if (!title.trim()) setTitle(topic);
+      if (!description.trim()) {
+        setDescription(`AI-generated assessment focused on ${topic}.`);
+      }
     } catch (error: any) {
       const message = error?.data?.message || error?.error || 'Failed to generate questions with AI.';
       alert(message);
@@ -163,8 +169,8 @@ export function QuestionnaireBuilderModal({
     return 'text';
   };
 
-  const handleGenerate = async () => {
-    if (!title.trim()) return alert("Please enter an assessment title.");
+  const handleCreateForm = async () => {
+    const normalizedTitle = title.trim() || aiTopic.trim() || 'AI Generated Assessment';
 
     const cleanedQuestions = questions
       .filter(q => q.text.trim() !== '')
@@ -204,7 +210,7 @@ export function QuestionnaireBuilderModal({
     try {
       const normalizedDescription = description.trim();
       await createAssessmentTemplate({
-        title: title.trim(),
+        title: normalizedTitle,
         description: normalizedDescription ? normalizedDescription : undefined,
         category: mapCategoryToApi(category),
         questions: apiQuestions,
@@ -225,97 +231,168 @@ export function QuestionnaireBuilderModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Create New Intelligence Form" size="xl">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={mode === 'ai' ? 'Generate Questions with AI' : 'Create New Intelligence Form'}
+      size="xl"
+      bodyClassName={mode === 'ai' ? 'overflow-y-hidden' : undefined}
+    >
       {showSuccess ? (
         <div className="flex flex-col items-center justify-center py-20 space-y-6 animate-in zoom-in duration-300">
           <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center border border-primary/20">
             <CheckSquare className="h-10 w-10 text-primary animate-bounce" />
           </div>
           <div className="text-center space-y-2">
-            <h3 className="text-2xl font-bold text-foreground">Assessment Generated!</h3>
+            <h3 className="text-2xl font-bold text-foreground">Assessment Created!</h3>
             <p className="text-muted-foreground font-medium">The clinical instrument is now available in your repository.</p>
           </div>
         </div>
       ) : (
-        <div className="flex flex-col max-h-[85vh] relative">
+        <div className={`flex flex-col max-h-[85vh] relative ${mode === 'ai' ? 'bg-[linear-gradient(180deg,#f7faf6_0%,#ffffff_28%)] -m-6 p-6' : ''}`}>
           {/* Scrollable Content Container */}
-          <div className="flex-1 overflow-y-auto no-scrollbar pb-32">
+          <div className="flex-1 no-scrollbar pb-32">
             <div className="p-1">
-              {/* Form Info Section */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6 mb-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-primary uppercase tracking-[0.15em] ml-1 block">Assessment Title</label>
-                  <Input
-                    placeholder="e.g. Clinical Health Intake"
-                    className="h-14 bg-secondary/30 border-primary/10 rounded-2xl shadow-inner font-bold"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-primary uppercase tracking-[0.15em] ml-1 block">Category</label>
-                  <Select
-                    options={[
-                      { value: 'General Clinical', label: 'General Clinical' },
-                      { value: 'Mental Health', label: 'Mental Health' },
-                      { value: 'Physical Therapy', label: 'Physical Therapy' },
-                      { value: 'Neurology', label: 'Neurology' }
-                    ]}
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="h-14"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2 mb-8">
-                <label className="text-[10px] font-bold text-primary uppercase tracking-[0.15em] ml-1 block">Clinical Abstract (About Section - Optional)</label>
-                <textarea
-                  placeholder="Describe the clinical intent and background of this instrument."
-                  className="w-full min-h-[100px] p-5 text-sm bg-secondary/30 border border-primary/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium placeholder:text-muted-foreground/50 shadow-inner no-scrollbar"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-              </div>
-
-              {/* Questions Header */}
-              <div className="flex items-center justify-between mb-4 px-1">
-                <div className="flex items-center gap-2">
-                  <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">Clinical Questions</h4>
-                  <span className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-black rounded-full">
-                    {questions.length}
-                  </span>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAiGenerate}
-                  disabled={isAiLoading}
-                  className="h-10 px-4 rounded-xl border border-primary/20 text-primary hover:bg-primary/5 font-bold gap-2"
-                >
-                  <Sparkles className={`h-3.5 w-3.5 ${isAiLoading ? 'animate-spin' : ''}`} />
-                  {isAiLoading ? "Analyzing..." : "Generate using AI"}
-                </Button>
-              </div>
-              {showAiTopicInput && (
-                <div className="mb-5 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <Input
-                    label="Prompt (Please give a brief topic or clinical focus for AI to generate relevant questions)"
-                    placeholder="e.g. Headaches in the middle of the night, less sleep"
-                    value={aiTopic}
-                    onChange={(e) => setAiTopic(e.target.value)}
-                    className="h-12 rounded-xl bg-secondary/20 border-primary/15"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1.5">
-                    Enter a topic, then click <strong>Generate using AI</strong> again to auto-fill clinical questions.
-                  </p>
+              {mode === 'ai' && (
+                <div className="mb-8 rounded-[28px] border border-primary/10 bg-white/90 p-6 shadow-[0_24px_80px_-32px_rgba(119,147,98,0.45)] backdrop-blur">
+                  <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                    <div className="max-w-2xl">
+                      <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.24em] text-primary">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        AI-Assisted Builder
+                      </div>
+                      <h3 className="text-3xl font-black tracking-tight text-foreground">Generate the full questionnaire from one clinical prompt</h3>
+                      <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
+                        Describe the symptom cluster, intake scenario, or treatment focus. The AI will draft the full question set, and you can refine it before saving.
+                      </p>
+                    </div>
+                    <div className="grid gap-3 rounded-2xl border border-primary/10 bg-secondary/20 p-4 text-sm text-muted-foreground sm:grid-cols-3 lg:min-w-[420px]">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary/70">Step 1</p>
+                        <p className="mt-1 font-semibold text-foreground">Write a focused prompt</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary/70">Step 2</p>
+                        <p className="mt-1 font-semibold text-foreground">Generate all questions</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary/70">Step 3</p>
+                        <p className="mt-1 font-semibold text-foreground">Review and create form</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {/* Questions List */}
-              <div className="space-y-4">
+              {mode !== 'ai' && (
+                <>
+                  {/* Form Info Section */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6 mb-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-primary uppercase tracking-[0.15em] ml-1 block">Assessment Title</label>
+                      <Input
+                        placeholder="e.g. Clinical Health Intake"
+                        className="h-14 bg-secondary/30 border-primary/10 rounded-2xl shadow-inner font-bold"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold text-primary uppercase tracking-[0.15em] ml-1 block">Category</label>
+                      <Select
+                        options={[
+                          { value: 'General Clinical', label: 'General Clinical' },
+                          { value: 'Mental Health', label: 'Mental Health' },
+                          { value: 'Physical Therapy', label: 'Physical Therapy' },
+                          { value: 'Neurology', label: 'Neurology' }
+                        ]}
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        className="h-14"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 mb-8">
+                    <label className="text-[10px] font-bold text-primary uppercase tracking-[0.15em] ml-1 block">Clinical Abstract (About Section - Optional)</label>
+                    <textarea
+                      placeholder="Describe the clinical intent and background of this instrument."
+                      className="w-full min-h-[100px] p-5 text-sm bg-secondary/30 border border-primary/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium placeholder:text-muted-foreground/50 shadow-inner no-scrollbar"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                    />
+                  </div>
+                </>
+              )}
+
+              {mode === 'ai' && showAiTopicInput && (
+                <div className="mb-8 animate-in fade-in slide-in-from-top-2 duration-200 rounded-[24px] border border-primary/15 bg-white p-5 shadow-[0_18px_50px_-30px_rgba(119,147,98,0.45)]">
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-end">
+                    <div className="flex-1">
+                      <Input
+                        label="Clinical Prompt"
+                        placeholder="e.g. Adult intake for anxiety, poor sleep, nighttime headaches, workplace stress"
+                        value={aiTopic}
+                        onChange={(e) => setAiTopic(e.target.value)}
+                        className="h-14 rounded-2xl bg-secondary/20 border-primary/15"
+                      />
+                      <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                        Be specific about symptoms, care setting, and clinical intent. The generated questions will replace the draft list below.
+                      </p>
+                    </div>
+                    {/* <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAiGenerate}
+                      disabled={isAiLoading}
+                      className="h-14 rounded-2xl border-primary/20 px-6 text-primary hover:bg-primary/5 font-bold gap-2 min-w-[220px]"
+                    >
+                      <Sparkles className={`h-4 w-4 ${isAiLoading ? 'animate-spin' : ''}`} />
+                      {isAiLoading ? "Generating Questions..." : "Generate All Questions"}
+                    </Button> */}
+                  </div>
+                </div>
+              )}
+
+              {mode === 'ai' && aiTopic.trim() && (
+                <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-primary/10 bg-primary/5 px-4 py-3">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary/70">Prompt Title</span>
+                  <span className="text-sm font-semibold text-foreground">{title.trim() || aiTopic.trim()}</span>
+                </div>
+              )}
+
+            <div className='mb-4 flex justify-center'>
+              <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAiGenerate}
+                      disabled={isAiLoading}
+                      className="h-14 rounded-2xl border-primary/20 px-6 text-primary hover:bg-primary/5 font-bold gap-2 min-w-[220px]"
+                    >
+                      <Sparkles className={`h-4 w-4 ${isAiLoading ? 'animate-spin' : ''}`} />
+                      {isAiLoading ? "Generating Questions..." : "Generate All Questions"}
+                    </Button>
+            </div>
+
+              {(mode !== 'ai' || hasVisibleQuestions) && (
+                <>
+                  {/* Questions Header */}
+                  <div className="flex items-center justify-between mb-4 px-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">{mode === 'ai' ? 'Generated Questions' : 'Clinical Questions'}</h4>
+                      <span className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-black rounded-full">
+                        {questions.length}
+                      </span>
+                    </div>
+                    {mode === 'ai' && (
+                      <p className="text-xs font-medium text-muted-foreground">You can edit every generated question before saving.</p>
+                    )}
+                  </div>
+
+                  {/* Questions List */}
+                  <div className="space-y-4">
                 {questions.map((q, index) => (
-                  <div key={q.id} className="group relative flex flex-col gap-4 p-6 bg-white border border-primary/10 rounded-2xl shadow-sm hover:border-primary/40 transition-all">
+                  <div key={q.id} className={`group relative flex flex-col gap-4 p-6 bg-white border rounded-2xl shadow-sm transition-all ${mode === 'ai' ? 'border-primary/12 hover:border-primary/35 shadow-[0_20px_60px_-40px_rgba(119,147,98,0.45)]' : 'border-primary/10 hover:border-primary/40'}`}>
                     {/* Drag / Reorder Controls */}
                     <div className="absolute left-[-40px] top-1/2 -translate-y-1/2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity hidden lg:flex">
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-primary/40 hover:text-primary" onClick={() => moveQuestion(index, 'up')} disabled={index === 0}>
@@ -427,28 +504,30 @@ export function QuestionnaireBuilderModal({
                     <div className="w-8 h-8 rounded-full bg-primary/5 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
                       <Plus className="h-5 w-5" />
                     </div>
-                    <span className="font-bold text-sm">Add New Questionnaire Box</span>
+                    <span className="font-bold text-sm">{mode === 'ai' ? 'Add Another Question Manually' : 'Add New Questionnaire Box'}</span>
                   </div>
                 </Button>
-              </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
           {/* Action Footer - Fixed at bottom */}
-          <div className="absolute bottom-0 left-0 right-0 pt-6 pb-2 px-1 border-t border-primary/10 bg-white/95 backdrop-blur-md z-30 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className={`absolute bottom-0 left-0 right-0 pt-6 pb-2 px-1 border-t border-primary/10 backdrop-blur-md z-30 flex flex-col sm:flex-row justify-between items-center gap-4 ${mode === 'ai' ? 'bg-white/98' : 'bg-white/95'}`}>
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-center sm:text-left leading-relaxed">
-              Assessment will be integrated into the <br className="hidden sm:block" /> clinical management system.
+              {mode === 'ai' ? 'Review the generated content, then save the instrument to your form library.' : <>Assessment will be integrated into the <br className="hidden sm:block" /> clinical management system.</>}
             </p>
             <div className="flex gap-3 w-full sm:w-auto">
               <Button variant="ghost" onClick={onClose} className="flex-1 sm:flex-none h-14 px-8 rounded-2xl font-bold text-muted-foreground hover:text-foreground">
                 Discard Changes
               </Button>
               <Button
-                onClick={handleGenerate}
+                onClick={handleCreateForm}
                 disabled={isCreating || questions.length === 0}
                 className="flex-1 sm:flex-none h-14 px-10 bg-primary hover:bg-primary/90 rounded-2xl shadow-xl shadow-primary/20 font-bold min-w-[200px] transition-all"
               >
-                {isCreating ? 'Building Instrument...' : 'Generate New Form'}
+                {isCreating ? 'Creating Form...' : 'Create New Form'}
               </Button>
             </div>
           </div>

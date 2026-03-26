@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, FileText, Search, Share2, Trash2 } from 'lucide-react';
+import { Plus, FileText, Search, Share2, Trash2, Sparkles } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Select } from '../components/ui/Select';
@@ -55,6 +55,7 @@ const getFriendlyDeleteErrorMessage = (formName: string, error: any) => {
 export function FormsPage() {
   const navigate = useNavigate();
   const [isBuilderOpen, setIsBuilderOpen] = useState(false);
+  const [builderMode, setBuilderMode] = useState<'manual' | 'ai'>('manual');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [selectedForm, setSelectedForm] = useState<any>(null);
@@ -170,10 +171,27 @@ export function FormsPage() {
             Manage clinical assessments and documentation.
           </p>
         </div>
-        <Button onClick={() => setIsBuilderOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Create New Form
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setBuilderMode('ai');
+              setIsBuilderOpen(true);
+            }}
+          >
+            <Sparkles className="mr-2 h-4 w-4" />
+            Generate All Questions
+          </Button>
+          <Button
+            onClick={() => {
+              setBuilderMode('manual');
+              setIsBuilderOpen(true);
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Create New Form
+          </Button>
+        </div>
       </div>
 
       {/* Search and Filters Section */}
@@ -386,7 +404,7 @@ export function FormsPage() {
         </div>
       </Card>
 
-      <QuestionnaireBuilderModal isOpen={isBuilderOpen} onClose={() => setIsBuilderOpen(false)} />
+      <QuestionnaireBuilderModal isOpen={isBuilderOpen} onClose={() => setIsBuilderOpen(false)} mode={builderMode} />
       <EditFormModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} form={selectedForm} />
       <ShareDocumentModal
         isOpen={isShareModalOpen}

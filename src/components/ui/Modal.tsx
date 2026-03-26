@@ -9,6 +9,7 @@ interface ModalProps {
   description?: string;
   children: React.ReactNode;
   className?: string;
+  bodyClassName?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
 }
 export function Modal({
@@ -18,6 +19,7 @@ export function Modal({
   description,
   children,
   className,
+  bodyClassName,
   size = 'md'
 }: ModalProps) {
   const [isAnimating, setIsAnimating] = useState(false);
@@ -62,7 +64,7 @@ export function Modal({
       </div>}
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto p-6">{children}</div>
+      <div className={cn("flex-1 overflow-y-auto p-6", bodyClassName)}>{children}</div>
     </div>
   </div>;
 }
