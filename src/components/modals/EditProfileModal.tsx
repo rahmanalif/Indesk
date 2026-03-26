@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useDispatch } from 'react-redux';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { useUpdateSelfProfileMutation } from '../../redux/api/authApi';
+import { updateUser } from '../../redux/slices/authSlice';
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -19,6 +21,7 @@ export function EditProfileModal({
   lastName = '',
   onUpdated,
 }: EditProfileModalProps) {
+  const dispatch = useDispatch();
   const [updateSelfProfile] = useUpdateSelfProfileMutation();
   const [isLoading, setIsLoading] = useState(false);
   const [nextFirstName, setNextFirstName] = useState(firstName);
@@ -46,7 +49,15 @@ export function EditProfileModal({
       avatar: avatarFile,
     })
       .unwrap()
-      .then(() => {
+      .then((response) => {
+        const updatedProfile = response?.response?.data;
+        if (updatedProfile) {
+          dispatch(updateUser({
+            firstName: updatedProfile.firstName,
+            lastName: updatedProfile.lastName,
+            avatar: updatedProfile.avatar,
+          }));
+        }
         onUpdated?.();
         onClose();
       })

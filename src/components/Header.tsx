@@ -8,6 +8,7 @@ import { SearchDropdown } from './SearchDropdown';
 import { NotificationDropdown } from './NotificationDropdown';
 import { useAuth } from '../hooks/useAuth';
 import { getAccessibleNavItems } from '../config/navigation';
+import { useGetSelfProfileQuery } from '../redux/api/authApi';
 import {
   useGetNotificationsQuery,
   useGetUnreadCountQuery,
@@ -25,11 +26,14 @@ export function Header({
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { data: selfProfileResponse } = useGetSelfProfileQuery();
+  const profile = selfProfileResponse?.response?.data;
+  const effectiveUser = profile ?? user;
   const displayName =
-    [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() ||
-    user?.email ||
+    [effectiveUser?.firstName, effectiveUser?.lastName].filter(Boolean).join(' ').trim() ||
+    effectiveUser?.email ||
     'User';
-  const displaySubtitle = user?.email || user?.role || 'User';
+  const displaySubtitle = effectiveUser?.email || effectiveUser?.role || 'User';
   const apiOrigin = (() => {
     try {
       return new URL(import.meta.env.VITE_CLIENTS_API_BASE_URL).origin;
@@ -38,7 +42,7 @@ export function Header({
     }
   })();
   const avatarSrc = (() => {
-    const rawAvatar = user?.avatar;
+    const rawAvatar = effectiveUser?.avatar;
     if (!rawAvatar) return undefined;
     if (rawAvatar.startsWith('http')) return rawAvatar;
     if (!apiOrigin) return rawAvatar;
@@ -93,7 +97,7 @@ export function Header({
   });
 
   const unreadCount = unreadCountResponse?.response?.data?.count ?? 0;
-  const accessibleNavItems = getAccessibleNavItems(user);
+  const accessibleNavItems = getAccessibleNavItems(effectiveUser ?? user);
 
   const markAllRead = async () => {
     try {

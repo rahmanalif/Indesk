@@ -6,7 +6,7 @@ interface User {
   lastName: string;
   email: string;
   role: string;
-  avatar: string;
+  avatar: string | null;
   isEmailVerified: boolean;
   phoneNumber: string | null;
   isOnline: boolean;
@@ -107,6 +107,11 @@ const authSlice = createSlice({
       state.error = action.payload;
       state.isLoading = false;
     },
+    updateUser: (state, action: PayloadAction<Partial<User>>) => {
+      if (!state.user) return;
+      state.user = { ...state.user, ...action.payload };
+      localStorage.setItem('user', JSON.stringify(state.user));
+    },
     logout: (state) => {
       state.user = null;
       state.tokens = null;
@@ -126,5 +131,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { setCredentials, setLoading, setError, logout, clearError } = authSlice.actions;
+export const { setCredentials, setLoading, setError, updateUser, logout, clearError } = authSlice.actions;
 export default authSlice.reducer;
