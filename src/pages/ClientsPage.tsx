@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Eye, Download } from 'lucide-react';
+import { Search, Plus, Eye, Download, Link as LinkIcon } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
@@ -9,6 +9,7 @@ import { Avatar } from '../components/ui/Avatar';
 import { Badge } from '../components/ui/Badge';
 import { CreateClientModal } from '../components/modals/CreateClientModal';
 import { ClientsReportModal } from '../components/modals/ClientsReportModal';
+import { ClientIntakeLinkModal } from '../components/modals/ClientIntakeLinkModal';
 import { Pagination } from '../components/ui/Pagination';
 import { useGetClientsQuery, useCreateClientMutation, type CreateClientRequest } from '../redux/api/clientsApi';
 
@@ -47,6 +48,7 @@ export function ClientsPage() {
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isIntakeLinkModalOpen, setIsIntakeLinkModalOpen] = useState(false);
 
   const itemsPerPage = 10;
 
@@ -194,6 +196,10 @@ export function ClientsPage() {
         </p>
       </div>
       <div className="flex items-center gap-2">
+        <Button variant="outline" className="gap-2" onClick={() => setIsIntakeLinkModalOpen(true)}>
+          <LinkIcon className="h-4 w-4" />
+          Client Intake Link
+        </Button>
         <Button variant="outline" className="gap-2" onClick={() => setIsExportModalOpen(true)}>
           <Download className="h-4 w-4" />
           Export Information
@@ -390,6 +396,10 @@ export function ClientsPage() {
       isOpen={isExportModalOpen}
       onClose={() => setIsExportModalOpen(false)}
       clients={filteredAndSortedClients}
+    />
+    <ClientIntakeLinkModal
+      isOpen={isIntakeLinkModalOpen}
+      onClose={() => setIsIntakeLinkModalOpen(false)}
     />
   </div>;
 }
