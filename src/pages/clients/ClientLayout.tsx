@@ -6,15 +6,18 @@ import {
     ArrowLeft,
     History as HistoryIcon,
     Receipt,
+    Link as LinkIcon,
     Phone,
     Mail,
     Calendar as CalendarIcon,
     Activity,
-    ClipboardCheck
+    ClipboardCheck,
+    ClipboardList
 } from 'lucide-react';
 import { ClientHistoryModal } from '../../components/modals/ClientHistoryModal';
 import { CreateAppointmentModal } from '../../components/modals/CreateAppointmentModal';
 import { InvoicePreviewModal } from '../../components/modals/InvoicePreviewModal';
+import { ClientIntakeLinkModal } from '../../components/modals/ClientIntakeLinkModal';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Avatar } from '../../components/ui/Avatar';
@@ -64,6 +67,7 @@ export function ClientLayout() {
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     const [isBookingOpen, setIsBookingOpen] = useState(false);
     const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
+    const [isIntakeLinkOpen, setIsIntakeLinkOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -88,6 +92,7 @@ export function ClientLayout() {
         { id: 'notes', label: 'Clinical Notes', icon: FileText, path: `/clients/${id}/notes` },
         { id: 'assessments', label: 'Assessments', icon: ClipboardCheck, path: `/clients/${id}/assessments` },
         { id: 'measures', label: 'Outcome Measures', icon: Activity, path: `/clients/${id}/measures` },
+        { id: 'intake', label: 'Intake Form', icon: ClipboardList, path: `/clients/${id}/intake` },
     ];
 
     const activeTab = location.pathname.split('/').pop() || 'details';
@@ -155,6 +160,14 @@ export function ClientLayout() {
                                     </Button>
                                     <Button
                                         variant="outline"
+                                        onClick={() => setIsIntakeLinkOpen(true)}
+                                        className="h-10 lg:h-11 px-6 rounded-xl bg-secondary/10 border-primary/5 font-bold text-[10px] uppercase tracking-widest hover:bg-secondary/20 transition-all shrink-0"
+                                    >
+                                        <LinkIcon className="h-4 w-4 mr-2" />
+                                        Intake Link
+                                    </Button>
+                                    <Button
+                                        variant="outline"
                                         onClick={() => setIsInvoiceOpen(true)}
                                         className="h-10 lg:h-11 px-6 rounded-xl bg-secondary/10 border-primary/5 font-bold text-[10px] uppercase tracking-widest hover:bg-secondary/20 transition-all shrink-0"
                                     >
@@ -217,6 +230,14 @@ export function ClientLayout() {
                 onClose={() => setIsInvoiceOpen(false)}
                 mode="edit"
                 fixedClientId={client.id}
+            />
+
+            <ClientIntakeLinkModal
+                isOpen={isIntakeLinkOpen}
+                onClose={() => setIsIntakeLinkOpen(false)}
+                clientId={client.id}
+                clientName={client.name}
+                publicToken={client.rawClient?.publicToken}
             />
         </div>
     );

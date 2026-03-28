@@ -228,7 +228,7 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                 name: session?.name || 'Session',
                 durationMinutes,
                 durationLabel: `${durationMinutes} min`,
-                priceLabel: Number.isFinite(priceNumber) && priceNumber >= 0 ? `$${priceNumber}` : (session?.price || '-'),
+                priceLabel: Number.isFinite(priceNumber) && priceNumber >= 0 ? `£${priceNumber}` : (session?.price || '-'),
             };
         });
     }, [clinicianSessionsResponse]);

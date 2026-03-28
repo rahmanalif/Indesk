@@ -1,18 +1,47 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CheckCheck, Copy, ExternalLink, FileText } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
+import { useGenerateClientPublicTokenMutation } from '../../redux/api/clientsApi';
 
 interface ClientIntakeLinkModalProps {
   isOpen: boolean;
   onClose: () => void;
+  clientId?: string;
+  clientName?: string;
+  publicToken?: string | null;
 }
 
-export function ClientIntakeLinkModal({ isOpen, onClose }: ClientIntakeLinkModalProps) {
+export function ClientIntakeLinkModal({ isOpen, onClose, clientId, clientName, publicToken }: ClientIntakeLinkModalProps) {
   const [copied, setCopied] = useState(false);
-  const shareUrl = `${window.location.origin}/client-intake-form`;
+  const [resolvedPublicToken, setResolvedPublicToken] = useState(publicToken || '');
+  const [generateClientPublicToken, { isLoading: isGeneratingToken }] = useGenerateClientPublicTokenMutation();
+
+  useEffect(() => {
+    setResolvedPublicToken(publicToken || '');
+  }, [publicToken, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || resolvedPublicToken || !clientId) return;
+
+    generateClientPublicToken(clientId)
+      .unwrap()
+      .then((response) => {
+        const token = response?.response?.data?.publicToken || '';
+        if (token) setResolvedPublicToken(token);
+      })
+      .catch(() => {
+        setResolvedPublicToken('');
+      });
+  }, [clientId, generateClientPublicToken, isOpen, resolvedPublicToken]);
+
+  const shareUrl = useMemo(() => {
+    if (!resolvedPublicToken) return '';
+    return `${window.location.origin}/client-intake-form?publicToken=${encodeURIComponent(resolvedPublicToken)}`;
+  }, [resolvedPublicToken]);
 
   const handleCopy = async () => {
+    if (!shareUrl) return;
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
@@ -33,7 +62,7 @@ export function ClientIntakeLinkModal({ isOpen, onClose }: ClientIntakeLinkModal
             <div>
               <p className="font-semibold text-foreground">Client Intake Form Link</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Share this public page with any client so they can complete the intake form before their first appointment.
+                Share this public page with this client so they can complete the intake form before their first appointment.
               </p>
             </div>
           </div>
@@ -42,16 +71,16 @@ export function ClientIntakeLinkModal({ isOpen, onClose }: ClientIntakeLinkModal
         <div className="space-y-2">
           <label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Public Link</label>
           <div className="rounded-xl border border-border bg-muted/20 p-4 text-sm break-all text-foreground">
-            {shareUrl}
+            {isGeneratingToken ? 'Generating public link...' : shareUrl || 'Unable to generate public link.'}
           </div>
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-          <Button variant="outline" className="gap-2" onClick={handleCopy}>
+          <Button variant="outline" className="gap-2" onClick={handleCopy} disabled={!shareUrl || isGeneratingToken}>
             {copied ? <CheckCheck className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             {copied ? 'Copied' : 'Copy Link'}
           </Button>
-          <a href={shareUrl} target="_blank" rel="noreferrer">
+          <a href={shareUrl || undefined} target="_blank" rel="noreferrer">
             <Button className="w-full gap-2 sm:w-auto">
               <ExternalLink className="h-4 w-4" />
               Open Public Form

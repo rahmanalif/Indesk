@@ -1,8 +1,9 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { ArrowRight, Check, Mail, MapPin, Phone, Shield } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { useData } from '../../context/DataContext';
 import { brandBg, brandGradient } from '../../lib/branding';
+import { useGetPublicClientByTokenQuery, useUpdatePublicClientByTokenMutation } from '../../redux/api/clientsApi';
 
 type FormState = Record<string, string | string[] | boolean>;
 
@@ -31,6 +32,59 @@ export function PublicClientIntakePage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
   const brandColor = branding.color || '#779362';
+  const searchParams = useMemo(() => new URLSearchParams(window.location.search), []);
+  const publicToken = searchParams.get('publicToken') || '';
+  const { data: publicClientResponse, isLoading, isError } = useGetPublicClientByTokenQuery(publicToken, {
+    skip: !publicToken,
+  });
+  const [updatePublicClientByToken, { isLoading: isSubmitting }] = useUpdatePublicClientByTokenMutation();
+  const clientData = publicClientResponse?.response?.data;
+  const clientName = [clientData?.firstName, clientData?.lastName].filter(Boolean).join(' ').trim();
+
+  useEffect(() => {
+    if (!clientData) return;
+    setForm((prev) => ({
+      ...prev,
+      firstName: clientData.firstName || '',
+      lastName: clientData.lastName || '',
+      email: clientData.email || '',
+      dateOfBirth: clientData.dateOfBirth || '',
+      gender: clientData.gender || '',
+      genderSelfDescribe: clientData.genderSelfDescribe || '',
+      mobileCountryCode: clientData.mobileCountryCode || '+44',
+      mobileNumber: clientData.mobileNumber || '',
+      addressStreet: clientData.addressStreet || '',
+      addressCity: clientData.addressCity || '',
+      addressPostcode: clientData.addressPostcode || '',
+      livingSituation: clientData.livingSituation || [],
+      livingSituationOther: clientData.livingSituationOther || '',
+      mentalHealthServices: clientData.mentalHealthServices || [],
+      mentalHealthServicesOther: clientData.mentalHealthServicesOther || '',
+      mentalHealthServicesDetails: clientData.mentalHealthServicesDetails || '',
+      takesMedication: clientData.takesMedication || '',
+      medicationDetails: clientData.medicationDetails || '',
+      presentingProblem: clientData.presentingProblem || '',
+      safetyRisk: clientData.safetyRisk || '',
+      safetyDetails: clientData.safetyDetails || '',
+      gpName: clientData.gpName || '',
+      surgeryName: clientData.surgeryName || '',
+      surgeryStreet: clientData.surgeryStreet || '',
+      surgeryCity: clientData.surgeryCity || '',
+      surgeryPostcode: clientData.surgeryPostcode || '',
+      paymentMethod: clientData.paymentMethod || '',
+      paymentOtherDetails: clientData.paymentOtherDetails || '',
+      insurerName: clientData.insurerName || '',
+      authorizationCode: clientData.authorizationCode || '',
+      hearAboutUs: clientData.hearAboutUs || [],
+      hearAboutUsDetails: clientData.hearAboutUsDetails || '',
+      declarationAccepted: Boolean(clientData.declarationAccepted),
+      declarationFullName: clientData.declarationFullName || '',
+      declarationSignature: clientData.declarationSignature || '',
+      declarationDate: clientData.declarationDate || '',
+      guardianName: clientData.guardianName || '',
+      guardianSignature: clientData.guardianSignature || '',
+    }));
+  }, [clientData]);
 
   const setField = (key: string, value: string | string[] | boolean) => setForm((prev) => ({ ...prev, [key]: value }));
   const toggleInList = (key: string, value: string) => {
@@ -73,12 +127,34 @@ export function PublicClientIntakePage() {
     if (!String(form.declarationDate)) nextErrors.declarationDate = 'Declaration date is required.';
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
-    const existing = localStorage.getItem('public_client_intake_submissions');
-    const submissions = existing ? JSON.parse(existing) : [];
-    submissions.push({ ...form, submittedAt: new Date().toISOString() });
-    localStorage.setItem('public_client_intake_submissions', JSON.stringify(submissions));
-    setIsSubmitted(true);
+    if (!publicToken) return;
+
+    updatePublicClientByToken({
+      publicToken,
+      ...form,
+      guardianName: String(form.guardianName || '').trim() || null,
+      guardianSignature: String(form.guardianSignature || '').trim() || null,
+    })
+      .unwrap()
+      .then(() => {
+        setIsSubmitted(true);
+      })
+      .catch((error: any) => {
+        alert(error?.data?.message || 'Unable to submit the intake form. Please try again.');
+      });
   };
+
+  if (!publicToken) {
+    return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Missing public intake token.</div>;
+  }
+
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading intake form...</div>;
+  }
+
+  if (isError || !clientData) {
+    return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Unable to load the client intake form.</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
@@ -109,6 +185,11 @@ export function PublicClientIntakePage() {
           <p className="mx-auto mb-10 max-w-3xl text-lg font-medium leading-relaxed text-white/85">
             Please complete all sections as fully as possible before your first appointment. Fields marked with * are required.
           </p>
+          {clientName && (
+            <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-white">
+              Completing form for {clientName}
+            </div>
+          )}
           <a href="#intake-form" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-8 py-4 font-bold shadow-xl transition hover:bg-white/90" style={{ color: brandColor }}>
             Start Form
             <ArrowRight className="h-4 w-4" />
@@ -147,7 +228,7 @@ export function PublicClientIntakePage() {
               Your intake form has been completed in this browser. The current implementation stores the submission locally on this device so the public frontend flow works end to end.
             </p>
             <div className="mt-8 flex justify-center">
-              <Button onClick={() => { setForm(initialForm); setErrors({}); setIsSubmitted(false); }}>Submit Another Response</Button>
+              <Button onClick={() => { setErrors({}); setIsSubmitted(false); }}>Review Submission</Button>
             </div>
           </div>
         ) : (
@@ -157,7 +238,7 @@ export function PublicClientIntakePage() {
               {/* <p className="max-w-2xl text-sm text-slate-500">
                 This public form reproduces the intake fields from the provided PDF template and can be filled by any client through a shareable public link.
               </p> */}
-              <Button type="submit" className="min-w-[180px]">Submit Form</Button>
+              <Button type="submit" className="min-w-[180px]" isLoading={isSubmitting}>Submit Form</Button>
             </div>
           </form>
         )}

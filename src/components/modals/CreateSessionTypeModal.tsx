@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { PoundSterling } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -86,6 +87,7 @@ export function CreateSessionTypeModal({
           value={price}
           onChange={(e) => setPrice(e.target.value)}
           className="h-11 rounded-xl"
+          icon={<PoundSterling className="h-4 w-4" />}
           required
         />
         <Select

@@ -97,7 +97,7 @@ export function PublicClinicianPage() {
         id: session?.id || session?._id || `api-session-${index}`,
         name: session?.name || 'Session',
         durationLabel: `${durationMinutes} min`,
-        priceLabel: Number.isFinite(priceNumber) && priceNumber >= 0 ? `$${priceNumber}` : (session?.price || '-'),
+        priceLabel: Number.isFinite(priceNumber) && priceNumber >= 0 ? `£${priceNumber}` : (session?.price || '-'),
       };
     });
   }, [clinicianSessionsResponse]);

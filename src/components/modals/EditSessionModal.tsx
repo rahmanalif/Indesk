@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { PoundSterling } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
@@ -58,6 +59,7 @@ export function EditSessionModal({ isOpen, onClose, session }: EditSessionModalP
                         value={formData.price}
                         onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                         className="h-11 rounded-xl"
+                        icon={<PoundSterling className="h-4 w-4" />}
                     />
                 </div>
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Clock, DollarSign, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Clock, PoundSterling, Edit2, Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -84,10 +84,10 @@ export function SessionsPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center text-muted-foreground">
-                    <DollarSign className="mr-2 h-4 w-4" />
+                    <PoundSterling className="mr-2 h-4 w-4" />
                     Price
                   </div>
-                  <span className="font-medium">${session.price ?? 0}</span>
+                  <span className="font-medium">£{session.price ?? 0}</span>
                 </div>
               </div>
 

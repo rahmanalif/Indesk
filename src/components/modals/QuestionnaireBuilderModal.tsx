@@ -236,7 +236,7 @@ export function QuestionnaireBuilderModal({
       onClose={onClose}
       title={mode === 'ai' ? 'Generate Questions with AI' : 'Create New Intelligence Form'}
       size="xl"
-      bodyClassName={mode === 'ai' ? 'overflow-y-hidden' : undefined}
+      bodyClassName={mode === 'ai' ? 'overflow-hidden p-0' : undefined}
     >
       {showSuccess ? (
         <div className="flex flex-col items-center justify-center py-20 space-y-6 animate-in zoom-in duration-300">
@@ -249,9 +249,9 @@ export function QuestionnaireBuilderModal({
           </div>
         </div>
       ) : (
-        <div className={`flex flex-col max-h-[85vh] relative ${mode === 'ai' ? 'bg-[linear-gradient(180deg,#f7faf6_0%,#ffffff_28%)] -m-6 p-6' : ''}`}>
+        <div className={`flex flex-col max-h-[85vh] ${mode === 'ai' ? 'bg-[linear-gradient(180deg,#f7faf6_0%,#ffffff_28%)] -m-6 p-6' : ''}`}>
           {/* Scrollable Content Container */}
-          <div className="flex-1 no-scrollbar pb-32">
+          <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar pb-6">
             <div className="p-1">
               {mode === 'ai' && (
                 <div className="mb-8 rounded-[28px] border border-primary/10 bg-white/90 p-6 shadow-[0_24px_80px_-32px_rgba(119,147,98,0.45)] backdrop-blur">
@@ -340,7 +340,7 @@ export function QuestionnaireBuilderModal({
                         Be specific about symptoms, care setting, and clinical intent. The generated questions will replace the draft list below.
                       </p>
                     </div>
-                    {/* <Button
+                    <Button
                       variant="outline"
                       size="sm"
                       onClick={handleAiGenerate}
@@ -349,7 +349,7 @@ export function QuestionnaireBuilderModal({
                     >
                       <Sparkles className={`h-4 w-4 ${isAiLoading ? 'animate-spin' : ''}`} />
                       {isAiLoading ? "Generating Questions..." : "Generate All Questions"}
-                    </Button> */}
+                    </Button>
                   </div>
                 </div>
               )}
@@ -360,19 +360,6 @@ export function QuestionnaireBuilderModal({
                   <span className="text-sm font-semibold text-foreground">{title.trim() || aiTopic.trim()}</span>
                 </div>
               )}
-
-            <div className='mb-4 flex justify-center'>
-              <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleAiGenerate}
-                      disabled={isAiLoading}
-                      className="h-14 rounded-2xl border-primary/20 px-6 text-primary hover:bg-primary/5 font-bold gap-2 min-w-[220px]"
-                    >
-                      <Sparkles className={`h-4 w-4 ${isAiLoading ? 'animate-spin' : ''}`} />
-                      {isAiLoading ? "Generating Questions..." : "Generate All Questions"}
-                    </Button>
-            </div>
 
               {(mode !== 'ai' || hasVisibleQuestions) && (
                 <>
@@ -514,7 +501,7 @@ export function QuestionnaireBuilderModal({
           </div>
 
           {/* Action Footer - Fixed at bottom */}
-          <div className={`absolute bottom-0 left-0 right-0 pt-6 pb-2 px-1 border-t border-primary/10 backdrop-blur-md z-30 flex flex-col sm:flex-row justify-between items-center gap-4 ${mode === 'ai' ? 'bg-white/98' : 'bg-white/95'}`}>
+          <div className={`mt-6 pt-6 pb-2 px-1 border-t border-primary/10 backdrop-blur-md flex flex-col sm:flex-row justify-between items-center gap-4 ${mode === 'ai' ? 'bg-white/98' : 'bg-white/95'}`}>
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-center sm:text-left leading-relaxed">
               {mode === 'ai' ? 'Review the generated content, then save the instrument to your form library.' : <>Assessment will be integrated into the <br className="hidden sm:block" /> clinical management system.</>}
             </p>

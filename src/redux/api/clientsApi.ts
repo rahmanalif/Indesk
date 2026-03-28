@@ -665,6 +665,7 @@ export interface GetClientByIdResponse {
       status: string;
       assignedClinicianId: string | null;
       clinicId: string;
+      publicToken?: string | null;
       addedBy: string;
       createdAt: string;
       updatedAt: string;
@@ -673,6 +674,83 @@ export interface GetClientByIdResponse {
       notes: ClientNote[];
     };
   };
+}
+
+export interface ClientIntakeFormData {
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+  dateOfBirth?: string | null;
+  gender?: string | null;
+  genderSelfDescribe?: string | null;
+  mobileCountryCode?: string | null;
+  mobileNumber?: string | null;
+  addressStreet?: string | null;
+  addressCity?: string | null;
+  addressPostcode?: string | null;
+  livingSituation?: string[] | null;
+  livingSituationOther?: string | null;
+  mentalHealthServices?: string[] | null;
+  mentalHealthServicesOther?: string | null;
+  mentalHealthServicesDetails?: string | null;
+  takesMedication?: string | null;
+  medicationDetails?: string | null;
+  presentingProblem?: string | null;
+  safetyRisk?: string | null;
+  safetyDetails?: string | null;
+  gpName?: string | null;
+  surgeryName?: string | null;
+  surgeryStreet?: string | null;
+  surgeryCity?: string | null;
+  surgeryPostcode?: string | null;
+  paymentMethod?: string | null;
+  paymentOtherDetails?: string | null;
+  insurerName?: string | null;
+  authorizationCode?: string | null;
+  hearAboutUs?: string[] | null;
+  hearAboutUsDetails?: string | null;
+  declarationAccepted?: boolean | null;
+  declarationFullName?: string | null;
+  declarationSignature?: string | null;
+  declarationDate?: string | null;
+  guardianName?: string | null;
+  guardianSignature?: string | null;
+}
+
+export interface PublicClientData extends ClientIntakeFormData {
+  id: string;
+  publicToken: string | null;
+  clinicId?: string | null;
+  firstName: string;
+  lastName: string;
+  email: string;
+  status?: string | null;
+  submittedAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface ClientPublicTokenResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response: {
+    data: {
+      publicToken: string;
+    } & Partial<PublicClientData>;
+  };
+}
+
+export interface GetPublicClientResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response: {
+    data: PublicClientData;
+  };
+}
+
+export interface UpdatePublicClientRequest extends ClientIntakeFormData {
+  publicToken: string;
 }
 
 type UpdateClientResponse = CreateClientResponse;
@@ -753,6 +831,28 @@ export const clientsApi = createApi({
     getClientById: builder.query<GetClientByIdResponse, string>({
       query: (id) => `/client/${id}`,
       providesTags: (_result, _error, id) => [{ type: 'Clients', id }],
+    }),
+
+    generateClientPublicToken: builder.mutation<ClientPublicTokenResponse, string>({
+      query: (clientId) => ({
+        url: `/client/${clientId}/token`,
+        method: 'POST',
+      }),
+      invalidatesTags: (_result, _error, clientId) => [{ type: 'Clients', id: clientId }, 'Clients'],
+    }),
+
+    getPublicClientByToken: builder.query<GetPublicClientResponse, string>({
+      query: (publicToken) => `/client/public/${publicToken}`,
+      providesTags: (_result, _error, publicToken) => [{ type: 'Clients', id: publicToken }],
+    }),
+
+    updatePublicClientByToken: builder.mutation<GetPublicClientResponse, UpdatePublicClientRequest>({
+      query: ({ publicToken, ...body }) => ({
+        url: `/client/public/${publicToken}`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: (_result, _error, { publicToken }) => [{ type: 'Clients', id: publicToken }, 'Clients'],
     }),
 
     getClientAppointments: builder.query<GetClientAppointmentsResponse, string>({
@@ -963,6 +1063,9 @@ export const {
   useGetClientsQuery,
   useCreateClientMutation,
   useGetClientByIdQuery,
+  useGenerateClientPublicTokenMutation,
+  useGetPublicClientByTokenQuery,
+  useUpdatePublicClientByTokenMutation,
   useGetClientAppointmentsQuery,
   useGetCalendarAppointmentsQuery,
   useGetSessionsQuery,

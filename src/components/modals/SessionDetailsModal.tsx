@@ -73,7 +73,7 @@ export function SessionDetailsModal({ isOpen, onClose, session }: SessionDetails
                         </div>
                         <div className="flex justify-between items-center py-2 border-b border-border/50">
                             <span className="text-sm flex items-center gap-2"><DollarSign className="h-4 w-4 text-muted-foreground" /> Fee</span>
-                            <span className="font-medium text-sm">$150.00</span>
+                            <span className="font-medium text-sm">£150.00</span>
                         </div>
                     </div>
                 </div>
