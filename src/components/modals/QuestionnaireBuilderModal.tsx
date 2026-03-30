@@ -19,12 +19,14 @@ interface QuestionnaireBuilderModalProps {
   isOpen: boolean;
   onClose: () => void;
   mode?: 'manual' | 'ai';
+  onSwitchToAi?: () => void;
 }
 
 export function QuestionnaireBuilderModal({
   isOpen,
   onClose,
   mode = 'manual',
+  onSwitchToAi,
 }: QuestionnaireBuilderModalProps) {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('General');
@@ -65,7 +67,7 @@ export function QuestionnaireBuilderModal({
   useEffect(() => {
     if (isOpen) {
       setTitle('');
-      setCategory('General Clinical');
+      setCategory(mode === 'ai' ? 'General Clinical' : 'Clinical');
       setDescription('');
       setQuestions(mode === 'ai' ? [] : [{ id: Date.now(), type: 'text', text: '' }]);
       setShowSuccess(false);
@@ -234,7 +236,7 @@ export function QuestionnaireBuilderModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={mode === 'ai' ? 'Generate Questions with AI' : 'Create New Intelligence Form'}
+      title={mode === 'ai' ? 'Let Sigmund do the hard work.' : 'Form Creator'}
       size="xl"
       bodyClassName={mode === 'ai' ? 'overflow-hidden p-0' : undefined}
     >
@@ -249,24 +251,24 @@ export function QuestionnaireBuilderModal({
           </div>
         </div>
       ) : (
-        <div className={`flex flex-col max-h-[85vh] ${mode === 'ai' ? 'bg-[linear-gradient(180deg,#f7faf6_0%,#ffffff_28%)] -m-6 p-6' : ''}`}>
+        <div className={`flex min-w-0 flex-col max-h-[85vh] ${mode === 'ai' ? 'overflow-x-hidden bg-[linear-gradient(180deg,#f7faf6_0%,#ffffff_28%)] p-6' : ''}`}>
           {/* Scrollable Content Container */}
           <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar pb-6">
             <div className="p-1">
               {mode === 'ai' && (
                 <div className="mb-8 rounded-[28px] border border-primary/10 bg-white/90 p-6 shadow-[0_24px_80px_-32px_rgba(119,147,98,0.45)] backdrop-blur">
                   <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-                    <div className="max-w-2xl">
-                      <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.24em] text-primary">
-                        <Sparkles className="h-3.5 w-3.5" />
-                        AI-Assisted Builder
+                    <div className="max-w-3xl min-w-0">
+                      <div className="mb-4 inline-flex w-fit max-w-full items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3 py-1 text-[9px] font-bold uppercase tracking-[0.08em] text-primary sm:px-4 sm:text-[10px] lg:whitespace-nowrap">
+                        <Sparkles className="h-4 w-4 shrink-0" />
+                        Let Sigmund find your questionnaire for you!
                       </div>
                       <h3 className="text-3xl font-black tracking-tight text-foreground">Generate the full questionnaire from one clinical prompt</h3>
-                      <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
-                        Describe the symptom cluster, intake scenario, or treatment focus. The AI will draft the full question set, and you can refine it before saving.
+                      <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground text-justify">
+                        Ask Sigmund to find what you are looking for by either asking for the specific name (e.g. PHQ-9) or for a questionnarire about OCD for example. Sigmund will then draft it up and you can check it over before saving.
                       </p>
                     </div>
-                    <div className="grid gap-3 rounded-2xl border border-primary/10 bg-secondary/20 p-4 text-sm text-muted-foreground sm:grid-cols-3 lg:min-w-[420px]">
+                    <div className="grid max-w-full gap-3 rounded-2xl border border-primary/10 bg-secondary/20 p-4 text-sm text-muted-foreground sm:grid-cols-3 lg:w-[420px] lg:flex-shrink-0">
                       <div>
                         <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary/70">Step 1</p>
                         <p className="mt-1 font-semibold text-foreground">Write a focused prompt</p>
@@ -291,7 +293,7 @@ export function QuestionnaireBuilderModal({
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-primary uppercase tracking-[0.15em] ml-1 block">Assessment Title</label>
                       <Input
-                        placeholder="e.g. Clinical Health Intake"
+                        placeholder="e.g. Client feedback"
                         className="h-14 bg-secondary/30 border-primary/10 rounded-2xl shadow-inner font-bold"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
@@ -301,10 +303,9 @@ export function QuestionnaireBuilderModal({
                       <label className="text-[10px] font-bold text-primary uppercase tracking-[0.15em] ml-1 block">Category</label>
                       <Select
                         options={[
-                          { value: 'General Clinical', label: 'General Clinical' },
-                          { value: 'Mental Health', label: 'Mental Health' },
-                          { value: 'Physical Therapy', label: 'Physical Therapy' },
-                          { value: 'Neurology', label: 'Neurology' }
+                          { value: 'Admin', label: 'Admin' },
+                          { value: 'Clinical', label: 'Clinical' },
+                          { value: 'Other', label: 'Other' }
                         ]}
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
@@ -314,13 +315,29 @@ export function QuestionnaireBuilderModal({
                   </div>
 
                   <div className="space-y-2 mb-8">
-                    <label className="text-[10px] font-bold text-primary uppercase tracking-[0.15em] ml-1 block">Clinical Abstract (About Section - Optional)</label>
+                    <label className="text-[10px] font-bold text-primary uppercase tracking-[0.15em] ml-1 block">Assessment Description</label>
                     <textarea
-                      placeholder="Describe the clinical intent and background of this instrument."
+                      placeholder="Describe in detail what this assessment should measure."
                       className="w-full min-h-[100px] p-5 text-sm bg-secondary/30 border border-primary/10 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium placeholder:text-muted-foreground/50 shadow-inner no-scrollbar"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                     />
+                  </div>
+
+                  <div className="mb-8 flex flex-col gap-4 rounded-[24px] border border-primary/12 bg-white p-5 shadow-[0_18px_50px_-30px_rgba(119,147,98,0.25)] lg:flex-row lg:items-center lg:justify-between">
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary/70">Need inspiration?</p>
+                      <p className="text-lg font-semibold text-foreground">Want inspiration? Ask Sigmund.</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={onSwitchToAi}
+                      className="h-14 rounded-2xl border-primary/20 px-8 text-primary hover:bg-primary/5 font-bold gap-2 min-w-[220px]"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      Begin the analysis
+                    </Button>
                   </div>
                 </>
               )}
@@ -330,14 +347,14 @@ export function QuestionnaireBuilderModal({
                   <div className="flex flex-col gap-4 xl:flex-row xl:items-end">
                     <div className="flex-1">
                       <Input
-                        label="Clinical Prompt"
+                        label="Ask Sigmund!"
                         placeholder="e.g. Adult intake for anxiety, poor sleep, nighttime headaches, workplace stress"
                         value={aiTopic}
                         onChange={(e) => setAiTopic(e.target.value)}
                         className="h-14 rounded-2xl bg-secondary/20 border-primary/15"
                       />
                       <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                        Be specific about symptoms, care setting, and clinical intent. The generated questions will replace the draft list below.
+                        Be specific about symptoms, care setting, and clinical intent. e.g. GAD 7, patient wellbeing , burnout.
                       </p>
                     </div>
                     <Button
@@ -366,7 +383,7 @@ export function QuestionnaireBuilderModal({
                   {/* Questions Header */}
                   <div className="flex items-center justify-between mb-4 px-1">
                     <div className="flex items-center gap-2">
-                      <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">{mode === 'ai' ? 'Generated Questions' : 'Clinical Questions'}</h4>
+                      <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">{mode === 'ai' ? 'Generated Questions' : 'Questions'}</h4>
                       <span className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-black rounded-full">
                         {questions.length}
                       </span>
@@ -522,4 +539,18 @@ export function QuestionnaireBuilderModal({
       )}
     </Modal>
   );
+}
+
+interface StandaloneQuestionnaireModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSwitchToAi?: () => void;
+}
+
+export function CreateNewFormModal(props: StandaloneQuestionnaireModalProps) {
+  return <QuestionnaireBuilderModal {...props} mode="manual" />;
+}
+
+export function GenerateQuestionsModal(props: StandaloneQuestionnaireModalProps) {
+  return <QuestionnaireBuilderModal {...props} mode="ai" />;
 }

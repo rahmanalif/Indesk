@@ -5,7 +5,7 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Select } from '../components/ui/Select';
 import { Input } from '../components/ui/Input';
-import { QuestionnaireBuilderModal } from '../components/modals/QuestionnaireBuilderModal';
+import { CreateNewFormModal, GenerateQuestionsModal } from '../components/modals/QuestionnaireBuilderModal';
 import { EditFormModal } from '../components/modals/EditFormModal';
 import { ShareDocumentModal } from '../components/modals/ShareDocumentModal';
 import { useDeleteAssessmentTemplateMutation, useGetAssessmentTemplatesQuery } from '../redux/api/assessmentApi';
@@ -54,8 +54,8 @@ const getFriendlyDeleteErrorMessage = (formName: string, error: any) => {
 
 export function FormsPage() {
   const navigate = useNavigate();
-  const [isBuilderOpen, setIsBuilderOpen] = useState(false);
-  const [builderMode, setBuilderMode] = useState<'manual' | 'ai'>('manual');
+  const [isCreateFormModalOpen, setIsCreateFormModalOpen] = useState(false);
+  const [isGenerateQuestionsModalOpen, setIsGenerateQuestionsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [selectedForm, setSelectedForm] = useState<any>(null);
@@ -160,6 +160,11 @@ export function FormsPage() {
     setCurrentPage(1);
   };
 
+  const handleSwitchToGenerateQuestions = () => {
+    setIsCreateFormModalOpen(false);
+    setIsGenerateQuestionsModalOpen(true);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -174,19 +179,13 @@ export function FormsPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
-            onClick={() => {
-              setBuilderMode('ai');
-              setIsBuilderOpen(true);
-            }}
+            onClick={() => setIsGenerateQuestionsModalOpen(true)}
           >
             <Sparkles className="mr-2 h-4 w-4" />
-            Generate All Questions
+            Let Sigmund Source it
           </Button>
           <Button
-            onClick={() => {
-              setBuilderMode('manual');
-              setIsBuilderOpen(true);
-            }}
+            onClick={() => setIsCreateFormModalOpen(true)}
           >
             <Plus className="mr-2 h-4 w-4" />
             Create New Form
@@ -404,7 +403,12 @@ export function FormsPage() {
         </div>
       </Card>
 
-      <QuestionnaireBuilderModal isOpen={isBuilderOpen} onClose={() => setIsBuilderOpen(false)} mode={builderMode} />
+      <GenerateQuestionsModal isOpen={isGenerateQuestionsModalOpen} onClose={() => setIsGenerateQuestionsModalOpen(false)} />
+      <CreateNewFormModal
+        isOpen={isCreateFormModalOpen}
+        onClose={() => setIsCreateFormModalOpen(false)}
+        onSwitchToAi={handleSwitchToGenerateQuestions}
+      />
       <EditFormModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} form={selectedForm} />
       <ShareDocumentModal
         isOpen={isShareModalOpen}
