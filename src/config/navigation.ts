@@ -18,6 +18,7 @@ export interface NavItem {
     label: string;
     path: string;
     permission?: string;
+    comingSoon?: boolean;
 }
 
 export const navItems: NavItem[] = [
@@ -86,7 +87,13 @@ export const navItems: NavItem[] = [
         label: 'Integrations',
         path: '/integrations',
         permission: 'clinician_integrations'
-    }
+    },
+    {
+        icon: ClipboardList,
+        label: 'CPD - Coming Soon!',
+        path: '/cpd',
+        comingSoon: true
+    },
 ];
 
 // Helper function to get accessible nav items for a user

@@ -257,27 +257,51 @@ export function Header({
 
             <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-2 mb-2">Navigation</div>
             {accessibleNavItems.map((item) => {
-              const isActive = location.pathname === item.path;
+              const isActive = !item.comingSoon && location.pathname === item.path;
               const Icon = item.icon;
               return (
                 <button
                   key={item.path}
                   onClick={() => {
+                    if (item.comingSoon) return;
                     navigate(item.path);
                     setIsMobileMenuOpen(false);
                   }}
+                  type="button"
+                  aria-disabled={item.comingSoon}
                   className={cn(
                     "w-full flex items-center justify-between p-4 rounded-xl transition-all duration-200 group",
-                    isActive
-                      ? "bg-primary text-white shadow-lg shadow-primary/20"
-                      : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    item.comingSoon
+                      ? "cursor-default border border-dashed border-primary/20 bg-primary/5 text-primary/80"
+                      : isActive
+                        ? "bg-primary text-white shadow-lg shadow-primary/20"
+                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                   )}
+                  title={item.comingSoon ? 'This section is coming soon' : undefined}
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className={cn("h-5 w-5", isActive ? "text-white" : "group-hover:text-primary")} />
+                    <Icon
+                      className={cn(
+                        "h-5 w-5",
+                        item.comingSoon
+                          ? "text-primary/70"
+                          : isActive
+                            ? "text-white"
+                            : "group-hover:text-primary"
+                      )}
+                    />
                     <span className="font-bold text-sm tracking-tight">{item.label}</span>
                   </div>
-                  <ChevronRight className={cn("h-4 w-4 opacity-50", isActive ? "text-white" : "text-muted-foreground")} />
+                  <ChevronRight
+                    className={cn(
+                      "h-4 w-4 opacity-50",
+                      item.comingSoon
+                        ? "text-primary/50"
+                        : isActive
+                          ? "text-white"
+                          : "text-muted-foreground"
+                    )}
+                  />
                 </button>
               );
             })}

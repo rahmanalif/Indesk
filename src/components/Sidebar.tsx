@@ -59,28 +59,61 @@ export function Sidebar({
 
           const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
           const Icon = item.icon;
-
-          return (
-            <Link key={item.path} to={item.path} className="block">
-              <div className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative overflow-hidden',
-                isActive
+          const content = (
+            <div className={cn(
+              'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative overflow-hidden',
+              item.comingSoon
+                ? 'cursor-default border border-dashed border-primary/20 bg-primary/5 text-primary/80'
+                : isActive
                   ? 'bg-primary text-white shadow-lg shadow-primary/20 font-bold'
                   : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-              )}>
-                {isCollapsed ? (
-                  <Tooltip content={item.label} side="right">
-                    <Icon className={cn('h-5 w-5 shrink-0', isActive ? 'text-white' : 'text-muted-foreground group-hover:text-primary')} />
-                  </Tooltip>
-                ) : (
-                  <>
-                    <Icon className={cn('h-5 w-5 shrink-0', isActive ? 'text-white' : 'text-muted-foreground group-hover:text-primary')} />
-                    <span className="truncate text-sm">{item.label}</span>
-                  </>
-                )}
-              </div>
-            </Link>
+            )}>
+              {isCollapsed ? (
+                <Tooltip content={item.label} side="right">
+                  <Icon
+                    className={cn(
+                      'h-5 w-5 shrink-0',
+                      item.comingSoon
+                        ? 'text-primary/70'
+                        : isActive
+                          ? 'text-white'
+                          : 'text-muted-foreground group-hover:text-primary'
+                    )}
+                  />
+                </Tooltip>
+              ) : (
+                <>
+                  <Icon
+                    className={cn(
+                      'h-5 w-5 shrink-0',
+                      item.comingSoon
+                        ? 'text-primary/70'
+                        : isActive
+                          ? 'text-white'
+                          : 'text-muted-foreground group-hover:text-primary'
+                    )}
+                  />
+                  <span className="truncate text-sm">{item.label}</span>
+                </>
+              )}
+            </div>
           );
+
+          if (item.comingSoon) {
+            return (
+              <div
+                key={item.path}
+                className="block"
+                role="button"
+                aria-disabled="true"
+                title="This section is coming soon"
+              >
+                {content}
+              </div>
+            );
+          }
+
+          return <Link key={item.path} to={item.path} className="block">{content}</Link>;
         })}
       </nav>
 

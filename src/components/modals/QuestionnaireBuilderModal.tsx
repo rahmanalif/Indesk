@@ -261,12 +261,12 @@ export function QuestionnaireBuilderModal({
                     <div className="max-w-3xl min-w-0">
                       <div className="mb-4 inline-flex w-fit max-w-full items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3 py-1 text-[9px] font-bold uppercase tracking-[0.08em] text-primary sm:px-4 sm:text-[10px] lg:whitespace-nowrap">
                         <Sparkles className="h-4 w-4 shrink-0" />
-                        Let Sigmund find your questionnaire for you!
+                        Ask Sigmund
                       </div>
                       <h3 className="text-3xl font-black tracking-tight text-foreground">Generate the full questionnaire from one clinical prompt</h3>
-                      <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground text-justify">
+                      {/* <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground text-justify">
                         Ask Sigmund to find what you are looking for by either asking for the specific name (e.g. PHQ-9) or for a questionnarire about OCD for example. Sigmund will then draft it up and you can check it over before saving.
-                      </p>
+                      </p> */}
                     </div>
                     <div className="grid max-w-full gap-3 rounded-2xl border border-primary/10 bg-secondary/20 p-4 text-sm text-muted-foreground sm:grid-cols-3 lg:w-[420px] lg:flex-shrink-0">
                       <div>
@@ -343,30 +343,41 @@ export function QuestionnaireBuilderModal({
               )}
 
               {mode === 'ai' && showAiTopicInput && (
-                <div className="mb-8 animate-in fade-in slide-in-from-top-2 duration-200 rounded-[24px] border border-primary/15 bg-white p-5 shadow-[0_18px_50px_-30px_rgba(119,147,98,0.45)]">
-                  <div className="flex flex-col gap-4 xl:flex-row xl:items-end">
-                    <div className="flex-1">
-                      <Input
-                        label="Ask Sigmund!"
-                        placeholder="e.g. Adult intake for anxiety, poor sleep, nighttime headaches, workplace stress"
-                        value={aiTopic}
-                        onChange={(e) => setAiTopic(e.target.value)}
-                        className="h-14 rounded-2xl bg-secondary/20 border-primary/15"
-                      />
-                      <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                        Be specific about symptoms, care setting, and clinical intent. e.g. GAD 7, patient wellbeing , burnout.
-                      </p>
+                <div
+                  className="relative mb-8 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden rounded-[28px] border border-primary/15 shadow-[0_24px_70px_-34px_rgba(119,147,98,0.45)]"
+                  style={{
+                    backgroundImage: "linear-gradient(180deg, rgba(255,255,255,0.92) 0%, rgba(248,250,246,0.9) 100%), url('/images/form.jpg')",
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                  }}
+                >
+                  <div className="rounded-[28px] p-5 sm:p-6">
+                    <div className="flex flex-col gap-4">
+                      <div className="min-w-0">
+                        <Input
+                        
+                          label="Be specific about symptoms, care setting, and clinical intent."
+                          placeholder=" e.g. GAD 7, patient wellbeing , burnout."
+                          value={aiTopic}
+                          onChange={(e) => setAiTopic(e.target.value)}
+                          className="h-16 rounded-[22px] border-primary/10 bg-white/90 text-base shadow-[0_8px_24px_-18px_rgba(15,23,42,0.5)] placeholder:text-muted-foreground/60 focus:bg-white sm:h-[200px] sm:px-6 sm:text-lg"
+                        />
+                        
+                      </div>
+                      <div className="flex justify-start">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleAiGenerate}
+                          disabled={isAiLoading}
+                          className="h-16 rounded-[22px] border-primary/20 bg-white/80 px-6 text-primary hover:bg-white font-bold gap-2 min-w-[220px] sm:h-[72px]"
+                        >
+                          <Sparkles className={`h-4 w-4 ${isAiLoading ? 'animate-spin' : ''}`} />
+                          {isAiLoading ? "Generating Questions..." : "Generate All Questions"}
+                        </Button>
+                        
+                      </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleAiGenerate}
-                      disabled={isAiLoading}
-                      className="h-14 rounded-2xl border-primary/20 px-6 text-primary hover:bg-primary/5 font-bold gap-2 min-w-[220px]"
-                    >
-                      <Sparkles className={`h-4 w-4 ${isAiLoading ? 'animate-spin' : ''}`} />
-                      {isAiLoading ? "Generating Questions..." : "Generate All Questions"}
-                    </Button>
                   </div>
                 </div>
               )}
