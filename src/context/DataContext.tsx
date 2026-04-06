@@ -84,79 +84,94 @@ interface DataContextType {
     }) => void;
 }
 
+function formatDateForStorage(date: Date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function addDays(baseDate: Date, days: number, hour = 12, minute = 0) {
+    const nextDate = new Date(baseDate);
+    nextDate.setDate(nextDate.getDate() + days);
+    nextDate.setHours(hour, minute, 0, 0);
+    return nextDate;
+}
+
 // Initial Appointments (Syncing with mockup labels where possible)
-const INITIAL_APPOINTMENTS: Appointment[] = [
-    {
-        id: 1,
-        clientName: 'James Wilson',
-        clientId: 1,
-        clinician: 'Dr. Sarah Smith',
-        date: '2025-12-29', // Today based on context
-        time: '09:00',
-        duration: 50,
-        type: 'Therapy Session',
-        status: 'confirmed',
-        color: 'bg-blue-100 border-blue-200 text-blue-700',
-        notes: 'Patient making good progress.',
-        videoLink: 'https://zoom.us/j/123456789'
-    },
-    {
-        id: 2,
-        clientName: 'Emma Thompson',
-        clientId: 2,
-        clinician: 'Dr. Sarah Smith',
-        date: '2025-12-29',
-        time: '11:00',
-        duration: 60,
-        type: 'Initial Consultation',
-        status: 'pending',
-        color: 'bg-purple-100 border-purple-200 text-purple-700',
-        videoLink: 'https://zoom.us/j/987654321'
-    }
-];
+const INITIAL_APPOINTMENTS: Appointment[] = (() => {
+    const today = new Date();
+    return [
+        {
+            id: 1,
+            clientName: 'James Wilson',
+            clientId: 1,
+            clinician: 'Dr. Sarah Smith',
+            date: formatDateForStorage(addDays(today, 0, 9, 0)),
+            time: '09:00',
+            duration: 50,
+            type: 'Therapy Session',
+            status: 'confirmed',
+            color: 'bg-blue-100 border-blue-200 text-blue-700',
+            notes: 'Patient making good progress.',
+            videoLink: 'https://zoom.us/j/123456789'
+        },
+        {
+            id: 2,
+            clientName: 'Emma Thompson',
+            clientId: 2,
+            clinician: 'Dr. Sarah Smith',
+            date: formatDateForStorage(addDays(today, 0, 11, 0)),
+            time: '11:00',
+            duration: 60,
+            type: 'Initial Consultation',
+            status: 'pending',
+            color: 'bg-purple-100 border-purple-200 text-purple-700',
+            videoLink: 'https://zoom.us/j/987654321'
+        }
+    ];
+})();
 
 // Helper to bridge the gap between "Mar 20, 9:00 AM" strings and Calendar dates
 // We'll use this to populate the calendar with the "Next Apt" data from mock clients
 function seedAppointmentsFromClients(clients: any[]): Appointment[] {
     const list = [...INITIAL_APPOINTMENTS];
+    const today = new Date();
 
     // Add dummy data for other clinicians directly here for the requested demo
-    const year = "2025";
-    const month = "01"; // Assuming Jan 2025 for demo
-
     // Dr. John Doe's Appointments (ID 2)
     list.push({
         id: 101, clientId: 101, clientName: 'Robert Baratheon',
-        clinician: 'Dr. John Doe', date: `${year}-${month}-02`, time: '10:00', duration: 50,
+        clinician: 'Dr. John Doe', date: formatDateForStorage(addDays(today, 0, 10, 0)), time: '10:00', duration: 50,
         type: 'Family Therapy', status: 'confirmed', color: 'bg-green-100 border-green-200 text-green-700'
     });
     list.push({
         id: 102, clientId: 102, clientName: 'Cersei Lannister',
-        clinician: 'Dr. John Doe', date: `${year}-${month}-02`, time: '14:00', duration: 90,
+        clinician: 'Dr. John Doe', date: formatDateForStorage(addDays(today, 0, 14, 0)), time: '14:00', duration: 90,
         type: 'Couples Counseling', status: 'pending', color: 'bg-orange-100 border-orange-200 text-orange-700'
     });
     list.push({
         id: 103, clientId: 103, clientName: 'Joffrey Baratheon',
-        clinician: 'Dr. John Doe', date: `${year}-${month}-03`, time: '09:00', duration: 50,
+        clinician: 'Dr. John Doe', date: formatDateForStorage(addDays(today, 1, 9, 0)), time: '09:00', duration: 50,
         type: 'Child Psychology', status: 'confirmed', color: 'bg-blue-100 border-blue-200 text-blue-700'
     });
 
     // Dr. Emily White's Appointments (ID 3)
     list.push({
         id: 201, clientId: 201, clientName: 'Daenerys Targaryen',
-        clinician: 'Dr. Emily White', date: `${year}-${month}-02`, time: '11:00', duration: 60,
+        clinician: 'Dr. Emily White', date: formatDateForStorage(addDays(today, 0, 11, 0)), time: '11:00', duration: 60,
         type: 'Standard Therapy', status: 'confirmed', color: 'bg-purple-100 border-purple-200 text-purple-700'
     });
     list.push({
         id: 202, clientId: 202, clientName: 'Jon Snow',
-        clinician: 'Dr. Emily White', date: `${year}-${month}-04`, time: '16:00', duration: 50,
+        clinician: 'Dr. Emily White', date: formatDateForStorage(addDays(today, 2, 16, 0)), time: '16:00', duration: 50,
         type: 'Follow-up Check-in', status: 'completed', color: 'bg-green-100 border-green-200 text-green-700'
     });
 
     // Admin's Personal/Test Appointments (ID 999) - To show "Admin has his calendar"
     list.push({
         id: 901, clientId: 901, clientName: 'System Check',
-        clinician: 'Admin User', date: `${year}-${month}-05`, time: '09:00', duration: 30,
+        clinician: 'Admin User', date: formatDateForStorage(addDays(today, 3, 9, 0)), time: '09:00', duration: 30,
         type: 'Administrative', status: 'confirmed', color: 'bg-gray-100 border-gray-200 text-gray-700'
     });
 
