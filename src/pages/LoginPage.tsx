@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, Link, Navigate, useLocation } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -49,6 +49,7 @@ export function LoginPage() {
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [showSignupConfirmPassword, setShowSignupConfirmPassword] = useState(false);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const otpInputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -429,13 +430,18 @@ export function LoginPage() {
   };
 
   const handleOtpChange = (index: number, value: string) => {
-    if (!/^\d?$/.test(value)) {
+    if (!/^\d*$/.test(value)) {
       return;
     }
 
     const nextOtp = [...otp];
-    nextOtp[index] = value;
+    const nextDigit = value.slice(-1);
+    nextOtp[index] = nextDigit;
     setOtp(nextOtp);
+
+    if (nextDigit && index < otpInputRefs.current.length - 1) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
 
     if (signupErrors.code) {
       setSignupErrors((prev) => ({
@@ -451,6 +457,48 @@ export function LoginPage() {
     }
     if (authError) {
       clearError();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    }
+
+    if (e.key === 'ArrowLeft' && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    }
+
+    if (e.key === 'ArrowRight' && index < otpInputRefs.current.length - 1) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+
+    const pastedDigits = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, otp.length);
+    if (!pastedDigits) {
+      return;
+    }
+
+    const nextOtp = [...otp];
+    pastedDigits.split('').forEach((digit, index) => {
+      nextOtp[index] = digit;
+    });
+    setOtp(nextOtp);
+
+    const nextFocusIndex = Math.min(pastedDigits.length, otp.length - 1);
+    otpInputRefs.current[nextFocusIndex]?.focus();
+
+    if (signupErrors.code) {
+      setSignupErrors((prev) => ({
+        ...prev,
+        code: '',
+      }));
+    }
+    if (signupError) {
+      setSignupError('');
     }
   };
 
@@ -903,11 +951,16 @@ export function LoginPage() {
                     {otp.map((digit, index) => (
                       <Input
                         key={index}
+                        ref={(element) => {
+                          otpInputRefs.current[index] = element;
+                        }}
                         type="text"
                         inputMode="numeric"
                         maxLength={1}
                         value={digit}
                         onChange={(e) => handleOtpChange(index, e.target.value)}
+                        onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                        onPaste={handleOtpPaste}
                         className={`h-12 w-12 px-0 text-center text-lg font-bold ${signupErrors.code ? 'border-red-500' : ''}`}
                         disabled={isLoading}
                       />
