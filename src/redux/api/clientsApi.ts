@@ -392,6 +392,85 @@ export interface GetAvailablePlansResponse {
   };
 }
 
+export interface InitiatePlanOnboardingRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  clinicName: string;
+  clinicEmail?: string;
+  countryCode?: string;
+  clinicPhone: string;
+  address?: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+  };
+  planId: string;
+  startTrial: boolean;
+}
+
+export interface InitiatePlanOnboardingResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response?: {
+    data?: {
+      onboardingId?: string;
+      id?: string;
+    };
+  };
+}
+
+export interface VerifyPlanOnboardingEmailRequest {
+  onboardingId: string;
+  email: string;
+  otp: string;
+}
+
+export interface VerifyPlanOnboardingEmailResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response?: {
+    data?: Record<string, unknown>;
+  };
+}
+
+export interface CreatePlanCheckoutRequest {
+  onboardingId: string;
+  email: string;
+}
+
+export interface CreatePlanCheckoutResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response?: {
+    data?: {
+      url?: string;
+      checkoutUrl?: string;
+      checkoutURL?: string;
+    };
+  };
+}
+
+export interface CancelPlanOnboardingRequest {
+  onboardingId: string;
+  email: string;
+}
+
+export interface CancelPlanOnboardingResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response?: {
+    data?: Record<string, unknown>;
+  };
+}
+
 export interface SubscriptionClinic {
   id: string;
   name: string;
@@ -904,6 +983,38 @@ export const clientsApi = createApi({
       providesTags: ['Clients'],
     }),
 
+    initiatePlanOnboarding: builder.mutation<InitiatePlanOnboardingResponse, InitiatePlanOnboardingRequest>({
+      query: (body) => ({
+        url: '/plans/initiate',
+        method: 'POST',
+        body,
+      }),
+    }),
+
+    verifyPlanOnboardingEmail: builder.mutation<VerifyPlanOnboardingEmailResponse, VerifyPlanOnboardingEmailRequest>({
+      query: (body) => ({
+        url: '/plans/verify-email',
+        method: 'POST',
+        body,
+      }),
+    }),
+
+    createPlanCheckout: builder.mutation<CreatePlanCheckoutResponse, CreatePlanCheckoutRequest>({
+      query: (body) => ({
+        url: '/plans/create-checkout',
+        method: 'POST',
+        body,
+      }),
+    }),
+
+    cancelPlanOnboarding: builder.mutation<CancelPlanOnboardingResponse, CancelPlanOnboardingRequest>({
+      query: (body) => ({
+        url: '/plans/cancel',
+        method: 'POST',
+        body,
+      }),
+    }),
+
     getClinicTransactions: builder.query<GetClinicTransactionsResponse, { page?: number; limit?: number }>({
       query: (params) => ({
         url: '/transaction/clinic',
@@ -1074,6 +1185,10 @@ export const {
   useGetInvoiceStatsQuery,
   useGetCurrentSubscriptionQuery,
   useGetAvailablePlansQuery,
+  useInitiatePlanOnboardingMutation,
+  useVerifyPlanOnboardingEmailMutation,
+  useCreatePlanCheckoutMutation,
+  useCancelPlanOnboardingMutation,
   useGetClinicTransactionsQuery,
   useGetClinicMembersQuery,
   useGetClinicQuery,

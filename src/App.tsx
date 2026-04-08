@@ -23,6 +23,7 @@ import { FormsPage } from './pages/FormsPage';
 import { FormDetailsPage } from './pages/FormDetailsPage';
 import { MoneyMattersPage } from './pages/MoneyMattersPage';
 import { SubscriptionPage } from './pages/SubscriptionPage';
+import { PaymentStatusPage } from './pages/PaymentStatusPage';
 import { UserProfilePage } from './pages/UserProfilePage';
 import { RolesPage } from './pages/RolesPage';
 import { IntegrationsPage } from './pages/IntegrationsPage';
@@ -139,6 +140,12 @@ export function App() {
             <Route path="subscription" element={
               <ProtectedRoute permission="clinician_subscription">
                 <SubscriptionPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="internal/payment-status" element={
+              <ProtectedRoute roles={['admin']}>
+                <PaymentStatusPage />
               </ProtectedRoute>
             } />
 

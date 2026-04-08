@@ -2,15 +2,46 @@ import { useEffect, useState } from 'react';
 import { useNavigate, Link, Navigate, useLocation } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { Select } from '../components/ui/Select';
 import { Eye, EyeOff, ArrowRight, AlertCircle, Mail, KeyRound } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import {
+  useCancelPlanOnboardingMutation,
+  useCreatePlanCheckoutMutation,
+  useGetAvailablePlansQuery,
+  useInitiatePlanOnboardingMutation,
+  useVerifyPlanOnboardingEmailMutation,
+} from '../redux/api/clientsApi';
+
+const COUNTRY_PHONE_OPTIONS = [
+  { value: '+880', label: 'Bangladesh (+880)', minDigits: 10, maxDigits: 10, example: '1712345678' },
+  { value: '+91', label: 'India (+91)', minDigits: 10, maxDigits: 10, example: '9876543210' },
+  { value: '+92', label: 'Pakistan (+92)', minDigits: 10, maxDigits: 10, example: '3001234567' },
+  { value: '+1', label: 'United States/Canada (+1)', minDigits: 10, maxDigits: 10, example: '2025550123' },
+  { value: '+44', label: 'United Kingdom (+44)', minDigits: 10, maxDigits: 10, example: '7700900123' },
+  { value: '+61', label: 'Australia (+61)', minDigits: 9, maxDigits: 9, example: '412345678' },
+  { value: '+971', label: 'UAE (+971)', minDigits: 9, maxDigits: 9, example: '501234567' },
+  { value: '+966', label: 'Saudi Arabia (+966)', minDigits: 9, maxDigits: 9, example: '512345678' },
+  { value: '+65', label: 'Singapore (+65)', minDigits: 8, maxDigits: 8, example: '81234567' },
+  { value: '+60', label: 'Malaysia (+60)', minDigits: 9, maxDigits: 10, example: '123456789' },
+];
 
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, register, verifyAccount, isAuthenticated, isLoading, error, clearError } = useAuth();
+  const { login, isAuthenticated, isLoading: authLoading, error: authError, clearError } = useAuth();
+  const { data: plansResponse } = useGetAvailablePlansQuery();
+  const [initiatePlanOnboarding, { isLoading: isInitiating }] = useInitiatePlanOnboardingMutation();
+  const [verifyPlanOnboardingEmail, { isLoading: isVerifyingEmail }] = useVerifyPlanOnboardingEmailMutation();
+  const [createPlanCheckout, { isLoading: isCreatingCheckout }] = useCreatePlanCheckoutMutation();
+  const [cancelPlanOnboarding, { isLoading: isCancellingOnboarding }] = useCancelPlanOnboardingMutation();
   const fromPath = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
   const isSignupMode = new URLSearchParams(location.search).get('mode') === 'signup';
+  const availablePlans = plansResponse?.response?.data || [];
+  const planOptions = availablePlans.map((plan) => ({
+    value: plan.id,
+    label: `${plan.name} - $${Number(plan.price).toFixed(Number.isInteger(plan.price) ? 0 : 2)}/mo`,
+  }));
 
   const [showSignupPanel, setShowSignupPanel] = useState(isSignupMode);
   const [signupStep, setSignupStep] = useState<1 | 2>(1);
@@ -28,6 +59,17 @@ export function LoginPage() {
     email: '',
     password: '',
     confirmPassword: '',
+    clinicName: '',
+    clinicEmail: '',
+    countryCode: '+880',
+    clinicPhone: '',
+    addressStreet: '',
+    addressCity: '',
+    addressState: '',
+    addressZipCode: '',
+    addressCountry: '',
+    planId: '',
+    startTrial: true,
     acceptedTerms: false,
   });
   const [formErrors, setFormErrors] = useState({
@@ -40,14 +82,39 @@ export function LoginPage() {
     email: '',
     password: '',
     confirmPassword: '',
+    clinicName: '',
+    clinicEmail: '',
+    countryCode: '',
+    clinicPhone: '',
+    addressStreet: '',
+    addressCity: '',
+    addressState: '',
+    addressZipCode: '',
+    addressCountry: '',
+    planId: '',
     code: '',
     acceptedTerms: '',
   });
   const [signupSuccess, setSignupSuccess] = useState('');
+  const [signupError, setSignupError] = useState('');
+  const [pendingOnboardingId, setPendingOnboardingId] = useState('');
+  const selectedPlan = availablePlans.find((plan) => plan.id === signupData.planId);
+  const selectedCountryPhone = COUNTRY_PHONE_OPTIONS.find((option) => option.value === signupData.countryCode) || COUNTRY_PHONE_OPTIONS[0];
+  const isSignupLoading = isInitiating || isVerifyingEmail || isCreatingCheckout || isCancellingOnboarding;
+  const isLoading = authLoading || isSignupLoading;
 
   useEffect(() => {
     setShowSignupPanel(isSignupMode);
   }, [isSignupMode]);
+
+  useEffect(() => {
+    if (!signupData.planId && planOptions.length > 0) {
+      setSignupData((prev) => ({
+        ...prev,
+        planId: planOptions[0].value,
+      }));
+    }
+  }, [planOptions, signupData.planId]);
 
   const validateForm = () => {
     const errors = { email: '', password: '' };
@@ -80,6 +147,16 @@ export function LoginPage() {
       email: '',
       password: '',
       confirmPassword: '',
+      clinicName: '',
+      clinicEmail: '',
+      countryCode: '',
+      clinicPhone: '',
+      addressStreet: '',
+      addressCity: '',
+      addressState: '',
+      addressZipCode: '',
+      addressCountry: '',
+      planId: '',
       code: '',
       acceptedTerms: '',
     };
@@ -112,6 +189,70 @@ export function LoginPage() {
       isValid = false;
     } else if (signupData.password !== signupData.confirmPassword) {
       errors.confirmPassword = 'Passwords do not match';
+      isValid = false;
+    }
+    if (!signupData.clinicName.trim()) {
+      errors.clinicName = 'Clinic name is required';
+      isValid = false;
+    }
+    if (signupData.clinicEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupData.clinicEmail)) {
+      errors.clinicEmail = 'Please enter a valid clinic email address';
+      isValid = false;
+    }
+    if (signupData.clinicPhone.trim() && !signupData.countryCode.trim()) {
+      errors.countryCode = 'Country code is required';
+      isValid = false;
+    }
+    if (!signupData.clinicPhone.trim()) {
+      errors.clinicPhone = 'Clinic phone is required';
+      isValid = false;
+    } else {
+      const digitsOnly = signupData.clinicPhone.replace(/\D/g, '');
+      if (digitsOnly.length < selectedCountryPhone.minDigits || digitsOnly.length > selectedCountryPhone.maxDigits) {
+        errors.clinicPhone =
+          selectedCountryPhone.minDigits === selectedCountryPhone.maxDigits
+            ? `Phone number must be ${selectedCountryPhone.maxDigits} digits for ${selectedCountryPhone.label}`
+            : `Phone number must be ${selectedCountryPhone.minDigits}-${selectedCountryPhone.maxDigits} digits for ${selectedCountryPhone.label}`;
+        isValid = false;
+      }
+    }
+    if (!signupData.addressStreet.trim()) {
+      errors.addressStreet = 'Street address is required';
+      isValid = false;
+    } else if (signupData.addressStreet.trim().length < 5) {
+      errors.addressStreet = 'Street address must be at least 5 characters';
+      isValid = false;
+    }
+    if (!signupData.addressCity.trim()) {
+      errors.addressCity = 'City is required';
+      isValid = false;
+    } else if (signupData.addressCity.trim().length < 2) {
+      errors.addressCity = 'City must be at least 2 characters';
+      isValid = false;
+    }
+    if (!signupData.addressState.trim()) {
+      errors.addressState = 'State is required';
+      isValid = false;
+    } else if (signupData.addressState.trim().length < 2) {
+      errors.addressState = 'State must be at least 2 characters';
+      isValid = false;
+    }
+    if (!signupData.addressZipCode.trim()) {
+      errors.addressZipCode = 'ZIP code is required';
+      isValid = false;
+    } else if (signupData.addressZipCode.trim().length < 3) {
+      errors.addressZipCode = 'ZIP code must be at least 3 characters';
+      isValid = false;
+    }
+    if (!signupData.addressCountry.trim()) {
+      errors.addressCountry = 'Country is required';
+      isValid = false;
+    } else if (signupData.addressCountry.trim().length < 2) {
+      errors.addressCountry = 'Country must be at least 2 characters';
+      isValid = false;
+    }
+    if (!signupData.planId) {
+      errors.planId = 'Please select a plan';
       isValid = false;
     }
     if (!signupData.acceptedTerms) {
@@ -148,18 +289,43 @@ export function LoginPage() {
       return;
     }
 
-    const result = await register(
-      signupData.firstName.trim(),
-      signupData.lastName.trim(),
-      signupData.email.trim(),
-      signupData.password
-    );
+    try {
+      setSignupError('');
+      clearError();
 
-    if (result.success) {
+      const response = await initiatePlanOnboarding({
+        firstName: signupData.firstName.trim(),
+        lastName: signupData.lastName.trim(),
+        email: signupData.email.trim(),
+        password: signupData.password,
+        clinicName: signupData.clinicName.trim(),
+        clinicEmail: signupData.clinicEmail.trim() || undefined,
+        countryCode: signupData.countryCode.trim() || undefined,
+        clinicPhone: signupData.clinicPhone.trim(),
+        address: {
+          street: signupData.addressStreet.trim(),
+          city: signupData.addressCity.trim(),
+          state: signupData.addressState.trim(),
+          zipCode: signupData.addressZipCode.trim(),
+          country: signupData.addressCountry.trim(),
+        },
+        planId: signupData.planId,
+        startTrial: signupData.startTrial,
+      }).unwrap();
+
+      const onboardingId = response.response?.data?.onboardingId || response.response?.data?.id;
+
+      if (!onboardingId) {
+        throw new Error('Onboarding ID was not returned by the server.');
+      }
+
+      setPendingOnboardingId(onboardingId);
       setSignupStep(2);
       setOtp(['', '', '', '', '', '']);
       setSignupErrors((prev) => ({ ...prev, code: '' }));
-      setSignupSuccess(result.data?.message || 'Thank you for registering. Please verify your email.');
+      setSignupSuccess(response.message || 'We sent a verification code to your email address.');
+    } catch (error: any) {
+      setSignupError(error?.data?.message || error?.message || 'Failed to start onboarding. Please try again.');
     }
   };
 
@@ -175,14 +341,40 @@ export function LoginPage() {
       return;
     }
 
-    const result = await verifyAccount(signupData.email.trim(), code);
-    if (result.success) {
-      setSignupSuccess(result.data?.message || 'Account verified successfully.');
-      if (fromPath && fromPath !== '/login') {
-        navigate(fromPath, { replace: true });
-        return;
+    if (!pendingOnboardingId) {
+      setSignupError('Missing onboarding session. Please start signup again.');
+      return;
+    }
+
+    try {
+      setSignupError('');
+
+      const verifyResponse = await verifyPlanOnboardingEmail({
+        onboardingId: pendingOnboardingId,
+        email: signupData.email.trim(),
+        otp: code,
+      }).unwrap();
+
+      setSignupSuccess(verifyResponse.message || 'Email verified. Redirecting to checkout...');
+
+      const checkoutResponse = await createPlanCheckout({
+        onboardingId: pendingOnboardingId,
+        email: signupData.email.trim(),
+      }).unwrap();
+
+      const checkoutUrl =
+        checkoutResponse.response?.data?.url ||
+        checkoutResponse.response?.data?.checkoutUrl ||
+        checkoutResponse.response?.data?.checkoutURL;
+
+      if (!checkoutUrl) {
+        throw new Error('Checkout URL was not returned by the server.');
       }
-      navigate('/dashboard', { replace: true });
+
+      const finalUrl = checkoutUrl.startsWith('/') ? `${window.location.origin}${checkoutUrl}` : checkoutUrl;
+      window.location.assign(finalUrl);
+    } catch (error: any) {
+      setSignupError(error?.data?.message || error?.message || 'Failed to verify your email. Please try again.');
     }
   };
 
@@ -200,11 +392,18 @@ export function LoginPage() {
     }
   };
 
-  const handleSignupInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+  const handleSignupInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    const nextValue = e.target instanceof HTMLInputElement && e.target.type === 'checkbox'
+      ? e.target.checked
+      : value;
+    const normalizedValue = name === 'clinicPhone' && typeof nextValue === 'string'
+      ? nextValue.replace(/\D/g, '').slice(0, selectedCountryPhone.maxDigits)
+      : nextValue;
+
     setSignupData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: normalizedValue,
     }));
     if (signupErrors[name as keyof typeof signupErrors]) {
       setSignupErrors((prev) => ({
@@ -212,10 +411,19 @@ export function LoginPage() {
         [name]: '',
       }));
     }
+    if (name === 'countryCode' && signupErrors.clinicPhone) {
+      setSignupErrors((prev) => ({
+        ...prev,
+        clinicPhone: '',
+      }));
+    }
+    if (signupError) {
+      setSignupError('');
+    }
     if (signupSuccess) {
       setSignupSuccess('');
     }
-    if (error) {
+    if (authError) {
       clearError();
     }
   };
@@ -238,7 +446,10 @@ export function LoginPage() {
     if (signupSuccess) {
       setSignupSuccess('');
     }
-    if (error) {
+    if (signupError) {
+      setSignupError('');
+    }
+    if (authError) {
       clearError();
     }
   };
@@ -253,10 +464,43 @@ export function LoginPage() {
       email: '',
       password: '',
       confirmPassword: '',
+      clinicName: '',
+      clinicEmail: '',
+      countryCode: '',
+      clinicPhone: '',
+      addressStreet: '',
+      addressCity: '',
+      addressState: '',
+      addressZipCode: '',
+      addressCountry: '',
+      planId: '',
       code: '',
       acceptedTerms: '',
     });
+    setPendingOnboardingId('');
+    setSignupError('');
     clearError();
+  };
+
+  const handleBackToSignup = async () => {
+    try {
+      if (pendingOnboardingId) {
+        await cancelPlanOnboarding({
+          onboardingId: pendingOnboardingId,
+          email: signupData.email.trim(),
+        }).unwrap();
+      }
+    } catch (_error) {
+      // Returning to signup should still work even if cancellation fails.
+    } finally {
+      setSignupStep(1);
+      setOtp(['', '', '', '', '', '']);
+      setSignupErrors((prev) => ({ ...prev, code: '' }));
+      setSignupSuccess('');
+      setSignupError('');
+      setPendingOnboardingId('');
+      clearError();
+    }
   };
 
   if (isAuthenticated) {
@@ -265,7 +509,7 @@ export function LoginPage() {
 
   return (
     <div className="h-screen w-full overflow-hidden flex bg-background">
-      <div className="w-full lg:w-[54%] h-full overflow-y-auto flex flex-col justify-center px-8 py-6 sm:px-12 lg:px-16 xl:px-20 relative bg-white">
+      <div className="w-full lg:w-[54%] h-full overflow-y-auto flex flex-col justify-start px-8 py-10 sm:px-12 lg:px-16 xl:px-20 relative bg-white">
         <div className="w-full max-w-xl mx-auto">
         <div className="mb-8">
           <div className="flex justify-center mb-6">
@@ -277,30 +521,30 @@ export function LoginPage() {
           </div>
 
           <h1 className="text-4xl font-bold tracking-tight text-foreground mb-3">
-            {showSignupPanel ? (signupStep === 1 ? 'Create your account' : 'Verify your account') : 'Welcome back'}
+            {showSignupPanel ? (signupStep === 1 ? 'Create your account' : 'Verify your email') : 'Welcome back'}
           </h1>
           <p className="text-muted-foreground">
             {showSignupPanel
               ? signupStep === 1
-                ? 'Enter your details to create a new account.'
-                : `We sent a 6-digit code to ${signupData.email}. Enter it below.`
+                ? 'Enter your details to start clinic onboarding.'
+                : `We sent a 6-digit code to ${signupData.email}. Enter it below to continue onboarding.`
               : 'Please enter your details to sign in.'}
           </p>
         </div>
 
-        {!showSignupPanel && error && (
+        {!showSignupPanel && authError && (
           <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            <span className="text-sm">{error}</span>
+            <span className="text-sm">{authError}</span>
           </div>
         )}
 
         {showSignupPanel ? (
           <>
-            {error && (
+            {signupError && (
               <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <span className="text-sm">{error}</span>
+                <span className="text-sm">{signupError}</span>
               </div>
             )}
 
@@ -349,6 +593,182 @@ export function LoginPage() {
                     disabled={isLoading}
                   />
                   {signupErrors.email && <p className="text-sm text-red-500">{signupErrors.email}</p>}
+                </div>
+
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <label htmlFor="signup-clinic-name" className="text-sm font-medium text-foreground">Clinic Name</label>
+                    <Input
+                      id="signup-clinic-name"
+                      name="clinicName"
+                      value={signupData.clinicName}
+                      onChange={handleSignupInputChange}
+                      placeholder="Enter your clinic name"
+                      className={`h-11 bg-white ${signupErrors.clinicName ? 'border-red-500' : ''}`}
+                      disabled={isLoading}
+                    />
+                    {signupErrors.clinicName && <p className="text-sm text-red-500">{signupErrors.clinicName}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="signup-clinic-email" className="text-sm font-medium text-foreground">Clinic Email (Optional)</label>
+                    <Input
+                      id="signup-clinic-email"
+                      name="clinicEmail"
+                      type="email"
+                      value={signupData.clinicEmail}
+                      onChange={handleSignupInputChange}
+                      placeholder="Enter clinic email"
+                      className={`h-11 bg-white ${signupErrors.clinicEmail ? 'border-red-500' : ''}`}
+                      disabled={isLoading}
+                    />
+                    {signupErrors.clinicEmail && <p className="text-sm text-red-500">{signupErrors.clinicEmail}</p>}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <label htmlFor="signup-country-code" className="text-sm font-medium text-foreground">Country Code</label>
+                    <Select
+                      id="signup-country-code"
+                      name="countryCode"
+                      value={signupData.countryCode}
+                      onChange={handleSignupInputChange}
+                      className={`${signupErrors.countryCode ? 'border-red-500' : ''}`}
+                      disabled={isLoading}
+                    >
+                      {COUNTRY_PHONE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </Select>
+                    {signupErrors.countryCode && <p className="text-sm text-red-500">{signupErrors.countryCode}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="signup-clinic-phone" className="text-sm font-medium text-foreground">Clinic Phone</label>
+                    <Input
+                      id="signup-clinic-phone"
+                      name="clinicPhone"
+                      value={signupData.clinicPhone}
+                      onChange={handleSignupInputChange}
+                      placeholder={selectedCountryPhone.example}
+                      inputMode="numeric"
+                      maxLength={selectedCountryPhone.maxDigits}
+                      className={`h-11 bg-white ${signupErrors.clinicPhone ? 'border-red-500' : ''}`}
+                      disabled={isLoading}
+                    />
+                    {signupErrors.clinicPhone && <p className="text-sm text-red-500">{signupErrors.clinicPhone}</p>}
+                    {!signupErrors.clinicPhone && (
+                      <p className="text-xs text-muted-foreground">
+                        {selectedCountryPhone.minDigits === selectedCountryPhone.maxDigits
+                          ? `${selectedCountryPhone.maxDigits} digits required`
+                          : `${selectedCountryPhone.minDigits}-${selectedCountryPhone.maxDigits} digits required`}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="signup-plan" className="text-sm font-medium text-foreground">Plan</label>
+                    <Select
+                      id="signup-plan"
+                      name="planId"
+                      value={signupData.planId}
+                      onChange={handleSignupInputChange}
+                      className={`${signupErrors.planId ? 'border-red-500' : ''}`}
+                      disabled={isLoading || planOptions.length === 0}
+                    >
+                      <option value="">Select a plan</option>
+                      {planOptions.map((plan) => (
+                        <option key={plan.value} value={plan.value}>
+                          {plan.label}
+                        </option>
+                      ))}
+                    </Select>
+                    {signupErrors.planId && <p className="text-sm text-red-500">{signupErrors.planId}</p>}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Clinic Address</label>
+                    <p className="text-xs text-muted-foreground mt-1">Enter the full clinic address in separate fields.</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="signup-address-street" className="text-sm font-medium text-foreground">Street</label>
+                    <Input
+                      id="signup-address-street"
+                      name="addressStreet"
+                      value={signupData.addressStreet}
+                      onChange={handleSignupInputChange}
+                      placeholder="House, road, area"
+                      className={`h-11 bg-white ${signupErrors.addressStreet ? 'border-red-500' : ''}`}
+                      disabled={isLoading}
+                    />
+                    {signupErrors.addressStreet && <p className="text-sm text-red-500">{signupErrors.addressStreet}</p>}
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <label htmlFor="signup-address-city" className="text-sm font-medium text-foreground">City</label>
+                      <Input
+                        id="signup-address-city"
+                        name="addressCity"
+                        value={signupData.addressCity}
+                        onChange={handleSignupInputChange}
+                        placeholder="Dhaka"
+                        className={`h-11 bg-white ${signupErrors.addressCity ? 'border-red-500' : ''}`}
+                        disabled={isLoading}
+                      />
+                      {signupErrors.addressCity && <p className="text-sm text-red-500">{signupErrors.addressCity}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="signup-address-state" className="text-sm font-medium text-foreground">State</label>
+                      <Input
+                        id="signup-address-state"
+                        name="addressState"
+                        value={signupData.addressState}
+                        onChange={handleSignupInputChange}
+                        placeholder="Dhaka Division"
+                        className={`h-11 bg-white ${signupErrors.addressState ? 'border-red-500' : ''}`}
+                        disabled={isLoading}
+                      />
+                      {signupErrors.addressState && <p className="text-sm text-red-500">{signupErrors.addressState}</p>}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <label htmlFor="signup-address-zip" className="text-sm font-medium text-foreground">ZIP Code</label>
+                      <Input
+                        id="signup-address-zip"
+                        name="addressZipCode"
+                        value={signupData.addressZipCode}
+                        onChange={handleSignupInputChange}
+                        placeholder="1236"
+                        className={`h-11 bg-white ${signupErrors.addressZipCode ? 'border-red-500' : ''}`}
+                        disabled={isLoading}
+                      />
+                      {signupErrors.addressZipCode && <p className="text-sm text-red-500">{signupErrors.addressZipCode}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                      <label htmlFor="signup-address-country" className="text-sm font-medium text-foreground">Country</label>
+                      <Input
+                        id="signup-address-country"
+                        name="addressCountry"
+                        value={signupData.addressCountry}
+                        onChange={handleSignupInputChange}
+                        placeholder="Bangladesh"
+                        className={`h-11 bg-white ${signupErrors.addressCountry ? 'border-red-500' : ''}`}
+                        disabled={isLoading}
+                      />
+                      {signupErrors.addressCountry && <p className="text-sm text-red-500">{signupErrors.addressCountry}</p>}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -403,6 +823,20 @@ export function LoginPage() {
                   <label className="flex items-start gap-3 rounded-xl border border-border/60 bg-white px-4 py-3 text-sm text-foreground">
                     <input
                       type="checkbox"
+                      name="startTrial"
+                      checked={signupData.startTrial}
+                      onChange={handleSignupInputChange}
+                      className="mt-0.5 h-4 w-4 rounded border-border"
+                      disabled={isLoading}
+                    />
+                    <span>Start with a free trial before paid billing begins.</span>
+                  </label>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="flex items-start gap-3 rounded-xl border border-border/60 bg-white px-4 py-3 text-sm text-foreground">
+                    <input
+                      type="checkbox"
                       name="acceptedTerms"
                       checked={signupData.acceptedTerms}
                       onChange={handleSignupInputChange}
@@ -435,9 +869,9 @@ export function LoginPage() {
                 )}
 
                 <Button type="submit" className="w-full h-11 text-base shadow-lg shadow-primary/20" disabled={isLoading}>
-                  {isLoading ? 'Signing up...' : (
+                  {isLoading ? 'Preparing...' : (
                     <>
-                      Sign up
+                      Continue to verify email
                       <ArrowRight className="ml-2 w-4 h-4" />
                     </>
                   )}
@@ -445,6 +879,16 @@ export function LoginPage() {
               </form>
             ) : (
               <form onSubmit={handleVerifySignupOtp} className="space-y-6" noValidate>
+                <div className="rounded-2xl border border-border/60 bg-white px-4 py-4 space-y-2">
+                  <p className="text-sm font-semibold text-foreground">Verification Summary</p>
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p>Email: {signupData.email}</p>
+                    <p>Clinic: {signupData.clinicName}</p>
+                    <p>Plan: {selectedPlan?.name || 'Selected plan'}</p>
+                    <p>Onboarding ID: {pendingOnboardingId || 'Pending'}</p>
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-3 rounded-2xl border border-primary/10 bg-secondary/20 px-4 py-3 text-sm text-muted-foreground">
                   <Mail className="h-4 w-4 text-primary" />
                   <span>{signupData.email}</span>
@@ -479,18 +923,12 @@ export function LoginPage() {
                 )}
 
                 <Button type="submit" className="w-full h-11 text-base shadow-lg shadow-primary/20" disabled={isLoading}>
-                  {isLoading ? 'Verifying...' : 'Verify code'}
+                  {isLoading ? 'Verifying...' : 'Verify email and continue'}
                 </Button>
 
                 <button
                   type="button"
-                  onClick={() => {
-                    setSignupStep(1);
-                    setOtp(['', '', '', '', '', '']);
-                    setSignupErrors((prev) => ({ ...prev, code: '' }));
-                    setSignupSuccess('');
-                    clearError();
-                  }}
+                  onClick={handleBackToSignup}
                   className="w-full text-sm font-medium text-muted-foreground hover:text-foreground"
                   disabled={isLoading}
                 >
