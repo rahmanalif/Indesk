@@ -71,14 +71,14 @@ export function Navbar({ mode = 'fixed', forceSolid = false }: NavbarProps) {
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-6">
             <Link
-              to="/login?mode=signup"
-              className="text-sm font-medium text-charcoal hover:text-terracotta transition-colors">
+              to="/login?mode=signup&focus=plan"
+              className="bg-terracotta hover:bg-terracotta-dark text-white text-sm font-medium px-5 py-2.5 rounded-full transition-colors duration-300 shadow-sm hover:shadow-md">
 
-              Sign Up
+              Choose Plan
             </Link>
             <Link
               to="/login"
-              className="bg-terracotta hover:bg-terracotta-dark text-white text-sm font-medium px-5 py-2.5 rounded-full transition-colors duration-300 shadow-sm hover:shadow-md">
+              className="text-sm font-medium text-charcoal hover:text-terracotta transition-colors">
 
               Sign in
             </Link>
@@ -119,10 +119,10 @@ export function Navbar({ mode = 'fixed', forceSolid = false }: NavbarProps) {
                 Sign In
               </Link>
               <Link
-              to="/login?mode=signup"
+              to="/login?mode=signup&focus=plan"
               className="block text-center bg-terracotta hover:bg-terracotta-dark text-white text-base font-medium px-5 py-3 rounded-full transition-colors">
 
-                Sing Up
+                Choose Plan
               </Link>
             </div>
           </div>

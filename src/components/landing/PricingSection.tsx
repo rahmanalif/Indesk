@@ -93,7 +93,7 @@ export function PricingSection() {
         <div ref={ref} className={`grid grid-cols-1 ${plans.length >= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-8 items-start`}>
           {plans.map((plan, index) => {
             const highlight = plan.isPopular;
-            const cta = plan.type === 'enterprise' ? 'Contact Sales' : 'Start Free Trial';
+            const cta = plan.type === 'enterprise' ? 'Contact Sales' : 'Choose Plan';
             const priceLabel = Number.isInteger(plan.price) ? `${plan.price}` : plan.price.toFixed(2);
 
             return (
@@ -131,11 +131,11 @@ export function PricingSection() {
                 </ul>
 
                 <Link
-                  to="/login"
-                  className={`w-full py-3 rounded-full font-medium transition-all duration-300 ${
+                  to={`/login?mode=signup&planId=${encodeURIComponent(plan.id)}&focus=plan`}
+                  className={`w-full py-3 rounded-full font-semibold transition-all duration-300 ${
                     highlight
-                      ? 'bg-terracotta text-white hover:bg-terracotta-dark shadow-md hover:shadow-lg'
-                      : 'bg-cream text-charcoal border border-terracotta/20 hover:border-terracotta hover:text-terracotta'
+                      ? 'bg-[#7D9663] text-white hover:bg-[#6f8658] shadow-md hover:shadow-lg'
+                      : 'bg-[#7D9663] text-white hover:bg-[#6f8658] shadow-sm hover:shadow-md'
                   } block text-center`}
                 >
                   {cta}

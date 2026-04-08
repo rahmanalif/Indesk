@@ -10,7 +10,7 @@ const productLinks = [
 
 const accountLinks = [
   { label: 'Sign In', to: '/login' },
-  { label: 'Create Account', to: '/login?mode=signup' },
+  { label: 'Choose Plan', to: '/login?mode=signup&focus=plan' },
 ];
 
 const legalLinks = [

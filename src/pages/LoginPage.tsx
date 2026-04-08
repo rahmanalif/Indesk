@@ -36,7 +36,10 @@ export function LoginPage() {
   const [createPlanCheckout, { isLoading: isCreatingCheckout }] = useCreatePlanCheckoutMutation();
   const [cancelPlanOnboarding, { isLoading: isCancellingOnboarding }] = useCancelPlanOnboardingMutation();
   const fromPath = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
-  const isSignupMode = new URLSearchParams(location.search).get('mode') === 'signup';
+  const searchParams = new URLSearchParams(location.search);
+  const isSignupMode = searchParams.get('mode') === 'signup';
+  const requestedPlanId = searchParams.get('planId');
+  const shouldFocusPlanField = searchParams.get('focus') === 'plan';
   const availablePlans = plansResponse?.response?.data || [];
   const planOptions = availablePlans.map((plan) => ({
     value: plan.id,
@@ -44,12 +47,13 @@ export function LoginPage() {
   }));
 
   const [showSignupPanel, setShowSignupPanel] = useState(isSignupMode);
-  const [signupStep, setSignupStep] = useState<1 | 2>(1);
+  const [signupStep, setSignupStep] = useState<1 | 2 | 3>(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [showSignupConfirmPassword, setShowSignupConfirmPassword] = useState(false);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const otpInputRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const planSelectRef = useRef<HTMLSelectElement | null>(null);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -109,13 +113,34 @@ export function LoginPage() {
   }, [isSignupMode]);
 
   useEffect(() => {
+    if (requestedPlanId && planOptions.some((plan) => plan.value === requestedPlanId) && signupData.planId !== requestedPlanId) {
+      setSignupData((prev) => ({
+        ...prev,
+        planId: requestedPlanId,
+      }));
+      return;
+    }
+
     if (!signupData.planId && planOptions.length > 0) {
       setSignupData((prev) => ({
         ...prev,
         planId: planOptions[0].value,
       }));
     }
-  }, [planOptions, signupData.planId]);
+  }, [planOptions, requestedPlanId, signupData.planId]);
+
+  useEffect(() => {
+    if (!showSignupPanel || !shouldFocusPlanField) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      planSelectRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      planSelectRef.current?.focus();
+    }, 150);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [showSignupPanel, shouldFocusPlanField, signupData.planId]);
 
   const validateForm = () => {
     const errors = { email: '', password: '' };
@@ -356,7 +381,22 @@ export function LoginPage() {
         otp: code,
       }).unwrap();
 
-      setSignupSuccess(verifyResponse.message || 'Email verified. Redirecting to checkout...');
+      setSignupStep(3);
+      setSignupSuccess(verifyResponse.message || 'Email verified successfully. Continue to checkout.');
+    } catch (error: any) {
+      setSignupError(error?.data?.message || error?.message || 'Failed to verify your email. Please try again.');
+    }
+  };
+
+  const handleCreateCheckout = async () => {
+    if (!pendingOnboardingId) {
+      setSignupError('Missing onboarding session. Please start signup again.');
+      return;
+    }
+
+    try {
+      setSignupError('');
+      setSignupSuccess('Creating your checkout session...');
 
       const checkoutResponse = await createPlanCheckout({
         onboardingId: pendingOnboardingId,
@@ -375,7 +415,8 @@ export function LoginPage() {
       const finalUrl = checkoutUrl.startsWith('/') ? `${window.location.origin}${checkoutUrl}` : checkoutUrl;
       window.location.assign(finalUrl);
     } catch (error: any) {
-      setSignupError(error?.data?.message || error?.message || 'Failed to verify your email. Please try again.');
+      setSignupError(error?.data?.message || error?.message || 'Failed to create checkout. Please try again.');
+      setSignupSuccess('Your email is already verified. You can retry checkout below.');
     }
   };
 
@@ -530,6 +571,22 @@ export function LoginPage() {
     clearError();
   };
 
+  const handleSwitchToSignin = async () => {
+    if (pendingOnboardingId) {
+      try {
+        await cancelPlanOnboarding({
+          onboardingId: pendingOnboardingId,
+          email: signupData.email.trim(),
+        }).unwrap();
+      } catch (_error) {
+        // Switching views should still work even if cancellation fails.
+      }
+    }
+
+    setShowSignupPanel(false);
+    resetSignupState();
+  };
+
   const handleBackToSignup = async () => {
     try {
       if (pendingOnboardingId) {
@@ -569,13 +626,15 @@ export function LoginPage() {
           </div>
 
           <h1 className="text-4xl font-bold tracking-tight text-foreground mb-3">
-            {showSignupPanel ? (signupStep === 1 ? 'Create your account' : 'Verify your email') : 'Welcome back'}
+            {showSignupPanel ? (signupStep === 1 ? 'Create your account' : signupStep === 2 ? 'Verify your email' : 'Continue to checkout') : 'Welcome back'}
           </h1>
           <p className="text-muted-foreground">
             {showSignupPanel
               ? signupStep === 1
                 ? 'Enter your details to start clinic onboarding.'
-                : `We sent a 6-digit code to ${signupData.email}. Enter it below to continue onboarding.`
+                : signupStep === 2
+                  ? `We sent a 6-digit code to ${signupData.email}. Enter it below to continue onboarding.`
+                  : 'Your email has been verified. Continue to Stripe checkout to finish setup.'
               : 'Please enter your details to sign in.'}
           </p>
         </div>
@@ -659,7 +718,7 @@ export function LoginPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label htmlFor="signup-clinic-email" className="text-sm font-medium text-foreground">Clinic Email (Optional)</label>
+                    <label htmlFor="signup-clinic-email" className="text-sm font-medium text-foreground">Clinic Email</label>
                     <Input
                       id="signup-clinic-email"
                       name="clinicEmail"
@@ -717,9 +776,10 @@ export function LoginPage() {
                     )}
                   </div>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2 sm:col-span-2">
                     <label htmlFor="signup-plan" className="text-sm font-medium text-foreground">Plan</label>
                     <Select
+                      ref={planSelectRef}
                       id="signup-plan"
                       name="planId"
                       value={signupData.planId}
@@ -925,7 +985,7 @@ export function LoginPage() {
                   )}
                 </Button>
               </form>
-            ) : (
+            ) : signupStep === 2 ? (
               <form onSubmit={handleVerifySignupOtp} className="space-y-6" noValidate>
                 <div className="rounded-2xl border border-border/60 bg-white px-4 py-4 space-y-2">
                   <p className="text-sm font-semibold text-foreground">Verification Summary</p>
@@ -988,6 +1048,42 @@ export function LoginPage() {
                   Back to signup
                 </button>
               </form>
+            ) : (
+              <div className="space-y-6">
+                <div className="rounded-2xl border border-border/60 bg-white px-4 py-4 space-y-2">
+                  <p className="text-sm font-semibold text-foreground">Checkout Summary</p>
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <p>Email: {signupData.email}</p>
+                    <p>Clinic: {signupData.clinicName}</p>
+                    <p>Plan: {selectedPlan?.name || 'Selected plan'}</p>
+                    <p>Onboarding ID: {pendingOnboardingId || 'Pending'}</p>
+                  </div>
+                </div>
+
+                {signupSuccess && (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                    {signupSuccess}
+                  </div>
+                )}
+
+                <Button
+                  type="button"
+                  className="w-full h-11 text-base shadow-lg shadow-primary/20"
+                  disabled={isLoading}
+                  onClick={handleCreateCheckout}
+                >
+                  {isLoading ? 'Creating checkout...' : 'Continue to checkout'}
+                </Button>
+
+                <button
+                  type="button"
+                  onClick={handleBackToSignup}
+                  className="w-full text-sm font-medium text-muted-foreground hover:text-foreground"
+                  disabled={isLoading}
+                >
+                  Back to signup
+                </button>
+              </div>
             )}
 
             <div className="mt-6 text-center">
@@ -995,10 +1091,7 @@ export function LoginPage() {
                 Already have an account?{' '}
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowSignupPanel(false);
-                    resetSignupState();
-                  }}
+                  onClick={handleSwitchToSignin}
                   className="font-medium text-foreground hover:underline"
                 >
                   Sign in

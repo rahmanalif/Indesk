@@ -1,5 +1,5 @@
 // components/ui/Select.tsx
-import React from 'react';
+import React, { forwardRef } from 'react';
 
 interface SelectOption {
   value: string;
@@ -12,7 +12,10 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   triggerClassName?: string;
 }
 
-export function Select({ label, options = [], className = '', triggerClassName, children, ...props }: SelectProps) {
+export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
+  { label, options = [], className = '', triggerClassName, children, ...props },
+  ref
+) {
   return (
     <div className="space-y-2">
       {label && (
@@ -21,6 +24,7 @@ export function Select({ label, options = [], className = '', triggerClassName, 
         </label>
       )}
       <select
+        ref={ref}
         className={`flex h-12 w-full rounded-md border border-input bg-background px-4 py-3 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className} ${triggerClassName || ''}`}
         {...props}
       >
@@ -36,4 +40,4 @@ export function Select({ label, options = [], className = '', triggerClassName, 
       </select>
     </div>
   );
-}
+});
