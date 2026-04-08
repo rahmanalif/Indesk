@@ -74,13 +74,13 @@ export function Navbar({ mode = 'fixed', forceSolid = false }: NavbarProps) {
               to="/login?mode=signup&focus=plan"
               className="bg-terracotta hover:bg-terracotta-dark text-white text-sm font-medium px-5 py-2.5 rounded-full transition-colors duration-300 shadow-sm hover:shadow-md">
 
-              Choose Plan
+              Start A Free Trial
             </Link>
             <Link
               to="/login"
               className="text-sm font-medium text-charcoal hover:text-terracotta transition-colors">
 
-              Sign in
+              Sign In
             </Link>
           </div>
 
