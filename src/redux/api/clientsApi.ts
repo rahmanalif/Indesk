@@ -588,7 +588,7 @@ export interface CreateClientRequest {
   gender?: string | null;
   phoneNumber?: string;
   countryCode?: string;
-  status?: 'active' | 'waiting' | 'inactive';
+  status?: 'active' | 'pending' | 'inactive';
   clinicId: string;
   assignedClinicianId?: string | null;
   address?: ClientAddress | null;
@@ -607,7 +607,7 @@ export interface UpdateClientRequest {
   gender?: string | null;
   phoneNumber?: string | null;
   countryCode?: string | null;
-  status?: 'active' | 'waiting' | 'inactive';
+  status?: 'active' | 'pending' | 'inactive';
   assignedClinicianId?: string | null;
   address?: ClientAddress | null;
 }

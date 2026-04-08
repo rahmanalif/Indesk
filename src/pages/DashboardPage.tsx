@@ -73,7 +73,6 @@ const getCalendarRange = (date: Date, view: ViewMode) => {
 };
 
 export function DashboardPage() {
-  const { appointments } = useData();
   const [isCliniciansCollapsed, setIsCliniciansCollapsed] = useState(false);
   const [calendarView, setCalendarView] = useState<ViewMode>('month');
   const [calendarDate, setCalendarDate] = useState(new Date());
@@ -160,13 +159,9 @@ export function DashboardPage() {
       .filter(Boolean);
   }, [appointmentsResponse]);
 
-  const filteredAppointments = useMemo(() => {
-    return apiAppointments.length > 0 ? apiAppointments : appointments;
-  }, [apiAppointments, appointments]);
-
   const isMyCalendarSelected = selectedCalendarKey === ALL_CALENDARS_KEY;
-  const showAppointmentsLoading = appointmentsLoading && apiAppointments.length === 0;
-  const showAppointmentsError = appointmentsError && apiAppointments.length === 0;
+  const showAppointmentsLoading = appointmentsLoading;
+  const showAppointmentsError = appointmentsError;
 
   return (
     <div className="flex flex-col lg:flex-row h-auto lg:h-[calc(100vh-3rem)] gap-4 pb-4">
@@ -341,7 +336,7 @@ export function DashboardPage() {
           </div>
         ) : (
           <Calendar
-            filteredAppointments={filteredAppointments}
+            filteredAppointments={apiAppointments}
             onRangeChange={({ currentDate, view }) => {
               setCalendarDate(currentDate);
               setCalendarView(view);

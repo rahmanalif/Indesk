@@ -98,130 +98,6 @@ function addDays(baseDate: Date, days: number, hour = 12, minute = 0) {
     return nextDate;
 }
 
-// Initial Appointments (Syncing with mockup labels where possible)
-const INITIAL_APPOINTMENTS: Appointment[] = (() => {
-    const today = new Date();
-    return [
-        {
-            id: 1,
-            clientName: 'James Wilson',
-            clientId: 1,
-            clinician: 'Dr. Sarah Smith',
-            date: formatDateForStorage(addDays(today, 0, 9, 0)),
-            time: '09:00',
-            duration: 50,
-            type: 'Therapy Session',
-            status: 'confirmed',
-            color: 'bg-blue-100 border-blue-200 text-blue-700',
-            notes: 'Patient making good progress.',
-            videoLink: 'https://zoom.us/j/123456789'
-        },
-        {
-            id: 2,
-            clientName: 'Emma Thompson',
-            clientId: 2,
-            clinician: 'Dr. Sarah Smith',
-            date: formatDateForStorage(addDays(today, 0, 11, 0)),
-            time: '11:00',
-            duration: 60,
-            type: 'Initial Consultation',
-            status: 'pending',
-            color: 'bg-purple-100 border-purple-200 text-purple-700',
-            videoLink: 'https://zoom.us/j/987654321'
-        }
-    ];
-})();
-
-// Helper to bridge the gap between "Mar 20, 9:00 AM" strings and Calendar dates
-// We'll use this to populate the calendar with the "Next Apt" data from mock clients
-function seedAppointmentsFromClients(clients: any[]): Appointment[] {
-    const list = [...INITIAL_APPOINTMENTS];
-    const today = new Date();
-
-    // Add dummy data for other clinicians directly here for the requested demo
-    // Dr. John Doe's Appointments (ID 2)
-    list.push({
-        id: 101, clientId: 101, clientName: 'Robert Baratheon',
-        clinician: 'Dr. John Doe', date: formatDateForStorage(addDays(today, 0, 10, 0)), time: '10:00', duration: 50,
-        type: 'Family Therapy', status: 'confirmed', color: 'bg-green-100 border-green-200 text-green-700'
-    });
-    list.push({
-        id: 102, clientId: 102, clientName: 'Cersei Lannister',
-        clinician: 'Dr. John Doe', date: formatDateForStorage(addDays(today, 0, 14, 0)), time: '14:00', duration: 90,
-        type: 'Couples Counseling', status: 'pending', color: 'bg-orange-100 border-orange-200 text-orange-700'
-    });
-    list.push({
-        id: 103, clientId: 103, clientName: 'Joffrey Baratheon',
-        clinician: 'Dr. John Doe', date: formatDateForStorage(addDays(today, 1, 9, 0)), time: '09:00', duration: 50,
-        type: 'Child Psychology', status: 'confirmed', color: 'bg-blue-100 border-blue-200 text-blue-700'
-    });
-
-    // Dr. Emily White's Appointments (ID 3)
-    list.push({
-        id: 201, clientId: 201, clientName: 'Daenerys Targaryen',
-        clinician: 'Dr. Emily White', date: formatDateForStorage(addDays(today, 0, 11, 0)), time: '11:00', duration: 60,
-        type: 'Standard Therapy', status: 'confirmed', color: 'bg-purple-100 border-purple-200 text-purple-700'
-    });
-    list.push({
-        id: 202, clientId: 202, clientName: 'Jon Snow',
-        clinician: 'Dr. Emily White', date: formatDateForStorage(addDays(today, 2, 16, 0)), time: '16:00', duration: 50,
-        type: 'Follow-up Check-in', status: 'completed', color: 'bg-green-100 border-green-200 text-green-700'
-    });
-
-    // Admin's Personal/Test Appointments (ID 999) - To show "Admin has his calendar"
-    list.push({
-        id: 901, clientId: 901, clientName: 'System Check',
-        clinician: 'Admin User', date: formatDateForStorage(addDays(today, 3, 9, 0)), time: '09:00', duration: 30,
-        type: 'Administrative', status: 'confirmed', color: 'bg-gray-100 border-gray-200 text-gray-700'
-    });
-
-    let nextId = 1000;
-
-    clients.forEach(client => {
-        // If they have a nextApt string like "Mar 20, 9:00 AM"
-        if (client.nextApt && client.nextApt !== '-' && !list.find(a => a.clientId === client.id)) {
-            // Very basic parser for the current mock formats
-            // Format: "Mar 20, 11:00 AM" or "Mar 24, 1:00 PM"
-            // We'll map "Mar" to "2024-03" (assuming 2024 for the mock context or 2025 based on current date)
-            const yearVal = "2025";
-            const monthMap: any = { Jan: '01', Feb: '02', Mar: '03', Apr: '04', May: '05', Jun: '06', Jul: '07', Aug: '08', Sep: '09', Oct: '10', Nov: '11', Dec: '12' };
-
-            try {
-                const parts = client.nextApt.split(', ');
-                const dateParts = parts[0].split(' ');
-                const monthVal = monthMap[dateParts[0]] || '03';
-                const dayVal = dateParts[1].padStart(2, '0');
-
-                const timeParts = parts[1].split(' ');
-                const [hoursRaw, mins] = timeParts[0].split(':');
-                let hours = hoursRaw;
-                const period = timeParts[1]; // AM/PM
-                if (period === 'PM' && hours !== '12') hours = String(parseInt(hours) + 12);
-                if (period === 'AM' && hours === '12') hours = '00';
-                const timeStr = `${hours.padStart(2, '0')}:${mins}`;
-
-                list.push({
-                    id: nextId++,
-                    clientName: client.name,
-                    clientId: client.id,
-                    clinician: client.clinician || 'Dr. Sarah Smith',
-                    date: `${yearVal}-${monthVal}-${dayVal}`,
-                    time: timeStr,
-                    duration: 50,
-                    type: 'Standard Therapy',
-                    status: 'confirmed',
-                    color: 'bg-green-100 border-green-200 text-green-700',
-                    videoLink: 'https://zoom.us/j/mock-' + client.id
-                });
-            } catch (e) {
-                // Ignore parsing errors for non-matching formats
-            }
-        }
-    });
-
-    return list;
-}
-
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: ReactNode }) {
@@ -243,7 +119,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const [clinicianOverrides, setClinicianOverrides] = useState(MOCK_CLINICIAN_PERMISSIONS);
 
     const [clients, setClients] = useState<Client[]>(MOCK_CLIENTS as Client[]);
-    const [appointments, setAppointments] = useState<Appointment[]>(seedAppointmentsFromClients(MOCK_CLIENTS));
+    const [appointments, setAppointments] = useState<Appointment[]>([]);
 
     const [clinicShareLink, setClinicShareLink] = useState<string | null>(() => {
         return localStorage.getItem('clinic_share_link');

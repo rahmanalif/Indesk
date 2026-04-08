@@ -287,7 +287,7 @@ export function CreateClientModal({
           onChange={handleSelectChange}
           options={[
             { value: 'active', label: 'Active' },
-            { value: 'waiting', label: 'Waiting List' },
+            { value: 'pending', label: 'Waiting List' },
             { value: 'inactive', label: 'Inactive' },
           ]}
         />
