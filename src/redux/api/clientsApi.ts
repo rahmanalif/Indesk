@@ -74,17 +74,23 @@ export interface GetClientAppointmentsResponse {
 
 export interface CalendarAppointment {
   id: string;
+  title?: string | null;
   clinicId: string;
   clinicianId: string | null;
   clientId: string;
   sessionId: string | null;
   status: string;
+  start?: string | null;
+  end?: string | null;
   startTime: string | null;
   endTime: string | null;
   note: string | null;
   meetingType: string | null;
   zoomJoinUrl: string | null;
   zoomStartUrl: string | null;
+  backgroundColor?: string | null;
+  borderColor?: string | null;
+  textColor?: string | null;
   client?: {
     id: string;
     firstName?: string | null;
@@ -115,7 +121,7 @@ export interface GetCalendarAppointmentsResponse {
   status: number;
   message: string;
   response?: {
-    data?: CalendarAppointment[] | { docs?: CalendarAppointment[] };
+    data?: CalendarAppointment[] | { docs?: CalendarAppointment[]; events?: CalendarAppointment[] };
   };
 }
 
@@ -599,6 +605,16 @@ interface CreateSessionResponse {
     data: SessionType;
   };
 }
+
+export interface UpdateSessionRequest {
+  sessionId: string;
+  name: string;
+  description?: string | null;
+  duration: number;
+  price: number;
+}
+
+type UpdateSessionResponse = CreateSessionResponse;
 
 export interface CreateAppointmentRequest {
   sessionId: string;
@@ -1106,6 +1122,23 @@ export const clientsApi = createApi({
       invalidatesTags: ['Clients'],
     }),
 
+    updateSession: builder.mutation<UpdateSessionResponse, UpdateSessionRequest>({
+      query: ({ sessionId, ...body }) => ({
+        url: `/session/${sessionId}`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: ['Clients'],
+    }),
+
+    deleteSession: builder.mutation<{ success: boolean; status: number; message: string }, string>({
+      query: (sessionId) => ({
+        url: `/session/${sessionId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Clients'],
+    }),
+
     createAppointment: builder.mutation<CreateAppointmentResponse, CreateAppointmentRequest>({
       query: (body) => ({
         url: '/appointment',
@@ -1197,6 +1230,8 @@ export const {
   useUpdateClinicMutation,
   useCreateInvoiceMutation,
   useCreateSessionMutation,
+  useUpdateSessionMutation,
+  useDeleteSessionMutation,
   useCreateAppointmentMutation,
   useCreateClinicMemberMutation,
   useUpdateClinicMemberMutation,

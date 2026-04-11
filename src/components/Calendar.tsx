@@ -194,7 +194,7 @@ export function Calendar({
         />
       )}
       {view === 'day' && (
-        <DayView
+        <DayViewFixed
           currentDate={currentDate}
           appointments={appointments}
           onSlotClick={handleSlotClick}
@@ -237,9 +237,47 @@ function parseLocalDate(dateStr: string) {
   return new Date(year, month - 1, day);
 }
 
+function getAppointmentStart(appt: any) {
+  if (appt?.startDateTime) {
+    const direct = new Date(appt.startDateTime);
+    if (!Number.isNaN(direct.getTime())) return direct;
+  }
+
+  if (appt?.date && appt?.time) {
+    const [year, month, day] = String(appt.date).split('-').map(Number);
+    const [hours, minutes] = String(appt.time).split(':').map(Number);
+    const parsed = new Date(year, (month || 1) - 1, day || 1, hours || 0, minutes || 0, 0, 0);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+
+  return null;
+}
+
+function getAppointmentTimeLabel(appt: any) {
+  const start = getAppointmentStart(appt);
+  if (!start) return appt?.time || '';
+
+  return start.toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
+
+function isSameLocalDay(left: Date | null, right: Date | null) {
+  if (!left || !right) return false;
+
+  return (
+    left.getFullYear() === right.getFullYear() &&
+    left.getMonth() === right.getMonth() &&
+    left.getDate() === right.getDate()
+  );
+}
+
 function WeekView({ currentDate, appointments, onSlotClick, onAppointmentClick }: any) {
   const hours = Array.from({ length: 24 }, (_, i) => i);
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const getAppointmentBlockHeight = (duration: number) => Math.max((duration / 60) * 100, 28);
 
   const startOfWeek = new Date(currentDate);
   const day = startOfWeek.getDay();
@@ -264,7 +302,7 @@ function WeekView({ currentDate, appointments, onSlotClick, onAppointmentClick }
           <div className="flex flex-1">
             {days.map((day, i) => {
               const date = weekDates[i];
-              const isToday = new Date().toDateString() === date.toDateString();
+              const isToday = isSameLocalDay(new Date(), date);
               return (
                 <div key={day} className="flex-1 p-2 text-center border-r border-border/50 last:border-r-0 overflow-hidden">
                   <div className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase truncate">
@@ -309,7 +347,8 @@ function WeekView({ currentDate, appointments, onSlotClick, onAppointmentClick }
               const dayDate = weekDates[i];
               // Filter appts for this day
               const dayAppts = appointments.filter((a: any) => {
-                return parseLocalDate(a.date).toDateString() === dayDate.toDateString();
+                const start = getAppointmentStart(a);
+                return isSameLocalDay(start, dayDate);
               });
 
               return (
@@ -325,27 +364,36 @@ function WeekView({ currentDate, appointments, onSlotClick, onAppointmentClick }
 
                   {/* Render Appointments absolutely within the day column */}
                   {dayAppts.map((appt: any) => {
-                    const startHour = parseInt(appt.time.split(':')[0]);
-                    const startMin = parseInt(appt.time.split(':')[1]);
+                    const start = getAppointmentStart(appt);
+                    if (!start) return null;
+                    const startHour = start.getHours();
+                    const startMin = start.getMinutes();
                     // Calculate top offset: (Hour * 100px) + (Min/60 * 100px)
                     const top = (startHour * 100) + ((startMin / 60) * 100);
                     // Calculate height: (Duration/60 * 100px)
-                    const height = (appt.duration / 60) * 100;
+                    const height = getAppointmentBlockHeight(appt.duration);
 
                     return (
                       <div
                         key={appt.id}
-                        className={cn("absolute left-0.5 right-0.5 rounded sm:rounded-lg p-1 sm:p-2 cursor-pointer hover:shadow-md transition-all z-20 flex flex-col justify-between overflow-hidden group", appt.color)}
+                        className={cn("absolute left-0.5 right-0.5 rounded sm:rounded-lg px-1.5 py-1 sm:px-2 sm:py-1.5 cursor-pointer hover:shadow-md transition-all z-20 flex flex-col justify-center overflow-hidden group", appt.color)}
                         style={{ top: `${top}px`, height: `${height}px` }}
                         onClick={(e) => onAppointmentClick(appt, e)}
                       >
-                        <div className="flex justify-between items-start">
-                          <div className={cn("text-[10px] sm:text-xs font-semibold truncate pr-1", appt.color.includes('blue') ? "text-blue-700" : "text-gray-700")}>
-                            {appt.clientName}
-                          </div>
+                        <div className={cn(
+                          "text-[10px] sm:text-xs font-semibold leading-tight truncate",
+                          appt.color.includes('blue')
+                            ? "text-blue-700"
+                            : appt.color.includes('purple')
+                              ? "text-purple-700"
+                              : appt.color.includes('green')
+                                ? "text-green-700"
+                                : "text-gray-700"
+                        )}>
+                          {appt.clientName}
                         </div>
                         {height > 40 && (
-                          <div className="hidden sm:block text-[10px] truncate opacity-80">
+                          <div className="hidden sm:block text-[10px] truncate opacity-80 mt-0.5">
                             {appt.type}
                           </div>
                         )}
@@ -370,9 +418,8 @@ function DayView({ currentDate, appointments, onSlotClick, onAppointmentClick }:
       <div className="flex-1 overflow-y-auto p-4">
         {hours.map((hour) => {
           const cellAppts = appointments.filter((a: any) => {
-            const aDate = parseLocalDate(a.date);
-            const aHour = parseInt(a.time.substring(0, 2));
-            return aDate.toDateString() === currentDate.toDateString() && aHour === hour;
+            const start = getAppointmentStart(a);
+            return isSameLocalDay(start, currentDate) && start.getHours() === hour;
           });
 
           return (
@@ -429,6 +476,96 @@ function DayView({ currentDate, appointments, onSlotClick, onAppointmentClick }:
   );
 }
 
+function DayViewFixed({ currentDate, appointments, onSlotClick, onAppointmentClick }: any) {
+  const hours = Array.from({ length: 24 }, (_, i) => i);
+  const dayAppts = appointments.filter((a: any) => isSameLocalDay(getAppointmentStart(a), currentDate));
+  const getAppointmentBlockHeight = (duration: number) => Math.max((duration / 60) * 100, 36);
+
+  return (
+    <div className="max-w-4xl mx-auto h-full bg-white overflow-auto">
+      <div className="flex min-w-full">
+        <div className="w-20 flex-shrink-0 sticky left-0 z-20 bg-white border-r border-border/50">
+          {hours.map((hour) => (
+            <div key={hour} className="h-[100px] border-b border-border/50 p-1 text-sm text-muted-foreground text-right relative">
+              <span className="top-1 absolute right-3">{hour}:00</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex-1 relative min-w-0">
+          <div className="absolute inset-0 pointer-events-none z-0">
+            {hours.map((hour) => (
+              <div key={hour} className="h-[100px] border-b border-border/50 w-full"></div>
+            ))}
+          </div>
+
+          {hours.map((hour) => (
+            <div
+              key={hour}
+              className="h-[100px] w-full hover:bg-muted/5 transition-colors cursor-pointer relative z-10"
+              onClick={() => onSlotClick(currentDate, `${hour < 10 ? '0' + hour : hour}:00`, 'day')}
+            />
+          ))}
+
+          {dayAppts.map((appt: any) => {
+            const start = getAppointmentStart(appt);
+            if (!start) return null;
+
+            const top = (start.getHours() * 100) + ((start.getMinutes() / 60) * 100);
+            const height = getAppointmentBlockHeight(appt.duration);
+
+            return (
+              <div
+                key={appt.id}
+                className={cn(
+                  "absolute left-2 right-2 rounded-xl p-3 cursor-pointer hover:shadow-md transition-all z-20 flex justify-between items-start gap-3 overflow-hidden",
+                  appt.color
+                )}
+                style={{ top: `${top}px`, height: `${height}px` }}
+                onClick={(e) => onAppointmentClick(appt, e)}
+              >
+                <div className="min-w-0">
+                  <div className="font-semibold truncate">
+                    {appt.clientName}
+                  </div>
+                  <div className="text-sm mt-1 truncate opacity-90">
+                    {appt.type} | {appt.duration} min
+                  </div>
+                  {height > 60 && (
+                    <div className="flex items-center gap-2 mt-2 text-xs opacity-90">
+                      <Avatar fallback={appt.clientName[0]} size="sm" className="h-6 w-6 bg-white/50 text-current" />
+                      <span className="truncate">{appt.clinician}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  <div className="bg-white/50 text-xs px-2 py-1 rounded-full font-medium capitalize">
+                    {appt.status}
+                  </div>
+                  {height > 70 && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="bg-white/50 hover:bg-white text-current h-10 w-10 p-0 rounded-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(appt.videoLink || 'https://zoom.us', '_blank');
+                      }}
+                    >
+                      <Video className="h-5 w-5" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function MonthView({ currentDate, appointments, onSlotClick, onAppointmentClick }: any) {
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -462,8 +599,8 @@ function MonthView({ currentDate, appointments, onSlotClick, onAppointmentClick 
         {days.map((date, i) => {
           if (!date) return <div key={i} className="bg-muted/5 border-r border-b border-border/50 min-h-[100px]"></div>;
           const dateStr = date.toDateString();
-          const isToday = new Date().toDateString() === dateStr;
-          const dayAppts = appointments.filter((a: any) => parseLocalDate(a.date).toDateString() === dateStr);
+          const isToday = isSameLocalDay(new Date(), date);
+          const dayAppts = appointments.filter((a: any) => isSameLocalDay(getAppointmentStart(a), date));
           const clickDate = new Date(date);
           clickDate.setHours(12, 0, 0, 0);
 
@@ -494,7 +631,7 @@ function MonthView({ currentDate, appointments, onSlotClick, onAppointmentClick 
                     )}
                     onClick={(e) => onAppointmentClick(appt, e)}
                   >
-                    {appt.time.split(':')[0]}a {appt.clientName.split(' ')[0][0]}. {appt.clientName.split(' ')[1]}
+                    {getAppointmentTimeLabel(appt)} {appt.clientName.split(' ')[0][0]}. {appt.clientName.split(' ')[1]}
                   </div>
                 ))}
               </div>

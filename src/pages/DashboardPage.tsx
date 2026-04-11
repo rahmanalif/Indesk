@@ -16,10 +16,17 @@ const statusColors: Record<string, string> = {
   cancelled: 'bg-gray-100 border-gray-200 text-gray-700',
 };
 
+const padDatePart = (value: number) => String(value).padStart(2, '0');
+
+const formatLocalDate = (date: Date) => {
+  return `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}`;
+};
+
 const getLocalDateString = (iso?: string) => {
   if (!iso) return '';
   const date = new Date(iso);
-  return date.toLocaleDateString('en-CA');
+  if (Number.isNaN(date.getTime())) return '';
+  return formatLocalDate(date);
 };
 
 const getLocalTimeString = (iso?: string) => {
@@ -40,7 +47,7 @@ const getDurationMinutes = (start?: string, end?: string, fallback?: number) => 
 
 const ALL_CALENDARS_KEY = 'all-calendars';
 
-const formatApiDate = (date: Date) => date.toLocaleDateString('en-CA');
+const formatApiDate = (date: Date) => formatLocalDate(date);
 
 const getCalendarRange = (date: Date, view: ViewMode) => {
   if (view === 'day') {
@@ -77,10 +84,11 @@ export function DashboardPage() {
   const [calendarView, setCalendarView] = useState<ViewMode>('month');
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [selectedCalendarKey, setSelectedCalendarKey] = useState<string>(ALL_CALENDARS_KEY);
+  const calendarQueryView: ViewMode = calendarView === 'day' ? 'week' : calendarView;
 
   const calendarRange = useMemo(
-    () => getCalendarRange(calendarDate, calendarView),
-    [calendarDate, calendarView]
+    () => getCalendarRange(calendarDate, calendarQueryView),
+    [calendarDate, calendarQueryView]
   );
 
   const {
@@ -91,7 +99,7 @@ export function DashboardPage() {
     refetch: refetchAppointments,
   } = useGetCalendarAppointmentsQuery({
     ...calendarRange,
-    view: calendarView,
+    view: calendarQueryView,
     clinicianId: selectedCalendarKey === ALL_CALENDARS_KEY ? undefined : selectedCalendarKey,
   });
 
@@ -129,6 +137,8 @@ export function DashboardPage() {
       ? rawData
       : Array.isArray(rawData?.docs)
         ? rawData.docs
+        : Array.isArray(rawData?.events)
+          ? rawData.events
         : [];
     return docs
       .map((apt: any) => {
@@ -137,19 +147,23 @@ export function DashboardPage() {
         const clinicianName = clinicianUser
           ? `Dr. ${clinicianUser.firstName} ${clinicianUser.lastName}`.trim()
           : 'Clinician';
-        const date = getLocalDateString(apt.startTime);
-        const time = getLocalTimeString(apt.startTime);
+        const startValue = apt.start || apt.startTime;
+        const endValue = apt.end || apt.endTime;
+        const date = getLocalDateString(startValue);
+        const time = getLocalTimeString(startValue);
         if (!date || !time) return null;
 
         return {
           id: apt.id,
           clientName: client,
           clinician: clinicianName,
-          clinicianId: apt.clinicianId || clinicianUser?.id,
+          clinicianId: apt.clinicianId || apt.clinician?.id || clinicianUser?.id,
+          startDateTime: startValue,
+          endDateTime: endValue,
           date,
           time,
-          duration: getDurationMinutes(apt.startTime, apt.endTime, apt.session?.duration),
-          type: apt.session?.name || 'Session',
+          duration: getDurationMinutes(startValue, endValue, apt.session?.duration),
+          type: apt.session?.name || apt.title || 'Session',
           status: apt.status || 'pending',
           color: statusColors[apt.status] || statusColors.pending,
           notes: apt.note,

@@ -5,10 +5,11 @@ import { Card, CardContent } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { CreateSessionTypeModal } from '../components/modals/CreateSessionTypeModal';
 import { EditSessionModal } from '../components/modals/EditSessionModal';
-import { useGetSessionsQuery } from '../redux/api/clientsApi';
+import { useDeleteSessionMutation, useGetSessionsQuery } from '../redux/api/clientsApi';
 
 export function SessionsPage() {
   const { data: sessionsResponse, isLoading, isError } = useGetSessionsQuery();
+  const [deleteSession, { isLoading: isDeleting }] = useDeleteSessionMutation();
   const sessionTypes = sessionsResponse?.response?.data?.docs || [];
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -19,8 +20,15 @@ export function SessionsPage() {
     setIsEditModalOpen(true);
   };
 
-  const handleDelete = (_id: string, name: string) => {
-    window.alert(`Delete not wired yet for "${name}".`);
+  const handleDelete = async (id: string, name: string) => {
+    const confirmed = window.confirm(`Delete "${name}" session type?`);
+    if (!confirmed) return;
+
+    try {
+      await deleteSession(id).unwrap();
+    } catch (error: any) {
+      window.alert(error?.data?.message || 'Failed to delete session type.');
+    }
   };
 
   return <div className="space-y-6">
@@ -68,6 +76,7 @@ export function SessionsPage() {
                     size="icon"
                     className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
                     onClick={() => handleDelete(session.id, session.name)}
+                    disabled={isDeleting}
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>

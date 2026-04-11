@@ -78,7 +78,7 @@ export function Navbar({ mode = 'fixed', forceSolid = false }: NavbarProps) {
             </Link>
             <Link
               to="/login"
-              className="text-sm font-medium text-charcoal hover:text-terracotta transition-colors">
+              className="text-sm font-mi text-charcoal hover:text-terracotta transition-colors">
 
               Sign In
             </Link>

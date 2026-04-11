@@ -54,6 +54,7 @@ export function CreateAppointmentModal({
   const [selectedClientId, setSelectedClientId] = useState<string | number | undefined>(undefined);
   const [clinicianId, setClinicianId] = useState('');
   const [sessionType, setSessionType] = useState('');
+  const [meetingType, setMeetingType] = useState<'in_person' | 'zoom' | 'google_meet'>('in_person');
   const [notes, setNotes] = useState('');
   const [suggestionBoxOpen, setSuggestionBoxOpen] = useState(false);
 
@@ -100,6 +101,7 @@ export function CreateAppointmentModal({
         const matchedType = sessionTypes.find(t => t.name === existingData.type);
         setSessionType(matchedType ? matchedType.id.toString() : defaultSessionId);
         setClinicianId(existingData.clinicianId?.toString() || '');
+        setMeetingType(existingData.meetingType || 'in_person');
         setNotes(existingData.notes || '');
       } else if (fixedClient) {
         setClientNameInput(fixedClient.name);
@@ -109,11 +111,13 @@ export function CreateAppointmentModal({
         setNotes('');
         setSessionType(defaultSessionId);
         setClinicianId('');
+        setMeetingType('in_person');
       } else {
         setClientNameInput('');
         setSelectedClientId(undefined);
         setSessionType(defaultSessionId);
         setClinicianId('');
+        setMeetingType('in_person');
         setNotes('');
 
         if (viewSource === 'day') {
@@ -207,6 +211,7 @@ export function CreateAppointmentModal({
       time: timeStr,
       duration: selectedSessionData?.duration ?? 50,
       type: selectedSessionData?.name || 'Therapy Session',
+      meetingType,
       notes,
       color: selectedSessionData?.color || 'bg-blue-100 border-blue-200 text-blue-700',
       status: existingData?.status || 'Active',
@@ -220,7 +225,7 @@ export function CreateAppointmentModal({
       date: dateIso,
       time: timeIso,
       note: notes || null,
-      meetingType: 'zoom',
+      meetingType,
     })
       .unwrap()
       .then(() => {
@@ -235,8 +240,12 @@ export function CreateAppointmentModal({
           onClose();
         }
       })
-      .catch(() => {
-        alert('Failed to create appointment. Please try again.');
+      .catch((error: any) => {
+        const backendMessage =
+          error?.data?.message ||
+          error?.error ||
+          'Failed to create appointment. Please try again.';
+        alert(backendMessage);
       })
       .finally(() => {
         setIsLoading(false);
@@ -282,7 +291,7 @@ export function CreateAppointmentModal({
             <Select
               label="Clinician"
               value={clinicianId}
-            onChange={(e) => {
+              onChange={(e) => {
                 const nextId = e.target.value;
                 setClinicianId(nextId);
               }}
@@ -304,6 +313,16 @@ export function CreateAppointmentModal({
           <div className="space-y-6">
             <DatePicker label="Date" date={date} setDate={setDate} />
             <TimePicker label="Start Time" time={time} setTime={setTime} />
+            <Select
+              label="Meeting Type"
+              value={meetingType}
+              onChange={(e) => setMeetingType(e.target.value as 'in_person' | 'zoom' | 'google_meet')}
+              options={[
+                { value: 'in_person', label: 'In Person' },
+                { value: 'zoom', label: 'Zoom' },
+                { value: 'google_meet', label: 'Google Meet' },
+              ]}
+            />
           </div>
         </div>
 

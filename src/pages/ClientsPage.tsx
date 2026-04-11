@@ -26,7 +26,7 @@ export function ClientsPage() {
   const navigate = useNavigate();
   
   const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Waiting List' | 'Inactive'>('Active');
+  const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Waiting List' | 'Inactive'>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: 'name' | 'status' | 'nextApt'; direction: 'asc' | 'desc' } | null>(null);
   

@@ -2,10 +2,17 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { MapPin, Globe, Mail, Phone, Upload, Check } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
 import { useData } from '../../context/DataContext';
 import { cn } from '../../lib/utils';
 import { useGetClinicQuery, useUpdateClinicMutation } from '../../redux/api/clientsApi';
+
+const CLINIC_CURRENCY_STORAGE_KEY = 'clinic_currency_preference';
+const CURRENCY_OPTIONS = [
+    { value: 'USD', label: 'US Dollar (USD $)' },
+    { value: 'GBP', label: 'British Pound (GBP £)' },
+];
 
 export function ClinicDetailsPage() {
     const { branding, updateBranding } = useData();
@@ -36,6 +43,7 @@ export function ClinicDetailsPage() {
     const [clinicPhoneInput, setClinicPhoneInput] = useState('');
     const [countryCodeInput, setCountryCodeInput] = useState('');
     const [clinicWebsiteInput, setClinicWebsiteInput] = useState('');
+    const [currencyInput, setCurrencyInput] = useState(() => localStorage.getItem(CLINIC_CURRENCY_STORAGE_KEY) || 'USD');
     const [streetInput, setStreetInput] = useState('');
     const [cityInput, setCityInput] = useState('');
     const [stateInput, setStateInput] = useState('');
@@ -113,6 +121,7 @@ export function ClinicDetailsPage() {
                 setTempColor(updatedClinic.color ?? tempColor);
                 setTempLogo(updatedClinic.logo ?? tempLogo);
             }
+            localStorage.setItem(CLINIC_CURRENCY_STORAGE_KEY, currencyInput);
             await refetchClinic();
 
             setIsLoading(false);
@@ -161,6 +170,20 @@ export function ClinicDetailsPage() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <Input label="Country Code" value={countryCodeInput} onChange={(e) => setCountryCodeInput(e.target.value)} />
                                         <Input label="Website URL" value={clinicWebsiteInput} onChange={(e) => setClinicWebsiteInput(e.target.value)} icon={<Globe className="h-4 w-4" />} />
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <Select
+                                            label="Currency"
+                                            value={currencyInput}
+                                            onChange={(e) => setCurrencyInput(e.target.value)}
+                                            options={CURRENCY_OPTIONS}
+                                        />
+                                        <div className="rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
+                                            <p className="text-sm font-medium text-foreground">Selected Currency</p>
+                                            <p className="mt-1 text-sm text-muted-foreground">
+                                                {currencyInput === 'GBP' ? 'British Pound (£)' : 'US Dollar ($)'}
+                                            </p>
+                                        </div>
                                     </div>
                                 </>
                             )}

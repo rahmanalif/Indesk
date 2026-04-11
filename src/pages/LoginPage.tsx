@@ -6,25 +6,18 @@ import { Select } from '../components/ui/Select';
 import { Eye, EyeOff, ArrowRight, AlertCircle, Mail, KeyRound } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import {
+  COUNTRY_PHONE_OPTIONS,
+  getCountryPhoneError,
+  getCountryPhoneOption,
+  normalizePhoneDigits,
+} from '../lib/countryPhoneOptions';
+import {
   useCancelPlanOnboardingMutation,
   useCreatePlanCheckoutMutation,
   useGetAvailablePlansQuery,
   useInitiatePlanOnboardingMutation,
   useVerifyPlanOnboardingEmailMutation,
 } from '../redux/api/clientsApi';
-
-const COUNTRY_PHONE_OPTIONS = [
-  { value: '+880', label: 'Bangladesh (+880)', minDigits: 10, maxDigits: 10, example: '1712345678' },
-  { value: '+91', label: 'India (+91)', minDigits: 10, maxDigits: 10, example: '9876543210' },
-  { value: '+92', label: 'Pakistan (+92)', minDigits: 10, maxDigits: 10, example: '3001234567' },
-  { value: '+1', label: 'United States/Canada (+1)', minDigits: 10, maxDigits: 10, example: '2025550123' },
-  { value: '+44', label: 'United Kingdom (+44)', minDigits: 10, maxDigits: 10, example: '7700900123' },
-  { value: '+61', label: 'Australia (+61)', minDigits: 9, maxDigits: 9, example: '412345678' },
-  { value: '+971', label: 'UAE (+971)', minDigits: 9, maxDigits: 9, example: '501234567' },
-  { value: '+966', label: 'Saudi Arabia (+966)', minDigits: 9, maxDigits: 9, example: '512345678' },
-  { value: '+65', label: 'Singapore (+65)', minDigits: 8, maxDigits: 8, example: '81234567' },
-  { value: '+60', label: 'Malaysia (+60)', minDigits: 9, maxDigits: 10, example: '123456789' },
-];
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -104,7 +97,7 @@ export function LoginPage() {
   const [signupError, setSignupError] = useState('');
   const [pendingOnboardingId, setPendingOnboardingId] = useState('');
   const selectedPlan = availablePlans.find((plan) => plan.id === signupData.planId);
-  const selectedCountryPhone = COUNTRY_PHONE_OPTIONS.find((option) => option.value === signupData.countryCode) || COUNTRY_PHONE_OPTIONS[0];
+  const selectedCountryPhone = getCountryPhoneOption(signupData.countryCode);
   const isSignupLoading = isInitiating || isVerifyingEmail || isCreatingCheckout || isCancellingOnboarding;
   const isLoading = authLoading || isSignupLoading;
 
@@ -233,12 +226,9 @@ export function LoginPage() {
       errors.clinicPhone = 'Clinic phone is required';
       isValid = false;
     } else {
-      const digitsOnly = signupData.clinicPhone.replace(/\D/g, '');
-      if (digitsOnly.length < selectedCountryPhone.minDigits || digitsOnly.length > selectedCountryPhone.maxDigits) {
-        errors.clinicPhone =
-          selectedCountryPhone.minDigits === selectedCountryPhone.maxDigits
-            ? `Phone number must be ${selectedCountryPhone.maxDigits} digits for ${selectedCountryPhone.label}`
-            : `Phone number must be ${selectedCountryPhone.minDigits}-${selectedCountryPhone.maxDigits} digits for ${selectedCountryPhone.label}`;
+      const phoneError = getCountryPhoneError(signupData.clinicPhone, selectedCountryPhone);
+      if (phoneError) {
+        errors.clinicPhone = phoneError.endsWith('.') ? phoneError.slice(0, -1) : phoneError;
         isValid = false;
       }
     }
@@ -440,7 +430,7 @@ export function LoginPage() {
       ? e.target.checked
       : value;
     const normalizedValue = name === 'clinicPhone' && typeof nextValue === 'string'
-      ? nextValue.replace(/\D/g, '').slice(0, selectedCountryPhone.maxDigits)
+      ? normalizePhoneDigits(nextValue, selectedCountryPhone)
       : nextValue;
 
     setSignupData((prev) => ({

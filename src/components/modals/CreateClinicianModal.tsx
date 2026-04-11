@@ -1,10 +1,16 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { Select } from '../ui/Select';
 import { Checkbox } from '../ui/Checkbox';
+import {
+  COUNTRY_PHONE_OPTIONS,
+  getCountryPhoneError,
+  getCountryPhoneOption,
+  normalizePhoneDigits,
+} from '../../lib/countryPhoneOptions';
 import { useCreateClinicMemberMutation } from '../../redux/api/clientsApi';
 
 interface CreateClinicianModalProps {
@@ -20,15 +26,17 @@ export function CreateClinicianModal({
 }: CreateClinicianModalProps) {
   const [createClinicMember] = useCreateClinicMemberMutation();
   const [isLoading, setIsLoading] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [countryCode, setCountryCode] = useState('+880');
   const [role, setRole] = useState('clinician');
+  const [countryCode, setCountryCode] = useState('+1');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [availability, setAvailability] = useState<string[]>(['monday', 'tuesday', 'wednesday', 'thursday', 'friday']);
   const [bio, setBio] = useState('');
   const [specializationText, setSpecializationText] = useState('');
+  const selectedCountryPhone = useMemo(() => getCountryPhoneOption(countryCode), [countryCode]);
 
   const toggleAvailability = (day: string, checked: boolean) => {
     const dayValue = day.toLowerCase();
@@ -46,7 +54,8 @@ export function CreateClinicianModal({
     setLastName('');
     setEmail('');
     setPhoneNumber('');
-    setCountryCode('+880');
+    setCountryCode('+1');
+    setPhoneError('');
     setRole('clinician');
     setAvailability(['monday', 'tuesday', 'wednesday', 'thursday', 'friday']);
     setBio('');
@@ -55,6 +64,11 @@ export function CreateClinicianModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const nextPhoneError = getCountryPhoneError(phoneNumber, selectedCountryPhone);
+    setPhoneError(nextPhoneError);
+    if (nextPhoneError) {
+      return;
+    }
     setIsLoading(true);
 
     const specialization = specializationText
@@ -95,12 +109,7 @@ export function CreateClinicianModal({
 
       <div className="grid grid-cols-2 gap-4">
         <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        <Input label="Phone" type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <Input label="Country Code" value={countryCode} onChange={(e) => setCountryCode(e.target.value)} />
-        <Select
+         <Select
           label="Role"
           value={role}
           onChange={(e) => setRole(e.target.value)}
@@ -112,6 +121,38 @@ export function CreateClinicianModal({
             label: 'Admin'
           }]}
         />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <Select
+          label="Country Code"
+          value={countryCode}
+          onChange={(e) => {
+            const nextCountryCode = e.target.value;
+            const nextCountryPhone = getCountryPhoneOption(nextCountryCode);
+            const trimmedPhoneNumber = normalizePhoneDigits(phoneNumber, nextCountryPhone);
+            setCountryCode(nextCountryCode);
+            setPhoneNumber(trimmedPhoneNumber);
+            setPhoneError(trimmedPhoneNumber ? getCountryPhoneError(trimmedPhoneNumber, nextCountryPhone) : '');
+          }}
+          options={COUNTRY_PHONE_OPTIONS}
+        />
+        <Input
+          label="Phone"
+          type="tel"
+          value={phoneNumber}
+          onChange={(e) => {
+            setPhoneNumber(normalizePhoneDigits(e.target.value, selectedCountryPhone));
+            if (phoneError) {
+              setPhoneError('');
+            }
+          }}
+          onBlur={() => setPhoneError(getCountryPhoneError(phoneNumber, selectedCountryPhone))}
+          placeholder={selectedCountryPhone.example || `Up to ${selectedCountryPhone.maxDigits} digits`}
+          maxLength={selectedCountryPhone.maxDigits}
+          error={phoneError}
+        />
+       
       </div>
 
       <div className="space-y-3">
