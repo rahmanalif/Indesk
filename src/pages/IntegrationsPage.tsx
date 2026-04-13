@@ -15,9 +15,29 @@ import { Card, CardContent } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
 import { IntegrationPermissionsModal } from '../components/modals/IntegrationPermissionsModal';
-import { useGetIntegrationsQuery, useLazyGetIntegrationOAuthUrlQuery } from '../redux/api/integrationApi';
+import {
+  useDisconnectIntegrationMutation,
+  useGetIntegrationsQuery,
+  useLazyCheckIntegrationHealthQuery,
+  useLazyGetIntegrationOAuthUrlQuery,
+} from '../redux/api/integrationApi';
 
 type IntegrationStatus = 'Connected' | 'Disconnected';
+
+type IntegrationCardItem = {
+  id: string | number;
+  name: string;
+  category: string;
+  status: IntegrationStatus;
+  iconKey: string;
+  description: string;
+  type: string;
+  requiresOAuth?: boolean;
+  oauthUrl?: string;
+  isConfigured?: boolean;
+  healthStatus?: string | null;
+  lastHealthCheck?: string | null;
+};
 
 // const COMING_SOON_INTEGRATION = {
 //   id: 'healthcode-coming-soon',
@@ -155,13 +175,17 @@ const resolveOAuthMeta = (integration: any) => {
 };
 
 export function IntegrationsPage() {
-  const [selectedIntegration, setSelectedIntegration] = useState<string | null>(null);
+  const [selectedIntegration, setSelectedIntegration] = useState<IntegrationCardItem | null>(null);
   const [selectedIntegrationMode, setSelectedIntegrationMode] = useState<'connect' | 'disconnect'>('connect');
   const [connectingType, setConnectingType] = useState<string | null>(null);
   const [oauthErrorState, setOauthErrorState] = useState<{ title: string; message: string } | null>(null);
+  const [disconnectFeedback, setDisconnectFeedback] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
+  const [healthState, setHealthState] = useState<{ summary: string; details: string | null; tone: 'default' | 'success' | 'error' } | null>(null);
 
   const { data: integrationsResponse, isLoading, isError, error, refetch } = useGetIntegrationsQuery();
   const [getOAuthUrl] = useLazyGetIntegrationOAuthUrlQuery();
+  const [disconnectIntegration, { isLoading: isDisconnecting }] = useDisconnectIntegrationMutation();
+  const [checkIntegrationHealth, { isFetching: isCheckingHealth }] = useLazyCheckIntegrationHealthQuery();
 
   const apiListRaw = integrationsResponse?.response?.data;
   const apiIntegrations = Array.isArray(apiListRaw) ? apiListRaw : apiListRaw?.docs || [];
@@ -180,17 +204,56 @@ export function IntegrationsPage() {
       requiresOAuth: integration.requiresOAuth,
       oauthUrl: integration.oauthUrl,
       isConfigured: integration.isConfigured,
+      healthStatus: integration.healthStatus ?? null,
+      lastHealthCheck: integration.lastHealthCheck ?? null,
     }));
   }, [apiIntegrations]);
 
-  const handleAction = async (integration: any) => {
+  const resetModalState = () => {
+    setSelectedIntegration(null);
+    setDisconnectFeedback(null);
+    setHealthState(null);
+  };
+
+  const extractErrorMessage = (err: any, fallback: string) =>
+    err?.data?.message || err?.error || fallback;
+
+  const buildHealthSummary = (response: any, integrationName: string) => {
+    const data = response?.response?.data || {};
+    const rawStatus =
+      data.healthStatus ||
+      data.status ||
+      (typeof data.isHealthy === 'boolean' ? (data.isHealthy ? 'healthy' : 'unhealthy') : null);
+    const normalizedStatus = String(rawStatus || '').toLowerCase();
+    const isHealthy = normalizedStatus
+      ? ['healthy', 'connected', 'ok', 'pass', 'active'].includes(normalizedStatus)
+      : data.isHealthy === true;
+    const summary = rawStatus
+      ? `${integrationName} health: ${String(rawStatus)}`
+      : response?.message || `${integrationName} health check completed.`;
+    const detailParts = [
+      data.message,
+      data.details,
+      data.lastHealthCheck ? `Last checked: ${new Date(data.lastHealthCheck).toLocaleString()}` : null,
+    ].filter(Boolean);
+
+    return {
+      summary,
+      details: detailParts.length ? detailParts.join(' ') : null,
+      tone: rawStatus ? (isHealthy ? 'success' : 'error') : 'default' as 'default' | 'success' | 'error',
+    };
+  };
+
+  const handleAction = async (integration: IntegrationCardItem) => {
     const { oauthType, hasOAuth, connectKey } = resolveOAuthMeta(integration);
     const isConnected = integration.status === 'Connected';
     const isUpcoming = !hasOAuth && !isConnected;
 
     if (isConnected) {
       setSelectedIntegrationMode('disconnect');
-      setSelectedIntegration(integration.name);
+      setDisconnectFeedback(null);
+      setHealthState(null);
+      setSelectedIntegration(integration);
       return;
     }
 
@@ -232,6 +295,42 @@ export function IntegrationsPage() {
       });
     } finally {
       setConnectingType(null);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (!selectedIntegration) return;
+
+    try {
+      const response = await disconnectIntegration(selectedIntegration.type).unwrap();
+      setDisconnectFeedback({
+        tone: 'success',
+        message: response?.message || `${selectedIntegration.name} was disconnected successfully.`,
+      });
+      setHealthState(null);
+      window.setTimeout(() => {
+        resetModalState();
+      }, 900);
+    } catch (err) {
+      setDisconnectFeedback({
+        tone: 'error',
+        message: extractErrorMessage(err, `${selectedIntegration.name} could not be disconnected right now.`),
+      });
+    }
+  };
+
+  const handleCheckHealth = async () => {
+    if (!selectedIntegration) return;
+
+    try {
+      const response = await checkIntegrationHealth(selectedIntegration.type).unwrap();
+      setHealthState(buildHealthSummary(response, selectedIntegration.name));
+    } catch (err) {
+      setHealthState({
+        summary: `${selectedIntegration.name} health check failed.`,
+        details: extractErrorMessage(err, 'Unable to verify the current integration status.'),
+        tone: 'error',
+      });
     }
   };
 
@@ -304,17 +403,19 @@ export function IntegrationsPage() {
                     {label}
                   </Button>
 
-                  {integration.status === 'Connected' && (
+                  {/* {integration.status === 'Connected' && (
                     <button
                       onClick={() => {
                         setSelectedIntegrationMode('connect');
-                        setSelectedIntegration(integration.name);
+                        setDisconnectFeedback(null);
+                        setHealthState(null);
+                        setSelectedIntegration(integration);
                       }}
                       className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground transition-colors hover:text-primary"
                     >
                       View Permissions <ExternalLink className="h-3 w-3" />
                     </button>
-                  )}
+                  )} */}
                 </CardContent>
               </Card>
             );
@@ -344,9 +445,19 @@ export function IntegrationsPage() {
 
       <IntegrationPermissionsModal
         isOpen={!!selectedIntegration}
-        onClose={() => setSelectedIntegration(null)}
-        integrationName={selectedIntegration || ''}
+        onClose={resetModalState}
+        integrationName={selectedIntegration?.name || ''}
         mode={selectedIntegrationMode}
+        onPrimaryAction={selectedIntegrationMode === 'disconnect' ? handleDisconnect : undefined}
+        primaryLabel={selectedIntegrationMode === 'disconnect' ? 'Disconnect Integration' : undefined}
+        isPrimaryLoading={isDisconnecting}
+        onCheckHealth={selectedIntegrationMode === 'disconnect' ? handleCheckHealth : undefined}
+        isCheckingHealth={isCheckingHealth}
+        healthSummary={healthState?.summary || null}
+        healthDetails={healthState?.details || null}
+        healthTone={healthState?.tone || 'default'}
+        feedbackMessage={disconnectFeedback?.message || null}
+        feedbackTone={disconnectFeedback?.tone || 'success'}
       />
 
       <Modal

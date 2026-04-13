@@ -39,6 +39,15 @@ export interface GetIntegrationOAuthResponse {
   };
 }
 
+export interface IntegrationActionResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response?: {
+    data?: Record<string, unknown>;
+  };
+}
+
 export const integrationApi = createApi({
   reducerPath: 'integrationApi',
   baseQuery: fetchBaseQuery({
@@ -73,7 +82,22 @@ export const integrationApi = createApi({
     getIntegrationOAuthUrl: builder.query<GetIntegrationOAuthResponse, string>({
       query: (type) => `integration/oauth/${type}`,
     }),
+    disconnectIntegration: builder.mutation<IntegrationActionResponse, string>({
+      query: (type) => ({
+        url: `integration/${type}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Integrations'],
+    }),
+    checkIntegrationHealth: builder.query<IntegrationActionResponse, string>({
+      query: (type) => `integration/${type}/health`,
+    }),
   }),
 });
 
-export const { useGetIntegrationsQuery, useLazyGetIntegrationOAuthUrlQuery } = integrationApi;
+export const {
+  useGetIntegrationsQuery,
+  useLazyGetIntegrationOAuthUrlQuery,
+  useDisconnectIntegrationMutation,
+  useLazyCheckIntegrationHealthQuery,
+} = integrationApi;
