@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PoundSterling } from 'lucide-react';
+import { Link, MessageSquare, Mail, PoundSterling } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -7,6 +7,25 @@ import { Select } from '../ui/Select';
 import { Checkbox } from '../ui/Checkbox';
 import { Textarea } from '../ui/Textarea';
 import { useCreateSessionMutation } from '../../redux/api/clientsApi';
+import { useGetIntegrationsQuery } from '../../redux/api/integrationApi';
+import { useNavigate } from 'react-router-dom';
+
+const normalizeIntegrationKey = (value?: string) => {
+  if (!value) return '';
+  const normalized = value.toLowerCase().trim().replace(/[\s-]+/g, '_');
+  if (normalized === 'mail_chimp' || normalized === 'mailchimp_marketing' || normalized === 'mail_chimp_marketing') {
+    return 'mailchimp';
+  }
+  if (normalized === 'twilo') {
+    return 'twilio';
+  }
+  return normalized;
+};
+
+const isConnectedIntegration = (integration: any) => {
+  const normalizedStatus = String(integration?.status || '').toLowerCase();
+  return normalizedStatus === 'connected' || integration?.isConnected === true;
+};
 interface CreateSessionTypeModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -16,8 +35,10 @@ export function CreateSessionTypeModal({
   isOpen,
   onClose
 }: CreateSessionTypeModalProps) {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [createSession] = useCreateSessionMutation();
+  const { data: integrationsResponse } = useGetIntegrationsQuery();
   const [sessionName, setSessionName] = useState('');
   const [duration, setDuration] = useState('60');
   const [price, setPrice] = useState('150.00');
@@ -25,6 +46,31 @@ export function CreateSessionTypeModal({
   const [description, setDescription] = useState('');
   const [emailReminder, setEmailReminder] = useState(true);
   const [smsReminder, setSmsReminder] = useState(false);
+
+  const integrationListRaw = integrationsResponse?.response?.data;
+  const integrationList = Array.isArray(integrationListRaw) ? integrationListRaw : integrationListRaw?.docs || [];
+  const mailchimpIntegration = integrationList.find((integration: any) => {
+    const typeKey = normalizeIntegrationKey(integration?.type);
+    const nameKey = normalizeIntegrationKey(integration?.name);
+    return typeKey === 'mailchimp' || nameKey === 'mailchimp';
+  });
+  const twilioIntegration = integrationList.find((integration: any) => {
+    const typeKey = normalizeIntegrationKey(integration?.type);
+    const nameKey = normalizeIntegrationKey(integration?.name);
+    return typeKey === 'twilio' || nameKey === 'twilio';
+  });
+
+  const isMailchimpConnected = isConnectedIntegration(mailchimpIntegration);
+  const isTwilioConnected = isConnectedIntegration(twilioIntegration);
+  const selectedReminders = [
+    emailReminder && isMailchimpConnected ? 'Email' : null,
+    smsReminder && isTwilioConnected ? 'SMS' : null,
+  ].filter(Boolean) as string[];
+
+  const handleConnectIntegration = () => {
+    onClose();
+    navigate('/integrations');
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +84,7 @@ export function CreateSessionTypeModal({
       description: description || null,
       duration: Number.isFinite(durationValue) ? durationValue : 0,
       price: Number.isFinite(priceValue) ? priceValue : 0,
+      reminders: selectedReminders.length ? selectedReminders : null,
     })
       .unwrap()
       .then(() => {
@@ -108,17 +155,70 @@ export function CreateSessionTypeModal({
 
       <div className="space-y-3">
         <label className="text-[10px] font-bold text-primary uppercase tracking-[0.15em] ml-1 block">Reminders</label>
-        <div className="flex gap-6 pt-1">
-          <Checkbox
-            label="Email Reminder"
-            checked={emailReminder}
-            onCheckedChange={setEmailReminder}
-          />
-          <Checkbox
-            label="SMS Reminder"
-            checked={smsReminder}
-            onCheckedChange={setSmsReminder}
-          />
+        <div className="grid gap-3 pt-1">
+          <div className="rounded-xl border border-border/60 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium text-foreground">Email Reminder</span>
+                </div>
+                {/* <p className="text-sm text-muted-foreground">
+                  Uses {mailchimpIntegration?.name || 'Mailchimp'} for email reminder delivery.
+                </p> */}
+                {/* <p className={`text-xs font-medium ${isMailchimpConnected ? 'text-emerald-700' : 'text-amber-700'}`}>
+                  {isMailchimpConnected ? `${mailchimpIntegration?.name || 'Mailchimp'} connected` : 'Mailchimp not connected'}
+                </p> */}
+              </div>
+              <Checkbox
+                checked={emailReminder && isMailchimpConnected}
+                onCheckedChange={setEmailReminder}
+                disabled={!isMailchimpConnected}
+              />
+            </div>
+
+            {!isMailchimpConnected && (
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                <span>Connect Mailchimp to enable email reminders.</span>
+                <Button type="button" variant="outline" size="sm" onClick={handleConnectIntegration}>
+                  <Link className="mr-2 h-3.5 w-3.5" />
+                  Connect
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-border/60 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium text-foreground">SMS Reminder</span>
+                </div>
+                {/* <p className="text-sm text-muted-foreground">
+                  Uses {twilioIntegration?.name || 'Twilio'} for SMS reminder delivery.
+                </p>
+                <p className={`text-xs font-medium ${isTwilioConnected ? 'text-emerald-700' : 'text-amber-700'}`}>
+                  {isTwilioConnected ? `${twilioIntegration?.name || 'Twilio'} connected` : 'Twilio not connected'}
+                </p> */}
+              </div>
+              <Checkbox
+                checked={smsReminder && isTwilioConnected}
+                onCheckedChange={setSmsReminder}
+                disabled={!isTwilioConnected}
+              />
+            </div>
+
+            {!isTwilioConnected && (
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                <span>Connect Twilio to enable SMS reminders.</span>
+                <Button type="button" variant="outline" size="sm" onClick={handleConnectIntegration}>
+                  <Link className="mr-2 h-3.5 w-3.5" />
+                  Connect
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

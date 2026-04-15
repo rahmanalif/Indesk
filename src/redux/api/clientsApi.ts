@@ -595,6 +595,7 @@ export interface CreateSessionRequest {
   description?: string | null;
   duration: number;
   price: number;
+  reminders?: string[] | null;
 }
 
 interface CreateSessionResponse {
@@ -612,6 +613,7 @@ export interface UpdateSessionRequest {
   description?: string | null;
   duration: number;
   price: number;
+  reminders?: string[] | null;
 }
 
 type UpdateSessionResponse = CreateSessionResponse;

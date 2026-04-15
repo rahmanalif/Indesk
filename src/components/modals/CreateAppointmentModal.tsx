@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { Link, Video } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -9,8 +11,22 @@ import { Textarea } from '../ui/Textarea';
 import { useData } from '../../context/DataContext';
 import { cn } from '../../lib/utils';
 import { useCreateAppointmentMutation, useGetClientByIdQuery, useGetClinicMembersQuery, useGetSessionsQuery, useGetClientsQuery } from '../../redux/api/clientsApi';
+import { useGetIntegrationsQuery } from '../../redux/api/integrationApi';
 
 const APPOINTMENT_CLINICIAN_ROLES = new Set(['clinician', 'superadmin', 'admin']);
+
+const normalizeIntegrationKey = (value?: string) => {
+  if (!value) return '';
+  const normalized = value.toLowerCase().trim().replace(/[\s-]+/g, '_');
+  if (normalized === 'googlemeet') return 'google_meet';
+  if (normalized === 'google') return 'google_meet';
+  return normalized;
+};
+
+const isConnectedIntegration = (integration: any) => {
+  const normalizedStatus = String(integration?.status || '').toLowerCase();
+  return normalizedStatus === 'connected' || integration?.isConnected === true;
+};
 
 interface CreateAppointmentModalProps {
   isOpen: boolean;
@@ -33,8 +49,12 @@ export function CreateAppointmentModal({
   viewSource,
   fixedClient
 }: CreateAppointmentModalProps) {
+  const navigate = useNavigate();
   const { addAppointment, updateAppointment } = useData();
   const [createAppointment] = useCreateAppointmentMutation();
+  const { data: integrationsResponse } = useGetIntegrationsQuery(undefined, {
+    skip: !isOpen,
+  });
   const { data: clientsResponse } = useGetClientsQuery(
     { page: 1, limit: 100 },
     { skip: !isOpen }
@@ -87,6 +107,33 @@ export function CreateAppointmentModal({
         label: `${m.user?.firstName || ''} ${m.user?.lastName || ''}`.trim() || m.user?.email || 'Clinician',
       }));
   }, [clinicMembersResponse]);
+  const integrationsRaw = integrationsResponse?.response?.data;
+  const integrations = Array.isArray(integrationsRaw) ? integrationsRaw : integrationsRaw?.docs || [];
+  const zoomIntegration = integrations.find((integration: any) => {
+    const typeKey = normalizeIntegrationKey(integration?.type);
+    const nameKey = normalizeIntegrationKey(integration?.name);
+    return typeKey === 'zoom' || nameKey === 'zoom';
+  });
+  const googleMeetIntegration = integrations.find((integration: any) => {
+    const typeKey = normalizeIntegrationKey(integration?.type);
+    const nameKey = normalizeIntegrationKey(integration?.name);
+    return typeKey === 'google_meet' || nameKey === 'google_meet';
+  });
+  const isZoomConnected = isConnectedIntegration(zoomIntegration);
+  const isGoogleMeetConnected = isConnectedIntegration(googleMeetIntegration);
+  const requiresMeetingIntegration = meetingType === 'zoom' || meetingType === 'google_meet';
+  const isSelectedMeetingConnected =
+    meetingType === 'zoom'
+      ? isZoomConnected
+      : meetingType === 'google_meet'
+        ? isGoogleMeetConnected
+        : true;
+  const selectedMeetingProviderName =
+    meetingType === 'zoom'
+      ? zoomIntegration?.name || 'Zoom'
+      : meetingType === 'google_meet'
+        ? googleMeetIntegration?.name || 'Google Meet'
+        : null;
 
   // Sync state with props when modal opens or props change
   useEffect(() => {
@@ -196,6 +243,12 @@ export function CreateAppointmentModal({
 
     if (!clinicianIdToSend) {
       alert('Clinician is missing. Please select a valid client or clinician.');
+      setIsLoading(false);
+      return;
+    }
+
+    if (requiresMeetingIntegration && !isSelectedMeetingConnected) {
+      alert(`Please connect ${selectedMeetingProviderName} in Integrations before scheduling this meeting type.`);
       setIsLoading(false);
       return;
     }
@@ -326,6 +379,44 @@ export function CreateAppointmentModal({
           </div>
         </div>
 
+        {requiresMeetingIntegration && (
+          <div className={`rounded-2xl border px-4 py-4 text-sm ${isSelectedMeetingConnected ? 'border-emerald-100 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <Video className="mt-0.5 h-4 w-4 shrink-0" />
+                <div className="space-y-1">
+                  <p className="font-medium">
+                    {isSelectedMeetingConnected
+                      ? `${selectedMeetingProviderName} is connected and ready for this meeting type.`
+                      : `${selectedMeetingProviderName} is not connected yet.`}
+                  </p>
+                  {!isSelectedMeetingConnected && (
+                    <p className="text-xs sm:text-sm">
+                      Connect {selectedMeetingProviderName} in Integrations to enable this video session type.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {!isSelectedMeetingConnected && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full sm:w-auto"
+                  onClick={() => {
+                    onClose();
+                    navigate('/integrations');
+                  }}
+                >
+                  <Link className="mr-2 h-3.5 w-3.5" />
+                  Connect
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
         <Textarea
           label="Notes"
           placeholder="Add any internal notes for this session..."
@@ -338,7 +429,7 @@ export function CreateAppointmentModal({
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" isLoading={isLoading} disabled={!isClientValid || !clientNameInput}>
+          <Button type="submit" isLoading={isLoading} disabled={!isClientValid || !clientNameInput || (requiresMeetingIntegration && !isSelectedMeetingConnected)}>
             {existingData ? 'Save Changes' : 'Schedule Appointment'}
           </Button>
         </div>

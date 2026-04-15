@@ -44,6 +44,43 @@ const defaultAssistantPrompts = [
 ].map((prompt) => (prompt.startsWith('Example: ') ? prompt : `Example: ${prompt}`));
 
 const ASSISTANT_PROMPT_ROTATION_KEY = 'ai-assistant-prompt-index';
+const AI_ASSISTANT_SESSION_MESSAGES_KEY = 'ai-assistant-session-messages';
+
+const createIntroMessage = (): ChatMessage => ({
+  id: Date.now(),
+  role: 'ai',
+  text: getNextAssistantPrompt(),
+});
+
+const getInitialMessages = (): ChatMessage[] => {
+  if (typeof window === 'undefined') {
+    return [createIntroMessage()];
+  }
+
+  try {
+    const savedMessages = window.sessionStorage.getItem(AI_ASSISTANT_SESSION_MESSAGES_KEY);
+    if (!savedMessages) {
+      return [createIntroMessage()];
+    }
+
+    const parsedMessages = JSON.parse(savedMessages) as ChatMessage[];
+    if (!Array.isArray(parsedMessages) || parsedMessages.length === 0) {
+      return [createIntroMessage()];
+    }
+
+    const sanitizedMessages = parsedMessages.filter(
+      (message) =>
+        message &&
+        (message.role === 'ai' || message.role === 'user') &&
+        typeof message.text === 'string' &&
+        typeof message.id === 'number'
+    );
+
+    return sanitizedMessages.length > 0 ? sanitizedMessages : [createIntroMessage()];
+  } catch {
+    return [createIntroMessage()];
+  }
+};
 
 const getNextAssistantPrompt = () => {
   if (typeof window === 'undefined') {
@@ -104,11 +141,7 @@ const getErrorMessage = (error?: FetchBaseQueryError | SerializedError) => {
 export function AIAssistancePage() {
   const location = useLocation();
   const { user } = useAuth();
-  const [messages, setMessages] = useState<ChatMessage[]>(() => [{
-    id: 1,
-    role: 'ai',
-    text: getNextAssistantPrompt(),
-  }]);
+  const [messages, setMessages] = useState<ChatMessage[]>(getInitialMessages);
   const [input, setInput] = useState('');
   const [selectedClient, setSelectedClient] = useState<ClientOption | null>(null);
   const [sendChat, { isLoading: isChatting, error: chatError }] = useSendChatMutation();
@@ -181,6 +214,18 @@ export function AIAssistancePage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, isTyping]);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      window.sessionStorage.setItem(
+        AI_ASSISTANT_SESSION_MESSAGES_KEY,
+        JSON.stringify(messages)
+      );
+    } catch {
+      // Ignore session storage write failures and keep chat usable.
+    }
+  }, [messages]);
   useEffect(() => {
     if (location.pathname !== '/ai-assistance') return;
     if (!hasHandledInitialRoute.current) {

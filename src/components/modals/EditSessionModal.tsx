@@ -39,6 +39,7 @@ export function EditSessionModal({ isOpen, onClose, session }: EditSessionModalP
             description: formData.description || null,
             duration: Number.isFinite(durationValue) ? durationValue : 0,
             price: Number.isFinite(priceValue) ? priceValue : 0,
+            reminders: formData.reminders || [],
         })
             .unwrap()
             .then(() => {
