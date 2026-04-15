@@ -95,6 +95,37 @@ export function ClientProfilePage() {
     const zoomConnected = isIntegrationConnected('zoom');
     const googleMeetConnected = isIntegrationConnected('google_meet');
 
+    const getMeetingJoinUrl = (appointment: any, provider: 'zoom' | 'google_meet' | 'video') => {
+        const zoomCandidates = [
+            appointment?.zoomJoinUrl,
+            appointment?.zoomStartUrl,
+        ];
+        const googleMeetCandidates = [
+            appointment?.googleMeetJoinUrl,
+            appointment?.googleMeetStartUrl,
+            appointment?.googleMeetUrl,
+            appointment?.googleMeetLink,
+        ];
+        const genericCandidates = [
+            appointment?.meetingLink,
+            appointment?.meetingUrl,
+            appointment?.joinLink,
+            appointment?.joinUrl,
+            appointment?.videoLink,
+            appointment?.videoUrl,
+            appointment?.location,
+            appointment?.url,
+        ];
+
+        const candidates = provider === 'zoom'
+            ? [...zoomCandidates, ...genericCandidates]
+            : provider === 'google_meet'
+                ? [...googleMeetCandidates, ...genericCandidates]
+                : [...genericCandidates, ...zoomCandidates, ...googleMeetCandidates];
+
+        return candidates.find((value) => typeof value === 'string' && value.trim()) || null;
+    };
+
     const appointments = (clientRaw?.appointments || []).map((apt: any) => {
         const start = apt?.startTime ? new Date(apt.startTime) : null;
         const end = apt?.endTime ? new Date(apt.endTime) : null;
@@ -105,9 +136,7 @@ export function ClientProfilePage() {
             : apt.zoomJoinUrl || apt.zoomStartUrl || normalizedMeetingType === 'zoom'
                 ? 'zoom'
                 : 'video';
-        const joinUrl = provider === 'zoom'
-            ? apt.zoomJoinUrl || apt.zoomStartUrl || null
-            : null;
+        const joinUrl = getMeetingJoinUrl(apt, provider);
         const isProviderConnected = provider === 'google_meet' ? googleMeetConnected : provider === 'zoom' ? zoomConnected : zoomConnected || googleMeetConnected;
         const providerLabel = provider === 'google_meet' ? 'Google Meet' : provider === 'zoom' ? 'Zoom' : 'Video Session';
 
