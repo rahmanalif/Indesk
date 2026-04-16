@@ -34,7 +34,7 @@ export function AddSubscriptionModal({ isOpen, onClose, onAdd }: AddSubscription
         const newSub = {
             id: `SUB-${Math.floor(Math.random() * 10000)}`,
             name,
-            price: `$${parseFloat(price).toFixed(2)}`,
+            price: `£${parseFloat(price).toFixed(2)}`,
             cycle: cycle.charAt(0).toUpperCase() + cycle.slice(1),
             nextBilling: nextBilling?.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) || 'N/A',
             status
@@ -65,7 +65,7 @@ export function AddSubscriptionModal({ isOpen, onClose, onAdd }: AddSubscription
                     <div className="space-y-2">
                         <label className="text-sm font-medium">Price</label>
                         <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">£</span>
                             <Input
                                 className="pl-6"
                                 placeholder="49.00"

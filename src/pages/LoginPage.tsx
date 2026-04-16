@@ -36,7 +36,7 @@ export function LoginPage() {
   const availablePlans = plansResponse?.response?.data || [];
   const planOptions = availablePlans.map((plan) => ({
     value: plan.id,
-    label: `${plan.name} - $${Number(plan.price).toFixed(Number.isInteger(plan.price) ? 0 : 2)}/mo`,
+    label: `${plan.name} - £${Number(plan.price).toFixed(Number.isInteger(plan.price) ? 0 : 2)}/mo`,
   }));
 
   const [showSignupPanel, setShowSignupPanel] = useState(isSignupMode);
@@ -59,7 +59,7 @@ export function LoginPage() {
     confirmPassword: '',
     clinicName: '',
     clinicEmail: '',
-    countryCode: '+880',
+    countryCode: '+44',
     clinicPhone: '',
     addressStreet: '',
     addressCity: '',
@@ -168,7 +168,7 @@ export function LoginPage() {
       confirmPassword: '',
       clinicName: '',
       clinicEmail: '',
-      countryCode: '',
+      countryCode: '+44',
       clinicPhone: '',
       addressStreet: '',
       addressCity: '',
@@ -247,17 +247,17 @@ export function LoginPage() {
       isValid = false;
     }
     if (!signupData.addressState.trim()) {
-      errors.addressState = 'State is required';
+      errors.addressState = 'County / region is required';
       isValid = false;
     } else if (signupData.addressState.trim().length < 2) {
-      errors.addressState = 'State must be at least 2 characters';
+      errors.addressState = 'County / region must be at least 2 characters';
       isValid = false;
     }
     if (!signupData.addressZipCode.trim()) {
-      errors.addressZipCode = 'ZIP code is required';
+      errors.addressZipCode = 'Postcode is required';
       isValid = false;
     } else if (signupData.addressZipCode.trim().length < 3) {
-      errors.addressZipCode = 'ZIP code must be at least 3 characters';
+      errors.addressZipCode = 'Postcode must be at least 3 characters';
       isValid = false;
     }
     if (!signupData.addressCountry.trim()) {
@@ -545,7 +545,7 @@ export function LoginPage() {
       confirmPassword: '',
       clinicName: '',
       clinicEmail: '',
-      countryCode: '',
+      countryCode: '+44',
       clinicPhone: '',
       addressStreet: '',
       addressCity: '',
@@ -623,7 +623,7 @@ export function LoginPage() {
               ? signupStep === 1
                 ? 'Enter your details to start clinic onboarding.'
                 : signupStep === 2
-                  ? `We sent a 6-digit code to ${signupData.email}. Enter it below to continue onboarding.`
+                  ? `We sent a 6-digit code to ${signupData.email}. Enter it below to continue onboarding. If you do not see it, please check spam or junk.`
                   : 'Your email has been verified. Continue to Stripe checkout to finish setup.'
               : 'Please enter your details to sign in.'}
           </p>
@@ -760,7 +760,9 @@ export function LoginPage() {
                     {!signupErrors.clinicPhone && (
                       <p className="text-xs text-muted-foreground">
                         {selectedCountryPhone.minDigits === selectedCountryPhone.maxDigits
-                          ? `${selectedCountryPhone.maxDigits} digits required`
+                          ? selectedCountryPhone.value === '+44'
+                            ? 'Use your full UK number, for example 07860599155'
+                            : `${selectedCountryPhone.maxDigits} digits required`
                           : `${selectedCountryPhone.minDigits}-${selectedCountryPhone.maxDigits} digits required`}
                       </p>
                     )}
@@ -801,7 +803,7 @@ export function LoginPage() {
                       name="addressStreet"
                       value={signupData.addressStreet}
                       onChange={handleSignupInputChange}
-                      placeholder="House, road, area"
+                      placeholder="221B Baker Street"
                       className={`h-11 bg-white ${signupErrors.addressStreet ? 'border-red-500' : ''}`}
                       disabled={isLoading}
                     />
@@ -816,7 +818,7 @@ export function LoginPage() {
                         name="addressCity"
                         value={signupData.addressCity}
                         onChange={handleSignupInputChange}
-                        placeholder="Dhaka"
+                        placeholder="London"
                         className={`h-11 bg-white ${signupErrors.addressCity ? 'border-red-500' : ''}`}
                         disabled={isLoading}
                       />
@@ -824,13 +826,13 @@ export function LoginPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <label htmlFor="signup-address-state" className="text-sm font-medium text-foreground">State</label>
+                      <label htmlFor="signup-address-state" className="text-sm font-medium text-foreground">County / Region</label>
                       <Input
                         id="signup-address-state"
                         name="addressState"
                         value={signupData.addressState}
                         onChange={handleSignupInputChange}
-                        placeholder="Dhaka Division"
+                        placeholder="Greater London"
                         className={`h-11 bg-white ${signupErrors.addressState ? 'border-red-500' : ''}`}
                         disabled={isLoading}
                       />
@@ -840,13 +842,13 @@ export function LoginPage() {
 
                   <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <label htmlFor="signup-address-zip" className="text-sm font-medium text-foreground">ZIP Code</label>
+                      <label htmlFor="signup-address-zip" className="text-sm font-medium text-foreground">Postcode</label>
                       <Input
                         id="signup-address-zip"
                         name="addressZipCode"
                         value={signupData.addressZipCode}
                         onChange={handleSignupInputChange}
-                        placeholder="1236"
+                        placeholder="SW1A 1AA"
                         className={`h-11 bg-white ${signupErrors.addressZipCode ? 'border-red-500' : ''}`}
                         disabled={isLoading}
                       />
@@ -860,7 +862,7 @@ export function LoginPage() {
                         name="addressCountry"
                         value={signupData.addressCountry}
                         onChange={handleSignupInputChange}
-                        placeholder="Bangladesh"
+                        placeholder="United Kingdom"
                         className={`h-11 bg-white ${signupErrors.addressCountry ? 'border-red-500' : ''}`}
                         disabled={isLoading}
                       />
@@ -987,9 +989,13 @@ export function LoginPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 rounded-2xl border border-primary/10 bg-secondary/20 px-4 py-3 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-3 rounded-2xl border border-primary/10 bg-secondary/20 px-4 py-3 text-sm text-muted-foreground">
                   <Mail className="h-4 w-4 text-primary" />
                   <span>{signupData.email}</span>
+                </div>
+
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  If the code does not arrive within a few minutes, check spam or junk before trying again.
                 </div>
 
                 <div className="space-y-3">

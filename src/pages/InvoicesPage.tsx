@@ -46,7 +46,7 @@ export function InvoicesPage() {
       client: clientName,
       clientEmail: inv.client?.email || '',
       date: inv.issueDate,
-      amount: `$${(inv.totalAmount ?? 0).toFixed(2)}`,
+      amount: `£${(inv.totalAmount ?? 0).toFixed(2)}`,
       status: normalizeStatus(inv.status),
     };
   });
@@ -109,7 +109,7 @@ export function InvoicesPage() {
             Total Revenue (Monthly)
           </p>
           <h3 className="text-2xl font-bold mt-2">
-            ${monthlySalesAmount.toFixed(2)}
+            £{monthlySalesAmount.toFixed(2)}
           </h3>
           <p className="text-xs text-green-600 mt-1">+12% from last month</p>
         </CardContent>
@@ -120,7 +120,7 @@ export function InvoicesPage() {
             Pending Payments
           </p>
           <h3 className="text-2xl font-bold mt-2">
-            ${dueAmount.toFixed(2)}
+            £{dueAmount.toFixed(2)}
           </h3>
           <p className="text-xs text-muted-foreground mt-1">
             {dueCount} invoices pending
@@ -131,7 +131,7 @@ export function InvoicesPage() {
         <CardContent className="p-6">
           <p className="text-sm font-medium text-muted-foreground">Overdue</p>
           <h3 className="text-2xl font-bold mt-2 text-red-600">
-            ${overdueAmount.toFixed(2)}
+            £{overdueAmount.toFixed(2)}
           </h3>
           <p className="text-xs text-muted-foreground mt-1">
             {overdueCount} invoices overdue

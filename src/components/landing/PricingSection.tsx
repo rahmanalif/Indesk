@@ -115,7 +115,7 @@ export function PricingSection() {
                 <div className="text-center mb-8">
                   <h3 className="text-2xl font-serif font-bold text-charcoal mb-2">{plan.name}</h3>
                   <div className="flex items-baseline justify-center mb-2">
-                    <span className="text-4xl font-bold text-charcoal">${priceLabel}</span>
+                    <span className="text-4xl font-bold text-charcoal">£{priceLabel}</span>
                     <span className="text-warm-gray ml-1">/mo</span>
                   </div>
                   <p className="text-sm text-warm-gray">{plan.description}</p>

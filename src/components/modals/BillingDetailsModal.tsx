@@ -100,7 +100,7 @@ export function BillingDetailsModal({ isOpen, onClose, billingItem }: BillingDet
                         </div>
                         <div className="flex justify-between text-sm py-1 text-muted-foreground">
                             <span>Tax (0%)</span>
-                            <span className="font-medium">$0.00</span>
+                            <span className="font-medium">£0.00</span>
                         </div>
                         <div className="flex justify-between text-lg font-extrabold pt-2 border-t mt-2">
                             <span>Total Amount</span>

@@ -39,7 +39,7 @@ export function SubscriptionPage() {
         id: subscriptionData.id,
         name: planName,
         cycle: 'Monthly',
-        price: `$${price.toFixed(2)}`,
+        price: `£${price.toFixed(2)}`,
         nextBilling,
         status,
       },
@@ -280,7 +280,7 @@ export function SubscriptionPage() {
                     <tr key={item.id} className="hover:bg-muted/50 cursor-pointer transition-colors" onClick={() => handleBillingClick(item)}>
                       <td className="px-4 py-3">{date}</td>
                       <td className="px-4 py-3">{item.description}</td>
-                      <td className="px-4 py-3">${item.amount.toFixed(2)}</td>
+                      <td className="px-4 py-3">£{item.amount.toFixed(2)}</td>
                       <td className="px-4 py-3 text-right">
                         <Badge
                           variant="secondary"
@@ -313,7 +313,7 @@ export function SubscriptionPage() {
                       <div className="text-xs text-muted-foreground">{date}</div>
                     </div>
                     <div className="text-right">
-                      <div className="font-bold text-sm">${item.amount.toFixed(2)}</div>
+                      <div className="font-bold text-sm">£{item.amount.toFixed(2)}</div>
                       <Badge variant="secondary" className={item.status === 'completed' ? "text-[10px] h-5 bg-green-50 text-green-700 px-1.5 border-green-100" : "text-[10px] h-5"}>
                         {statusLabel}
                       </Badge>

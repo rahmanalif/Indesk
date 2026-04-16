@@ -55,7 +55,7 @@ export function CreateInvoiceModal({
 
         <div className="flex justify-between items-center p-4 bg-muted/50 rounded-lg">
           <span className="font-medium">Total Amount</span>
-          <span className="text-xl font-bold">$150.00</span>
+          <span className="text-xl font-bold">£150.00</span>
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-border/50">
