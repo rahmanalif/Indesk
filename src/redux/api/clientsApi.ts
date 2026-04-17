@@ -740,6 +740,68 @@ interface CreateClientResponse {
   };
 }
 
+interface BulkImportClientsResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response?: {
+    data?: {
+      importedCount?: number;
+      failedCount?: number;
+      totalCount?: number;
+    };
+  };
+}
+
+export interface BulkImportClientItem {
+  firstName: string;
+  lastName: string;
+  email: string;
+  dateOfBirth?: string;
+  gender?: string;
+  genderSelfDescribe?: string;
+  phoneNumber?: string;
+  countryCode?: string;
+  mobileCountryCode?: string;
+  mobileNumber?: string;
+  address?: string | Record<string, any>;
+  addressStreet?: string;
+  addressCity?: string;
+  addressPostcode?: string;
+  livingSituation?: string[];
+  livingSituationOther?: string;
+  mentalHealthServices?: string[];
+  mentalHealthServicesOther?: string;
+  mentalHealthServicesDetails?: string;
+  takesMedication?: string;
+  medicationDetails?: string;
+  presentingProblem?: string;
+  safetyRisk?: string;
+  safetyDetails?: string;
+  gpName?: string;
+  surgeryName?: string;
+  surgeryStreet?: string;
+  surgeryCity?: string;
+  surgeryPostcode?: string;
+  paymentMethod?: string;
+  paymentOtherDetails?: string;
+  insurerName?: string;
+  authorizationCode?: string;
+  hearAboutUs?: string[];
+  hearAboutUsDetails?: string;
+  declarationAccepted?: boolean;
+  declarationFullName?: string;
+  declarationSignature?: string;
+  declarationDate?: string;
+  guardianName?: string;
+  guardianSignature?: string;
+  submittedAt?: string;
+  insuranceProvider?: string;
+  insuranceNumber?: string;
+  insuranceAuthorizationNumber?: string;
+  note?: string;
+}
+
 export interface GetClientByIdResponse {
   success: boolean;
   status: number;
@@ -922,6 +984,17 @@ export const clientsApi = createApi({
         method: 'POST',
         body: clientData,
       }),
+      invalidatesTags: ['Clients'],
+    }),
+
+    bulkImportClients: builder.mutation<BulkImportClientsResponse, { clients: BulkImportClientItem[] }>({
+      query: (body) => {
+        return {
+          url: '/client/bulk-import',
+          method: 'POST',
+          body,
+        };
+      },
       invalidatesTags: ['Clients'],
     }),
     
@@ -1208,6 +1281,7 @@ export const clientsApi = createApi({
 export const {
   useGetClientsQuery,
   useCreateClientMutation,
+  useBulkImportClientsMutation,
   useGetClientByIdQuery,
   useGenerateClientPublicTokenMutation,
   useGetPublicClientByTokenQuery,

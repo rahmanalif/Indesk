@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Eye, Download } from 'lucide-react';
+import { Search, Plus, Eye, Download, Upload } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
@@ -10,7 +10,7 @@ import { Badge } from '../components/ui/Badge';
 import { CreateClientModal } from '../components/modals/CreateClientModal';
 import { ClientsReportModal } from '../components/modals/ClientsReportModal';
 import { Pagination } from '../components/ui/Pagination';
-import { useGetClientsQuery, useCreateClientMutation, type CreateClientRequest } from '../redux/api/clientsApi';
+import { useGetClientsQuery, useCreateClientMutation, useBulkImportClientsMutation, type BulkImportClientItem, type CreateClientRequest } from '../redux/api/clientsApi';
 
 type ClientRow = {
   id: string;
@@ -22,8 +22,196 @@ type ClientRow = {
   rawClient: any;
 };
 
+const normalizeHeader = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+const csvHeaderToFieldMap: Record<string, keyof BulkImportClientItem> = {
+  firstname: 'firstName',
+  givenname: 'firstName',
+  lastname: 'lastName',
+  surname: 'lastName',
+  familyname: 'lastName',
+  email: 'email',
+  dob: 'dateOfBirth',
+  dateofbirth: 'dateOfBirth',
+  gender: 'gender',
+  genderselfdescribe: 'genderSelfDescribe',
+  phonenumber: 'phoneNumber',
+  phone: 'phoneNumber',
+  homephone: 'phoneNumber',
+  mobilenumber: 'mobileNumber',
+  mobilephone: 'mobileNumber',
+  mobile: 'mobileNumber',
+  countrycode: 'countryCode',
+  mobilecountrycode: 'mobileCountryCode',
+  address: 'address',
+  street: 'addressStreet',
+  addressstreet: 'addressStreet',
+  city: 'addressCity',
+  addresscity: 'addressCity',
+  postcode: 'addressPostcode',
+  zipcode: 'addressPostcode',
+  addresspostcode: 'addressPostcode',
+  livingsituation: 'livingSituation',
+  livingsituationother: 'livingSituationOther',
+  mentalhealthservices: 'mentalHealthServices',
+  mentalhealthservicesother: 'mentalHealthServicesOther',
+  mentalhealthservicesdetails: 'mentalHealthServicesDetails',
+  takesmedication: 'takesMedication',
+  medicationdetails: 'medicationDetails',
+  presentingproblem: 'presentingProblem',
+  safetyrisk: 'safetyRisk',
+  safetydetails: 'safetyDetails',
+  gpname: 'gpName',
+  surgeryname: 'surgeryName',
+  surgerystreet: 'surgeryStreet',
+  surgerycity: 'surgeryCity',
+  surgerypostcode: 'surgeryPostcode',
+  paymentmethod: 'paymentMethod',
+  paymentotherdetails: 'paymentOtherDetails',
+  insurername: 'insurerName',
+  authorizationcode: 'authorizationCode',
+  hearaboutus: 'hearAboutUs',
+  hearaboutusdetails: 'hearAboutUsDetails',
+  declarationaccepted: 'declarationAccepted',
+  declarationfullname: 'declarationFullName',
+  declarationsignature: 'declarationSignature',
+  declarationdate: 'declarationDate',
+  guardianname: 'guardianName',
+  guardiansignature: 'guardianSignature',
+  submittedat: 'submittedAt',
+  insuranceprovider: 'insuranceProvider',
+  insurancenumber: 'insuranceNumber',
+  insuranceauthorizationnumber: 'insuranceAuthorizationNumber',
+  nationalhealth: 'insuranceNumber',
+  note: 'note',
+};
+
+const arrayFields = new Set<keyof BulkImportClientItem>(['livingSituation', 'mentalHealthServices', 'hearAboutUs']);
+const booleanFields = new Set<keyof BulkImportClientItem>(['declarationAccepted']);
+const phoneFields = new Set<keyof BulkImportClientItem>(['phoneNumber', 'mobileNumber', 'countryCode', 'mobileCountryCode']);
+
+const splitCsvLine = (line: string, delimiter: string) => {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    const nextChar = line[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        current += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === delimiter && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+      continue;
+    }
+
+    current += char;
+  }
+
+  result.push(current.trim());
+  return result;
+};
+
+const parseClientsFromCsv = (csvText: string) => {
+  const lines = csvText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  if (lines.length < 2) {
+    return { clients: [] as BulkImportClientItem[], skippedRows: 0 };
+  }
+
+  const delimiter = (lines[0].match(/;/g) || []).length > (lines[0].match(/,/g) || []).length ? ';' : ',';
+  const headers = splitCsvLine(lines[0], delimiter).map(normalizeHeader);
+  const fieldToColumnIndex = new Map<keyof BulkImportClientItem, number>();
+  headers.forEach((header, index) => {
+    const field = csvHeaderToFieldMap[header];
+    if (field && !fieldToColumnIndex.has(field)) {
+      fieldToColumnIndex.set(field, index);
+    }
+  });
+
+  const firstNameIndex = fieldToColumnIndex.get('firstName') ?? -1;
+  const lastNameIndex = fieldToColumnIndex.get('lastName') ?? -1;
+  const emailIndex = fieldToColumnIndex.get('email') ?? -1;
+
+  if (firstNameIndex === -1 || lastNameIndex === -1 || emailIndex === -1) {
+    return { clients: [] as BulkImportClientItem[], skippedRows: lines.length - 1 };
+  }
+
+  const clients: BulkImportClientItem[] = [];
+  let skippedRows = 0;
+
+  for (let i = 1; i < lines.length; i += 1) {
+    const columns = splitCsvLine(lines[i], delimiter);
+    const firstName = (columns[firstNameIndex] || '').trim();
+    const lastName = (columns[lastNameIndex] || '').trim();
+    const email = (columns[emailIndex] || '').trim();
+
+    if (!firstName && !lastName && !email) {
+      continue;
+    }
+
+    if (!firstName || !lastName || !email) {
+      skippedRows += 1;
+      continue;
+    }
+
+    const clientItem: BulkImportClientItem = {
+      firstName,
+      lastName,
+      email,
+    };
+
+    fieldToColumnIndex.forEach((columnIndex, field) => {
+      if (field === 'firstName' || field === 'lastName' || field === 'email') return;
+
+      const rawValue = (columns[columnIndex] || '').trim();
+      if (!rawValue) return;
+
+      if (booleanFields.has(field)) {
+        const normalized = rawValue.toLowerCase();
+        clientItem[field] = (normalized === 'true' || normalized === 'yes' || normalized === '1') as never;
+        return;
+      }
+
+      if (arrayFields.has(field)) {
+        clientItem[field] = rawValue.split('|').map((part) => part.trim()).filter(Boolean) as never;
+        return;
+      }
+
+      if (phoneFields.has(field)) {
+        clientItem[field] = rawValue.replace(/[^\d+]/g, '') as never;
+        return;
+      }
+
+      clientItem[field] = rawValue as never;
+    });
+
+    if (typeof clientItem.address === 'string' && !clientItem.addressStreet) {
+      clientItem.addressStreet = clientItem.address;
+    }
+
+    clients.push(clientItem);
+  }
+
+  return { clients, skippedRows };
+};
+
 export function ClientsPage() {
   const navigate = useNavigate();
+  const csvInputRef = useRef<HTMLInputElement | null>(null);
   
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Waiting List' | 'Inactive'>('All');
@@ -44,6 +232,7 @@ export function ClientsPage() {
     search: searchQuery || undefined,
   });
   const [createClient, { isLoading: isCreatingClient, error: createClientError }] = useCreateClientMutation();
+  const [bulkImportClients, { isLoading: isImportingClients }] = useBulkImportClientsMutation();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -155,6 +344,46 @@ export function ClientsPage() {
     }
   };
 
+  const handleImportButtonClick = () => {
+    csvInputRef.current?.click();
+  };
+
+  const handleCsvImport = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      alert('Please upload a CSV file.');
+      return;
+    }
+
+    try {
+      const csvText = await file.text();
+      const { clients, skippedRows } = parseClientsFromCsv(csvText);
+
+      if (clients.length === 0) {
+        alert('No valid client rows found. CSV must include First Name, Surname/Last Name, and Email columns.');
+        return;
+      }
+
+      const response = await bulkImportClients({ clients }).unwrap();
+      const importedCount = response?.response?.data?.importedCount;
+      const failedCount = response?.response?.data?.failedCount;
+      const importedSummary =
+        typeof importedCount === 'number' || typeof failedCount === 'number'
+          ? ` Imported: ${importedCount ?? 0}, Failed: ${failedCount ?? 0}.`
+          : ` Sent: ${clients.length}.`;
+      const skippedSummary = skippedRows > 0 ? ` Skipped rows: ${skippedRows}.` : '';
+
+      alert((response?.message || 'Clients imported successfully.') + importedSummary + skippedSummary);
+      await refetch();
+    } catch (importError: any) {
+      alert(importError?.data?.message || 'Failed to import clients. Please check your CSV and try again.');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -194,6 +423,22 @@ export function ClientsPage() {
         </p>
       </div>
       <div className="flex items-center gap-2">
+        <input
+          ref={csvInputRef}
+          type="file"
+          accept=".csv,text/csv"
+          className="hidden"
+          onChange={handleCsvImport}
+        />
+        <Button
+          variant="outline"
+          className="gap-2"
+          onClick={handleImportButtonClick}
+          disabled={isImportingClients}
+        >
+          <Upload className="h-4 w-4" />
+          {isImportingClients ? 'Importing...' : 'Import CSV'}
+        </Button>
         <Button variant="outline" className="gap-2" onClick={() => setIsExportModalOpen(true)}>
           <Download className="h-4 w-4" />
           Export Information

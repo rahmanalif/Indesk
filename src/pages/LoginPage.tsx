@@ -607,6 +607,11 @@ export function LoginPage() {
       <div className="w-full lg:w-[54%] h-full overflow-y-auto flex flex-col justify-start px-8 py-10 sm:px-12 lg:px-16 xl:px-20 relative bg-white">
         <div className="w-full max-w-xl mx-auto">
         <div className="mb-8">
+          <div className="mb-4">
+            <Button asChild variant="outline" size="sm">
+              <Link to="/">Go to Home</Link>
+            </Button>
+          </div>
           <div className="flex justify-center mb-6">
             <img
               src="/images/inkind logo-04.png"
