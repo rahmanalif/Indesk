@@ -931,6 +931,7 @@ interface CreateClinicalNoteResponse {
 const ISO_DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const ISO_DATE_TIME_REGEX = /^\d{4}-\d{2}-\d{2}T/;
 const SLASH_DOT_DASH_DATE_REGEX = /^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/;
+const BULK_IMPORT_FALLBACK_COUNTRY_CODE = '+44';
 
 const toIsoDateOnly = (value: string): string => {
   const trimmedValue = value.trim();
@@ -979,6 +980,50 @@ const normalizeOptionalDate = (value?: string): string | undefined => {
   if (value === undefined) return undefined;
   const normalized = toIsoDateOnly(value);
   return normalized || undefined;
+};
+
+const normalizePhoneNumberValue = (value?: string): string | undefined => {
+  if (!value) return undefined;
+  const digitsOnly = value.trim().replace(/\D/g, '');
+  return digitsOnly || undefined;
+};
+
+const normalizeCountryCodeValue = (value?: string): string | undefined => {
+  if (!value) return undefined;
+  const digitsOnly = value.trim().replace(/\D/g, '');
+  return digitsOnly ? `+${digitsOnly}` : undefined;
+};
+
+const toNonFutureIsoDate = (value?: string): string | undefined => {
+  const normalizedDate = normalizeOptionalDate(value);
+  if (!normalizedDate) return undefined;
+
+  const todayIsoDate = new Date().toISOString().slice(0, 10);
+  return normalizedDate <= todayIsoDate ? normalizedDate : undefined;
+};
+
+const sanitizeBulkImportClient = (client: BulkImportClientItem): BulkImportClientItem => {
+  const safeClient = {
+    ...client,
+  } as BulkImportClientItem & {
+    assignedClinicianId?: string;
+    clinicId?: string;
+  };
+  delete safeClient.assignedClinicianId;
+  delete safeClient.clinicId;
+
+  const normalizedPhoneNumber = normalizePhoneNumberValue(safeClient.phoneNumber);
+  const normalizedCountryCode =
+    normalizeCountryCodeValue(
+    normalizedPhoneNumber ? safeClient.countryCode || safeClient.mobileCountryCode : undefined
+    ) || (normalizedPhoneNumber ? BULK_IMPORT_FALLBACK_COUNTRY_CODE : undefined);
+
+  return {
+    ...safeClient,
+    dateOfBirth: toNonFutureIsoDate(safeClient.dateOfBirth),
+    phoneNumber: normalizedPhoneNumber,
+    countryCode: normalizedCountryCode,
+  };
 };
 
 export const clientsApi = createApi({
@@ -1045,10 +1090,7 @@ export const clientsApi = createApi({
 
     bulkImportClients: builder.mutation<BulkImportClientsResponse, { clients: BulkImportClientItem[] }>({
       query: (body) => {
-        const normalizedClients = body.clients.map((client) => ({
-          ...client,
-          dateOfBirth: normalizeOptionalDate(client.dateOfBirth),
-        }));
+        const normalizedClients = body.clients.map(sanitizeBulkImportClient);
 
         return {
           url: '/client/bulk-import',
