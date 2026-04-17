@@ -24,67 +24,64 @@ type ClientRow = {
 
 const normalizeHeader = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
 
-const csvHeaderToFieldMap: Record<string, keyof BulkImportClientItem> = {
-  firstname: 'firstName',
-  givenname: 'firstName',
-  lastname: 'lastName',
-  surname: 'lastName',
-  familyname: 'lastName',
-  email: 'email',
-  dob: 'dateOfBirth',
-  dateofbirth: 'dateOfBirth',
-  gender: 'gender',
-  genderselfdescribe: 'genderSelfDescribe',
-  phonenumber: 'phoneNumber',
-  phone: 'phoneNumber',
-  homephone: 'phoneNumber',
-  mobilenumber: 'mobileNumber',
-  mobilephone: 'mobileNumber',
-  mobile: 'mobileNumber',
-  countrycode: 'countryCode',
-  mobilecountrycode: 'mobileCountryCode',
-  address: 'address',
-  street: 'addressStreet',
-  addressstreet: 'addressStreet',
-  city: 'addressCity',
-  addresscity: 'addressCity',
-  postcode: 'addressPostcode',
-  zipcode: 'addressPostcode',
-  addresspostcode: 'addressPostcode',
-  livingsituation: 'livingSituation',
-  livingsituationother: 'livingSituationOther',
-  mentalhealthservices: 'mentalHealthServices',
-  mentalhealthservicesother: 'mentalHealthServicesOther',
-  mentalhealthservicesdetails: 'mentalHealthServicesDetails',
-  takesmedication: 'takesMedication',
-  medicationdetails: 'medicationDetails',
-  presentingproblem: 'presentingProblem',
-  safetyrisk: 'safetyRisk',
-  safetydetails: 'safetyDetails',
-  gpname: 'gpName',
-  surgeryname: 'surgeryName',
-  surgerystreet: 'surgeryStreet',
-  surgerycity: 'surgeryCity',
-  surgerypostcode: 'surgeryPostcode',
-  paymentmethod: 'paymentMethod',
-  paymentotherdetails: 'paymentOtherDetails',
-  insurername: 'insurerName',
-  authorizationcode: 'authorizationCode',
-  hearaboutus: 'hearAboutUs',
-  hearaboutusdetails: 'hearAboutUsDetails',
-  declarationaccepted: 'declarationAccepted',
-  declarationfullname: 'declarationFullName',
-  declarationsignature: 'declarationSignature',
-  declarationdate: 'declarationDate',
-  guardianname: 'guardianName',
-  guardiansignature: 'guardianSignature',
-  submittedat: 'submittedAt',
-  insuranceprovider: 'insuranceProvider',
-  insurancenumber: 'insuranceNumber',
-  insuranceauthorizationnumber: 'insuranceAuthorizationNumber',
-  nationalhealth: 'insuranceNumber',
-  note: 'note',
-};
+const csvHeaderAliases: Array<{ field: keyof BulkImportClientItem; aliases: string[] }> = [
+  { field: 'firstName', aliases: ['firstname', 'givenname'] },
+  { field: 'lastName', aliases: ['lastname', 'surname', 'familyname'] },
+  { field: 'email', aliases: ['email'] },
+  { field: 'dateOfBirth', aliases: ['dob', 'dateofbirth'] },
+  { field: 'gender', aliases: ['gender'] },
+  { field: 'genderSelfDescribe', aliases: ['genderselfdescribe'] },
+  { field: 'phoneNumber', aliases: ['phonenumber', 'phone', 'homephone'] },
+  { field: 'mobileNumber', aliases: ['mobilenumber', 'mobilephone', 'mobile'] },
+  { field: 'countryCode', aliases: ['countrycode'] },
+  { field: 'mobileCountryCode', aliases: ['mobilecountrycode'] },
+  { field: 'address', aliases: ['address'] },
+  { field: 'addressStreet', aliases: ['street', 'addressstreet'] },
+  { field: 'addressCity', aliases: ['city', 'addresscity'] },
+  { field: 'addressPostcode', aliases: ['postcode', 'zipcode', 'addresspostcode'] },
+  { field: 'livingSituation', aliases: ['livingsituation'] },
+  { field: 'livingSituationOther', aliases: ['livingsituationother'] },
+  { field: 'mentalHealthServices', aliases: ['mentalhealthservices'] },
+  { field: 'mentalHealthServicesOther', aliases: ['mentalhealthservicesother'] },
+  { field: 'mentalHealthServicesDetails', aliases: ['mentalhealthservicesdetails'] },
+  { field: 'takesMedication', aliases: ['takesmedication'] },
+  { field: 'medicationDetails', aliases: ['medicationdetails'] },
+  { field: 'presentingProblem', aliases: ['presentingproblem'] },
+  { field: 'safetyRisk', aliases: ['safetyrisk'] },
+  { field: 'safetyDetails', aliases: ['safetydetails'] },
+  { field: 'gpName', aliases: ['gpname'] },
+  { field: 'surgeryName', aliases: ['surgeryname'] },
+  { field: 'surgeryStreet', aliases: ['surgerystreet'] },
+  { field: 'surgeryCity', aliases: ['surgerycity'] },
+  { field: 'surgeryPostcode', aliases: ['surgerypostcode'] },
+  { field: 'paymentMethod', aliases: ['paymentmethod'] },
+  { field: 'paymentOtherDetails', aliases: ['paymentotherdetails'] },
+  { field: 'insurerName', aliases: ['insurername'] },
+  { field: 'authorizationCode', aliases: ['authorizationcode'] },
+  { field: 'hearAboutUs', aliases: ['hearaboutus'] },
+  { field: 'hearAboutUsDetails', aliases: ['hearaboutusdetails'] },
+  { field: 'declarationAccepted', aliases: ['declarationaccepted'] },
+  { field: 'declarationFullName', aliases: ['declarationfullname'] },
+  { field: 'declarationSignature', aliases: ['declarationsignature'] },
+  { field: 'declarationDate', aliases: ['declarationdate'] },
+  { field: 'guardianName', aliases: ['guardianname'] },
+  { field: 'guardianSignature', aliases: ['guardiansignature'] },
+  { field: 'submittedAt', aliases: ['submittedat'] },
+  { field: 'insuranceProvider', aliases: ['insuranceprovider'] },
+  { field: 'insuranceNumber', aliases: ['insurancenumber', 'nationalhealth'] },
+  { field: 'insuranceAuthorizationNumber', aliases: ['insuranceauthorizationnumber'] },
+  { field: 'note', aliases: ['note'] },
+];
+
+const csvHeaderToFieldMap: Record<string, keyof BulkImportClientItem> = csvHeaderAliases.reduce(
+  (acc, { field, aliases }) => {
+    aliases.forEach((alias) => {
+      acc[alias] = field;
+    });
+    return acc;
+  },
+  {} as Record<string, keyof BulkImportClientItem>
+);
 
 const arrayFields = new Set<keyof BulkImportClientItem>(['livingSituation', 'mentalHealthServices', 'hearAboutUs']);
 const booleanFields = new Set<keyof BulkImportClientItem>(['declarationAccepted']);
@@ -193,6 +190,11 @@ const parseClientsFromCsv = (csvText: string) => {
 
       if (phoneFields.has(field)) {
         clientItem[field] = rawValue.replace(/[^\d+]/g, '') as never;
+        return;
+      }
+
+      if (field === 'address') {
+        clientItem.address = { street: rawValue };
         return;
       }
 

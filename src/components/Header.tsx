@@ -10,10 +10,12 @@ import { useAuth } from '../hooks/useAuth';
 import { getAccessibleNavItems } from '../config/navigation';
 import { useGetSelfProfileQuery } from '../redux/api/authApi';
 import {
+  type NotificationItem,
   useGetNotificationsQuery,
   useGetUnreadCountQuery,
   useMarkAllAsReadMutation,
 } from '../redux/api/notificationApi';
+import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 
 interface HeaderProps {
   isSidebarCollapsed: boolean;
@@ -26,7 +28,13 @@ export function Header({
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
-  const { data: selfProfileResponse } = useGetSelfProfileQuery();
+  const { data: selfProfileResponse, error: selfProfileError } = useGetSelfProfileQuery();
+  const selfProfileStatus =
+    typeof selfProfileError === 'object' &&
+    selfProfileError !== null &&
+    'status' in selfProfileError
+      ? (selfProfileError as FetchBaseQueryError).status
+      : undefined;
   const profile = selfProfileResponse?.response?.data;
   const effectiveUser = profile ?? user;
   const displayName =
@@ -62,14 +70,19 @@ export function Header({
   // --- Notification State ---
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
+  const hasHandledUnauthorizedRef = useRef(false);
   const [locallyReadIds, setLocallyReadIds] = useState<Set<string>>(new Set());
   const [markAllAsRead] = useMarkAllAsReadMutation();
+  const shouldSkipProtectedQueries = selfProfileStatus === 401;
 
   const { data: notificationsResponse } = useGetNotificationsQuery(
     { page: 1, limit: 10, isRead: false },
-    { pollingInterval: 30000 }
+    { pollingInterval: 30000, skip: shouldSkipProtectedQueries }
   );
-  const { data: unreadCountResponse } = useGetUnreadCountQuery(undefined, { pollingInterval: 30000 });
+  const { data: unreadCountResponse } = useGetUnreadCountQuery(undefined, {
+    pollingInterval: 30000,
+    skip: shouldSkipProtectedQueries,
+  });
 
   const getRelativeTime = (dateString?: string) => {
     if (!dateString) return 'Just now';
@@ -85,7 +98,7 @@ export function Header({
     return `${days}d ago`;
   };
 
-  const notifications = (notificationsResponse?.response?.data ?? []).map((item: any, index: number) => {
+  const notifications = (notificationsResponse?.response?.data ?? []).map((item: NotificationItem, index: number) => {
     const id = String(item.id ?? item._id ?? index);
     return {
       id,
@@ -117,6 +130,16 @@ export function Header({
   };
 
   // Click outside handler
+  useEffect(() => {
+    if (selfProfileStatus === 401 && !hasHandledUnauthorizedRef.current) {
+      hasHandledUnauthorizedRef.current = true;
+      logout();
+    }
+    if (selfProfileStatus !== 401) {
+      hasHandledUnauthorizedRef.current = false;
+    }
+  }, [selfProfileStatus, logout]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {

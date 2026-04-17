@@ -1004,18 +1004,20 @@ const toNonFutureIsoDate = (value?: string): string | undefined => {
 
 const sanitizeBulkImportClient = (client: BulkImportClientItem): BulkImportClientItem => {
   const safeClient = {
-    ...client,
-  } as BulkImportClientItem & {
+    ...(client as BulkImportClientItem & {
     assignedClinicianId?: string;
     clinicId?: string;
+    }),
   };
   delete safeClient.assignedClinicianId;
   delete safeClient.clinicId;
 
+  const { address, ...clientWithoutAddress } = safeClient;
+
   const hasObjectAddress =
-    !!safeClient.address && typeof safeClient.address === 'object' && !Array.isArray(safeClient.address);
+    !!address && typeof address === 'object' && !Array.isArray(address);
   const stringAddress =
-    typeof safeClient.address === 'string' ? safeClient.address.trim() : undefined;
+    typeof address === 'string' ? address.trim() : undefined;
   const normalizedAddressStreet = safeClient.addressStreet?.trim() || stringAddress;
 
   const normalizedPhoneNumber = normalizePhoneNumberValue(safeClient.phoneNumber);
@@ -1024,20 +1026,14 @@ const sanitizeBulkImportClient = (client: BulkImportClientItem): BulkImportClien
     normalizedPhoneNumber ? safeClient.countryCode || safeClient.mobileCountryCode : undefined
     ) || (normalizedPhoneNumber ? BULK_IMPORT_FALLBACK_COUNTRY_CODE : undefined);
 
-  const sanitizedClient: BulkImportClientItem = {
-    ...safeClient,
-    address: hasObjectAddress ? safeClient.address : undefined,
+  return {
+    ...clientWithoutAddress,
     addressStreet: normalizedAddressStreet,
+    ...(hasObjectAddress ? { address } : {}),
     dateOfBirth: toNonFutureIsoDate(safeClient.dateOfBirth),
     phoneNumber: normalizedPhoneNumber,
     countryCode: normalizedCountryCode,
   };
-
-  if (!hasObjectAddress) {
-    delete sanitizedClient.address;
-  }
-
-  return sanitizedClient;
 };
 
 export const clientsApi = createApi({

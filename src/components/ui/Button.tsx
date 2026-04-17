@@ -37,16 +37,34 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
   asChild = false,
   isLoading,
   children,
+  onClick,
   ...props
 }, ref) => {
   const Comp = asChild ? Slot : 'button';
+  const isDisabled = isLoading || props.disabled;
+
+  // Radix Slot requires exactly one React element child.
+  // Avoid injecting loading adornments when rendering asChild.
+  const content = asChild
+    ? children
+    : <>
+        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {children}
+      </>;
+
   return <Comp className={cn(buttonVariants({
     variant,
     size,
     className
-  }))} ref={ref} disabled={isLoading || props.disabled} {...props}>
-        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        {children}
+  }))} ref={ref} {...props} disabled={asChild ? undefined : isDisabled} aria-disabled={asChild && isDisabled ? true : undefined} onClick={event => {
+    if (asChild && isDisabled) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    onClick?.(event);
+  }}>
+        {content}
       </Comp>;
 });
 Button.displayName = 'Button';
