@@ -1012,18 +1012,32 @@ const sanitizeBulkImportClient = (client: BulkImportClientItem): BulkImportClien
   delete safeClient.assignedClinicianId;
   delete safeClient.clinicId;
 
+  const hasObjectAddress =
+    !!safeClient.address && typeof safeClient.address === 'object' && !Array.isArray(safeClient.address);
+  const stringAddress =
+    typeof safeClient.address === 'string' ? safeClient.address.trim() : undefined;
+  const normalizedAddressStreet = safeClient.addressStreet?.trim() || stringAddress;
+
   const normalizedPhoneNumber = normalizePhoneNumberValue(safeClient.phoneNumber);
   const normalizedCountryCode =
     normalizeCountryCodeValue(
     normalizedPhoneNumber ? safeClient.countryCode || safeClient.mobileCountryCode : undefined
     ) || (normalizedPhoneNumber ? BULK_IMPORT_FALLBACK_COUNTRY_CODE : undefined);
 
-  return {
+  const sanitizedClient: BulkImportClientItem = {
     ...safeClient,
+    address: hasObjectAddress ? safeClient.address : undefined,
+    addressStreet: normalizedAddressStreet,
     dateOfBirth: toNonFutureIsoDate(safeClient.dateOfBirth),
     phoneNumber: normalizedPhoneNumber,
     countryCode: normalizedCountryCode,
   };
+
+  if (!hasObjectAddress) {
+    delete sanitizedClient.address;
+  }
+
+  return sanitizedClient;
 };
 
 export const clientsApi = createApi({
