@@ -928,6 +928,59 @@ interface CreateClinicalNoteResponse {
   };
 }
 
+const ISO_DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+const ISO_DATE_TIME_REGEX = /^\d{4}-\d{2}-\d{2}T/;
+const SLASH_DOT_DASH_DATE_REGEX = /^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/;
+
+const toIsoDateOnly = (value: string): string => {
+  const trimmedValue = value.trim();
+  if (!trimmedValue) return trimmedValue;
+
+  if (ISO_DATE_ONLY_REGEX.test(trimmedValue)) {
+    return trimmedValue;
+  }
+
+  if (ISO_DATE_TIME_REGEX.test(trimmedValue)) {
+    const date = new Date(trimmedValue);
+    return Number.isNaN(date.getTime()) ? trimmedValue : date.toISOString().slice(0, 10);
+  }
+
+  const slashDotDashDateMatch = trimmedValue.match(SLASH_DOT_DASH_DATE_REGEX);
+  if (slashDotDashDateMatch) {
+    const first = Number(slashDotDashDateMatch[1]);
+    const second = Number(slashDotDashDateMatch[2]);
+    const year = Number(slashDotDashDateMatch[3]);
+
+    // Handle common CSV formats such as dd/mm/yyyy and mm/dd/yyyy.
+    const day = first > 12 ? first : second;
+    const month = first > 12 ? second : first;
+    const utcDate = new Date(Date.UTC(year, month - 1, day));
+    const isValidDate =
+      utcDate.getUTCFullYear() === year &&
+      utcDate.getUTCMonth() === month - 1 &&
+      utcDate.getUTCDate() === day;
+
+    if (isValidDate) {
+      return utcDate.toISOString().slice(0, 10);
+    }
+  }
+
+  const parsedDate = new Date(trimmedValue);
+  return Number.isNaN(parsedDate.getTime()) ? trimmedValue : parsedDate.toISOString().slice(0, 10);
+};
+
+const normalizeNullableDate = (value?: string | null): string | null | undefined => {
+  if (value === undefined || value === null) return value;
+  const normalized = toIsoDateOnly(value);
+  return normalized || null;
+};
+
+const normalizeOptionalDate = (value?: string): string | undefined => {
+  if (value === undefined) return undefined;
+  const normalized = toIsoDateOnly(value);
+  return normalized || undefined;
+};
+
 export const clientsApi = createApi({
   reducerPath: 'clientsApi',
   baseQuery: fetchBaseQuery({
@@ -982,17 +1035,25 @@ export const clientsApi = createApi({
       query: (clientData) => ({
         url: '/client',
         method: 'POST',
-        body: clientData,
+        body: {
+          ...clientData,
+          dateOfBirth: normalizeNullableDate(clientData.dateOfBirth),
+        },
       }),
       invalidatesTags: ['Clients'],
     }),
 
     bulkImportClients: builder.mutation<BulkImportClientsResponse, { clients: BulkImportClientItem[] }>({
       query: (body) => {
+        const normalizedClients = body.clients.map((client) => ({
+          ...client,
+          dateOfBirth: normalizeOptionalDate(client.dateOfBirth),
+        }));
+
         return {
           url: '/client/bulk-import',
           method: 'POST',
-          body,
+          body: { clients: normalizedClients },
         };
       },
       invalidatesTags: ['Clients'],
@@ -1020,7 +1081,10 @@ export const clientsApi = createApi({
       query: ({ publicToken, ...body }) => ({
         url: `/client/public/${publicToken}`,
         method: 'PATCH',
-        body,
+        body: {
+          ...body,
+          dateOfBirth: normalizeNullableDate(body.dateOfBirth),
+        },
       }),
       invalidatesTags: (_result, _error, { publicToken }) => [{ type: 'Clients', id: publicToken }, 'Clients'],
     }),
@@ -1254,7 +1318,10 @@ export const clientsApi = createApi({
       query: ({ clientId, ...body }) => ({
         url: `/client/${clientId}`,
         method: 'PUT',
-        body,
+        body: {
+          ...body,
+          dateOfBirth: normalizeNullableDate(body.dateOfBirth),
+        },
       }),
       invalidatesTags: (_result, _error, { clientId }) => [{ type: 'Clients', id: clientId }, 'Clients'],
     }),
