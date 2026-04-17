@@ -64,7 +64,11 @@ export function PricingSection() {
       limits.push(plan.clientLimit === 0 ? 'Unlimited clients' : `${plan.clientLimit} clients`);
     }
     if (typeof plan.clinicianLimit === 'number') {
-      limits.push(plan.clinicianLimit === 0 ? 'Unlimited clinicians' : `${plan.clinicianLimit} clinicians`);
+      limits.push(
+        plan.clinicianLimit === 0
+          ? 'Unlimited clinicians'
+          : `${plan.clinicianLimit} clinician${plan.clinicianLimit === 1 ? '' : 's'}`
+      );
     }
 
     return {
