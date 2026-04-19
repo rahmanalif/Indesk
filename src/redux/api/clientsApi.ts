@@ -951,6 +951,15 @@ interface CreateClinicalNoteResponse {
   };
 }
 
+interface SendClientIntakeLinkResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response?: {
+    data?: Record<string, unknown>;
+  };
+}
+
 const ISO_DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const ISO_DATE_TIME_REGEX = /^\d{4}-\d{2}-\d{2}T/;
 const SLASH_DOT_DASH_DATE_REGEX = /^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/;
@@ -1142,6 +1151,14 @@ export const clientsApi = createApi({
     generateClientPublicToken: builder.mutation<ClientPublicTokenResponse, string>({
       query: (clientId) => ({
         url: `/client/${clientId}/token`,
+        method: 'POST',
+      }),
+      invalidatesTags: (_result, _error, clientId) => [{ type: 'Clients', id: clientId }, 'Clients'],
+    }),
+
+    sendClientIntakeLink: builder.mutation<SendClientIntakeLinkResponse, string>({
+      query: (clientId) => ({
+        url: `/client/${clientId}/send-intake-link`,
         method: 'POST',
       }),
       invalidatesTags: (_result, _error, clientId) => [{ type: 'Clients', id: clientId }, 'Clients'],
@@ -1426,6 +1443,7 @@ export const {
   useBulkImportClientsMutation,
   useGetClientByIdQuery,
   useGenerateClientPublicTokenMutation,
+  useSendClientIntakeLinkMutation,
   useGetPublicClientByTokenQuery,
   useUpdatePublicClientByTokenMutation,
   useGetClientAppointmentsQuery,

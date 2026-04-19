@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCheck, Copy, ExternalLink, FileText } from 'lucide-react';
+import { CheckCheck, Copy, ExternalLink, FileText, Send } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { useGenerateClientPublicTokenMutation } from '../../redux/api/clientsApi';
+import { useGenerateClientPublicTokenMutation, useSendClientIntakeLinkMutation } from '../../redux/api/clientsApi';
 
 interface ClientIntakeLinkModalProps {
   isOpen: boolean;
@@ -16,6 +16,7 @@ export function ClientIntakeLinkModal({ isOpen, onClose, clientId, clientName, p
   const [copied, setCopied] = useState(false);
   const [resolvedPublicToken, setResolvedPublicToken] = useState(publicToken || '');
   const [generateClientPublicToken, { isLoading: isGeneratingToken }] = useGenerateClientPublicTokenMutation();
+  const [sendClientIntakeLink, { isLoading: isSending }] = useSendClientIntakeLinkMutation();
 
   useEffect(() => {
     setResolvedPublicToken(publicToken || '');
@@ -51,6 +52,21 @@ export function ClientIntakeLinkModal({ isOpen, onClose, clientId, clientName, p
     }
   };
 
+  const handleSend = async () => {
+    if (!clientId) {
+      alert('Client id is missing. Please refresh and try again.');
+      return;
+    }
+
+    try {
+      const response = await sendClientIntakeLink(clientId).unwrap();
+      alert(response?.message || `Intake link sent to ${clientName || 'the client'}.`);
+      onClose();
+    } catch (error: any) {
+      alert(error?.data?.message || error?.message || 'Failed to send intake link.');
+    }
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Share Public Intake Form">
       <div className="space-y-6">
@@ -80,8 +96,12 @@ export function ClientIntakeLinkModal({ isOpen, onClose, clientId, clientName, p
             {copied ? <CheckCheck className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             {copied ? 'Copied' : 'Copy Link'}
           </Button>
+          <Button className="gap-2" onClick={handleSend} isLoading={isSending} disabled={!clientId || isGeneratingToken}>
+            <Send className="h-4 w-4" />
+            Send
+          </Button>
           <a href={shareUrl || undefined} target="_blank" rel="noreferrer">
-            <Button className="w-full gap-2 sm:w-auto">
+            <Button className="w-full gap-2 sm:w-auto" disabled={!shareUrl || isGeneratingToken || isSending}>
               <ExternalLink className="h-4 w-4" />
               Open Public Form
             </Button>
