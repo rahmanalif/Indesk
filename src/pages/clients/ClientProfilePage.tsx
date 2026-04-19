@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { Save, User, Shield, AlertCircle, Clock, Video } from 'lucide-react';
+import { Save, User, Shield, AlertCircle, Clock, Video, Building2 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
@@ -45,6 +45,11 @@ export function ClientProfilePage() {
         insuranceProvider: '',
         insuranceNumber: '',
         insuranceAuthorizationNumber: '',
+        gpName: '',
+        surgeryName: '',
+        surgeryStreet: '',
+        surgeryCity: '',
+        surgeryPostcode: '',
         medicalAlerts: ''
     });
     const [dob, setDob] = useState<Date | undefined>(undefined);
@@ -72,6 +77,11 @@ export function ClientProfilePage() {
                 insuranceProvider: clientRaw?.insuranceProvider || '',
                 insuranceNumber: clientRaw?.insuranceNumber || '',
                 insuranceAuthorizationNumber: clientRaw?.insuranceAuthorizationNumber || '',
+                gpName: clientRaw?.gpName || '',
+                surgeryName: clientRaw?.surgeryName || '',
+                surgeryStreet: clientRaw?.surgeryStreet || '',
+                surgeryCity: clientRaw?.surgeryCity || '',
+                surgeryPostcode: clientRaw?.surgeryPostcode || '',
                 medicalAlerts: clientRaw?.medicalAlerts || ''
             });
         }
@@ -181,7 +191,15 @@ export function ClientProfilePage() {
                 gender: formData.gender ? formData.gender.toLowerCase() : null,
                 status: formData.status ? formData.status.toLowerCase() : 'active',
                 assignedClinicianId: clientRaw?.assignedClinicianId || null,
-                address: formData.address
+                address: formData.address,
+                insuranceProvider: formData.insuranceProvider || null,
+                insuranceNumber: formData.insuranceNumber || null,
+                insuranceAuthorizationNumber: formData.insuranceAuthorizationNumber || null,
+                gpName: formData.gpName || null,
+                surgeryName: formData.surgeryName || null,
+                surgeryStreet: formData.surgeryStreet || null,
+                surgeryCity: formData.surgeryCity || null,
+                surgeryPostcode: formData.surgeryPostcode || null,
             };
 
             console.log('Updating client with data:', updateData);
@@ -300,6 +318,23 @@ export function ClientProfilePage() {
                             </div>
                         </CardContent>
                     </Card>
+                    {/* Medical Alerts */}
+                    <Card className="border-l-4 border-l-red-500">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-red-600">
+                        <AlertCircle className="h-5 w-5" />
+                        Medical Alerts
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <textarea
+                        className="flex min-h-[135px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-y"
+                        placeholder="List any critical allergies, conditions, or risks here..."
+                        value={formData.medicalAlerts}                       
+                        onChange={(e) => handleInputChange('medicalAlerts', e.target.value)}
+                    />
+                </CardContent>
+            </Card>
                 </div>
 
                 <div className="space-y-4">
@@ -382,26 +417,57 @@ export function ClientProfilePage() {
                             />
                         </CardContent>
                     </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Building2 className="h-5 w-5 text-primary" />
+                                GP Details
+                            </CardTitle>
+                            <CardDescription>
+                                Primary care and surgery information for referrals and coordination.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            <Input
+                                label="GP Name"
+                                value={formData.gpName}
+                                onChange={(e) => handleInputChange('gpName', e.target.value)}
+                                className="h-11 rounded-xl"
+                            />
+                            <Input
+                                label="Surgery Name"
+                                value={formData.surgeryName}
+                                onChange={(e) => handleInputChange('surgeryName', e.target.value)}
+                                className="h-11 rounded-xl"
+                            />
+                            <Input
+                                label="Surgery Street Address"
+                                value={formData.surgeryStreet}
+                                onChange={(e) => handleInputChange('surgeryStreet', e.target.value)}
+                                className="h-11 rounded-xl"
+                            />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <Input
+                                    label="City / Town"
+                                    value={formData.surgeryCity}
+                                    onChange={(e) => handleInputChange('surgeryCity', e.target.value)}
+                                    className="h-11 rounded-xl"
+                                />
+                                <Input
+                                    label="Postcode"
+                                    value={formData.surgeryPostcode}
+                                    onChange={(e) => handleInputChange('surgeryPostcode', e.target.value)}
+                                    className="h-11 rounded-xl"
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
 
             {/* Medical Alert */}
-            <Card className="border-l-4 border-l-red-500">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-red-600">
-                        <AlertCircle className="h-5 w-5" />
-                        Medical Alerts
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <textarea
-                        className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-y"
-                        placeholder="List any critical allergies, conditions, or risks here..."
-                        value={formData.medicalAlerts}
-                        onChange={(e) => handleInputChange('medicalAlerts', e.target.value)}
-                    />
-                </CardContent>
-            </Card>
+            
 
             <div className="flex justify-end pt-4">
                 <Button type="submit" size="default" isLoading={isLoading} className="w-full sm:w-auto px-10 h-11 rounded-xl">

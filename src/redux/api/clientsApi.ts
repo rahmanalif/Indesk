@@ -692,6 +692,11 @@ export interface CreateClientRequest {
   insuranceProvider?: string | null;
   insuranceNumber?: string | null;
   insuranceAuthorizationNumber?: string | null;
+  gpName?: string | null;
+  surgeryName?: string | null;
+  surgeryStreet?: string | null;
+  surgeryCity?: string | null;
+  surgeryPostcode?: string | null;
   note?: string | null;
 }
 
@@ -707,6 +712,14 @@ export interface UpdateClientRequest {
   status?: 'active' | 'pending' | 'inactive';
   assignedClinicianId?: string | null;
   address?: ClientAddress | null;
+  insuranceProvider?: string | null;
+  insuranceNumber?: string | null;
+  insuranceAuthorizationNumber?: string | null;
+  gpName?: string | null;
+  surgeryName?: string | null;
+  surgeryStreet?: string | null;
+  surgeryCity?: string | null;
+  surgeryPostcode?: string | null;
 }
 
 interface CreateClientResponse {
@@ -727,6 +740,11 @@ interface CreateClientResponse {
       insuranceProvider: string | null;
       insuranceNumber: string | null;
       insuranceAuthorizationNumber: string | null;
+      gpName?: string | null;
+      surgeryName?: string | null;
+      surgeryStreet?: string | null;
+      surgeryCity?: string | null;
+      surgeryPostcode?: string | null;
       note: string | null;
       status: string;
       assignedClinicianId: string | null;
@@ -820,6 +838,11 @@ export interface GetClientByIdResponse {
       insuranceProvider: string | null;
       insuranceNumber: string | null;
       insuranceAuthorizationNumber: string | null;
+      gpName?: string | null;
+      surgeryName?: string | null;
+      surgeryStreet?: string | null;
+      surgeryCity?: string | null;
+      surgeryPostcode?: string | null;
       note: string | null;
       status: string;
       assignedClinicianId: string | null;
