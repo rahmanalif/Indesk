@@ -8,13 +8,19 @@ export interface FinancialOverviewMonth {
   appointmentCount: number;
 }
 
+export interface FinancialOverviewMetric {
+  total: number;
+  growth: number;
+}
+
 export interface FinancialOverviewData {
-  totalIncome: number;
-  avgRevenue: number;
-  growthRate: number;
-  outstanding: number;
+  totalIncome: FinancialOverviewMetric | number;
+  avgRevenue: FinancialOverviewMetric | number;
+  growthRate: FinancialOverviewMetric | number;
+  outstanding: FinancialOverviewMetric | number;
   monthlyRevenue: FinancialOverviewMonth[];
   totalAppointments: number;
+  totalClinics?: number;
   scope: string;
 }
 

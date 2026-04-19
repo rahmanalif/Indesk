@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef } from 'react';
-import { AlertCircle, ArrowUpRight, ArrowDownRight, FileText, TrendingUp } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, FileText, TrendingUp } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
 import { Select } from '../components/ui/Select';
@@ -24,9 +24,14 @@ interface FinancialData {
   expenses: number[];
   labels: string[];
   totalIncome: number;
+  totalIncomeGrowth: number;
   avgRevenue: number;
+  avgRevenueGrowth: number;
   outstanding: number;
+  outstandingGrowth: number;
+  growthRate: number;
   expensesTotal: number;
+  expensesMargin: number;
   incomeSources: { name: string; value: number; color: string }[];
 }
 
@@ -51,6 +56,58 @@ const SESSION_TYPE_COLORS: Record<string, string> = {
   family: '#ec4899',
   group: '#f59e0b',
   other: '#64748b'
+};
+
+const normalizeMetric = (value: unknown) => {
+  if (typeof value === 'number') {
+    return { total: value, growth: 0 };
+  }
+
+  if (value && typeof value === 'object') {
+    const metric = value as { total?: unknown; growth?: unknown };
+
+    return {
+      total: typeof metric.total === 'number' ? metric.total : 0,
+      growth: typeof metric.growth === 'number' ? metric.growth : 0
+    };
+  }
+
+  return { total: 0, growth: 0 };
+};
+
+const formatMetricDelta = (value: number, suffix: string) => {
+  const rounded = Math.abs(value).toLocaleString(undefined, { maximumFractionDigits: 0 });
+
+  if (value > 0) {
+    return `+${rounded}% ${suffix}`;
+  }
+
+  if (value < 0) {
+    return `-${rounded}% ${suffix}`;
+  }
+
+  return `0% ${suffix}`;
+};
+
+const getDeltaTone = (value: number) => {
+  if (value > 0) {
+    return {
+      icon: ArrowUpRight,
+      className: 'text-emerald-600'
+    };
+  }
+
+  if (value < 0) {
+    return {
+      icon: ArrowDownRight,
+      className: 'text-rose-600'
+    };
+  }
+
+  return {
+    icon: ArrowUpRight,
+    className: 'text-muted-foreground'
+  };
 };
 
 // --- Mock Data Generator ---
@@ -83,9 +140,14 @@ const generateData = (range: DateRange, customStart?: Date, customEnd?: Date): F
     expenses,
     labels,
     totalIncome: 0,
+    totalIncomeGrowth: 0,
     avgRevenue: 0,
+    avgRevenueGrowth: 0,
     outstanding: 0,
+    outstandingGrowth: 0,
+    growthRate: 0,
     expensesTotal: 0,
+    expensesMargin: 0,
     incomeSources: DEFAULT_INCOME_SOURCES.map((source) => ({ ...source, value: 0 }))
   };
 };
@@ -99,9 +161,13 @@ const mapOverviewToFinancialData = (overview?: FinancialOverviewData | null): Fi
   const labels = monthly.length > 0 ? monthly.map((item) => item.month) : ['N/A'];
   const revenue = monthly.length > 0 ? monthly.map((item) => item.revenue ?? 0) : [0];
   const expenses = revenue.map(() => 0);
-  const totalIncome = Number.isFinite(overview.totalIncome) ? overview.totalIncome : revenue.reduce((a, b) => a + b, 0);
-  const avgRevenue = Number.isFinite(overview.avgRevenue)
-    ? overview.avgRevenue
+  const totalIncomeMetric = normalizeMetric(overview.totalIncome);
+  const avgRevenueMetric = normalizeMetric(overview.avgRevenue);
+  const outstandingMetric = normalizeMetric(overview.outstanding);
+  const growthRateMetric = normalizeMetric(overview.growthRate);
+  const totalIncome = Number.isFinite(totalIncomeMetric.total) ? totalIncomeMetric.total : revenue.reduce((a, b) => a + b, 0);
+  const avgRevenue = Number.isFinite(avgRevenueMetric.total)
+    ? avgRevenueMetric.total
     : Math.round(totalIncome / (labels.length || 1));
   const incomeSources = totalIncome > 0
     ? DEFAULT_INCOME_SOURCES
@@ -112,9 +178,14 @@ const mapOverviewToFinancialData = (overview?: FinancialOverviewData | null): Fi
     expenses,
     labels,
     totalIncome,
+    totalIncomeGrowth: totalIncomeMetric.growth,
     avgRevenue,
-    outstanding: overview.outstanding ?? 0,
+    avgRevenueGrowth: avgRevenueMetric.growth,
+    outstanding: outstandingMetric.total,
+    outstandingGrowth: outstandingMetric.growth,
+    growthRate: growthRateMetric.total,
     expensesTotal: 0,
+    expensesMargin: 0,
     incomeSources
   };
 };
@@ -159,6 +230,7 @@ const mapExpensesToSeries = (data: ExpensesData | null | undefined, labels: stri
   if (!data || labels.length === 0) {
     return {
       expensesTotal: 0,
+      margin: 0,
       expensesSeries: labels.map(() => 0)
     };
   }
@@ -168,6 +240,7 @@ const mapExpensesToSeries = (data: ExpensesData | null | undefined, labels: stri
 
   return {
     expensesTotal: total,
+    margin: Number.isFinite(data.margin) ? data.margin : 0,
     expensesSeries: labels.map(() => perLabel)
   };
 };
@@ -607,14 +680,20 @@ export function MoneyMattersPage() {
 
   const data = useMemo(() => {
     const base = mappedOverview ?? generateData(dateRange);
-    const { expensesTotal, expensesSeries } = mapExpensesToSeries(expensesResponse?.response?.data, base.labels);
+    const { expensesTotal, expensesSeries, margin } = mapExpensesToSeries(expensesResponse?.response?.data, base.labels);
 
     return {
       ...base,
+      expensesMargin: margin,
       expensesTotal,
       expenses: expensesSeries
     };
   }, [mappedOverview, dateRange, expensesResponse]);
+
+  const totalIncomeTone = getDeltaTone(data.totalIncomeGrowth);
+  const avgRevenueTone = getDeltaTone(data.avgRevenueGrowth);
+  const outstandingTone = getDeltaTone(data.outstandingGrowth);
+  const expensesMarginTone = getDeltaTone(data.expensesMargin);
 
   const sessionChartData = useMemo(() => {
     return mapSessionDistributionToChartData(sessionDistributionResponse?.response?.data);
@@ -658,7 +737,7 @@ export function MoneyMattersPage() {
             <p className="opacity-80 font-medium text-sm uppercase tracking-wide">Total Income</p>
             <h3 className="text-3xl font-bold mt-2">${data.totalIncome.toLocaleString()}</h3>
             <div className="flex items-center mt-2 opacity-90 text-sm bg-white/10 w-fit px-2 py-1 rounded">
-              <ArrowUpRight className="mr-1 h-4 w-4" /> +15% vs prev
+              <totalIncomeTone.icon className="mr-1 h-4 w-4" /> {formatMetricDelta(data.totalIncomeGrowth, 'vs prev')}
             </div>
           </CardContent>
         </Card>
@@ -666,8 +745,8 @@ export function MoneyMattersPage() {
           <CardContent className="p-6">
             <p className="text-muted-foreground font-medium text-sm uppercase tracking-wide">Avg Revenue</p>
             <h3 className="text-3xl font-bold mt-2 text-foreground">${data.avgRevenue.toLocaleString()}</h3>
-            <div className="flex items-center mt-2 text-green-600 text-sm">
-              <ArrowUpRight className="mr-1 h-4 w-4" /> +8% growth
+            <div className={`flex items-center mt-2 text-sm ${avgRevenueTone.className}`}>
+              <avgRevenueTone.icon className="mr-1 h-4 w-4" /> {formatMetricDelta(data.avgRevenueGrowth, 'growth')}
             </div>
           </CardContent>
         </Card>
@@ -675,8 +754,8 @@ export function MoneyMattersPage() {
           <CardContent className="p-6">
             <p className="text-muted-foreground font-medium text-sm uppercase tracking-wide">Outstanding</p>
             <h3 className="text-3xl font-bold mt-2 text-foreground">${data.outstanding.toLocaleString()}</h3>
-            <div className="flex items-center mt-2 text-amber-600 text-sm">
-              <AlertCircle className="mr-1 h-4 w-4" /> Action needed
+            <div className={`flex items-center mt-2 text-sm ${outstandingTone.className}`}>
+              <outstandingTone.icon className="mr-1 h-4 w-4" /> {formatMetricDelta(data.outstandingGrowth, 'growth')}
             </div>
           </CardContent>
         </Card>
@@ -684,8 +763,8 @@ export function MoneyMattersPage() {
           <CardContent className="p-6">
             <p className="text-muted-foreground font-medium text-sm uppercase tracking-wide">Expenses Total</p>
             <h3 className="text-3xl font-bold mt-2 text-foreground">${data.expensesTotal.toLocaleString()}</h3>
-            <div className="flex items-center mt-2 text-muted-foreground text-sm">
-              <ArrowDownRight className="mr-1 h-4 w-4" /> 28% margin
+            <div className={`flex items-center mt-2 text-sm ${expensesMarginTone.className}`}>
+              <expensesMarginTone.icon className="mr-1 h-4 w-4" /> {formatMetricDelta(data.expensesMargin, 'margin')}
             </div>
           </CardContent>
         </Card>
