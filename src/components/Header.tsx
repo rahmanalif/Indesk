@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Search, Bell, Menu, X, ChevronRight, LogOut } from 'lucide-react';
+import { Search, Bell, Menu, X, ChevronRight, LogOut, TriangleAlert } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Avatar } from './ui/Avatar';
 import { cn } from '../lib/utils';
 import { SearchDropdown } from './SearchDropdown';
 import { NotificationDropdown } from './NotificationDropdown';
+import { ReportIssueModal } from './modals/ReportIssueModal';
 import { useAuth } from '../hooks/useAuth';
 import { getAccessibleNavItems } from '../config/navigation';
 import { useGetSelfProfileQuery } from '../redux/api/authApi';
@@ -61,6 +62,7 @@ export function Header({
 
   // --- Mobile Menu State ---
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // --- Search State ---
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -111,6 +113,7 @@ export function Header({
 
   const unreadCount = unreadCountResponse?.response?.data?.count ?? 0;
   const accessibleNavItems = getAccessibleNavItems(effectiveUser ?? user);
+  const reportClinicId = profile?.ownedClinics?.[0]?.id;
 
   const markAllRead = async () => {
     try {
@@ -208,6 +211,26 @@ export function Header({
 
         {/* Right Section: Notifications & Profile */}
         <div className="flex flex-1 items-center justify-end gap-2 sm:gap-4">
+          <Button
+            variant="outline"
+            size="sm"
+            className="hidden items-center gap-2 rounded-full border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100 sm:inline-flex"
+            onClick={() => setIsReportModalOpen(true)}
+          >
+            <TriangleAlert className="h-4 w-4" />
+            Report
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-amber-700 hover:bg-amber-50 hover:text-amber-900 sm:hidden"
+            onClick={() => setIsReportModalOpen(true)}
+          >
+            <TriangleAlert className="h-5 w-5" />
+            <span className="sr-only">Report an issue</span>
+          </Button>
+
           <div className="relative" ref={notificationRef}>
             <Button
               variant="ghost"
@@ -246,6 +269,12 @@ export function Header({
           </Link>
         </div>
       </header>
+
+      <ReportIssueModal
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        clinicId={reportClinicId}
+      />
 
       {/* Mobile Menu Dropdown Overlay */}
       {isMobileMenuOpen && (

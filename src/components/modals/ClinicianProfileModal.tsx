@@ -7,7 +7,7 @@ import { Button } from '../ui/Button';
 interface ClinicianProfileModalProps {
     isOpen: boolean;
     onClose: () => void;
-    clinician: any; // Using any for simplicity with mock data
+    clinician: any;
     onEdit?: () => void;
 }
 
@@ -64,7 +64,7 @@ export function ClinicianProfileModal({ isOpen, onClose, clinician, onEdit }: Cl
                         <div className="text-xs text-muted-foreground font-medium">Active Clients</div>
                     </div>
                     <div className="p-3 bg-muted/30 rounded-lg border border-border text-center">
-                        <div className="text-2xl font-bold text-foreground">124</div>
+                        <div className="text-2xl font-bold text-foreground">{clinician.sessions ?? '-'}</div>
                         <div className="text-xs text-muted-foreground font-medium">Sessions</div>
                     </div>
                 </div>

@@ -26,6 +26,7 @@ export function CreateClinicianModal({
 }: CreateClinicianModalProps) {
   const [createClinicMember] = useCreateClinicMemberMutation();
   const [isLoading, setIsLoading] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -56,6 +57,7 @@ export function CreateClinicianModal({
     setPhoneNumber('');
     setCountryCode('+1');
     setPhoneError('');
+    setSubmitError('');
     setRole('clinician');
     setAvailability(['monday', 'tuesday', 'wednesday', 'thursday', 'friday']);
     setBio('');
@@ -64,11 +66,12 @@ export function CreateClinicianModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const nextPhoneError = getCountryPhoneError(phoneNumber, selectedCountryPhone);
-    setPhoneError(nextPhoneError);
-    if (nextPhoneError) {
-      return;
-    }
+	    const nextPhoneError = getCountryPhoneError(phoneNumber, selectedCountryPhone);
+	    setPhoneError(nextPhoneError);
+	    setSubmitError('');
+	    if (nextPhoneError) {
+	      return;
+	    }
     setIsLoading(true);
 
     const specialization = specializationText
@@ -88,14 +91,14 @@ export function CreateClinicianModal({
       availability,
     })
       .unwrap()
-      .then(() => {
-        resetForm();
-        onClose();
-      })
-      .catch((error: any) => {
-        const message = error?.data?.message || 'Failed to add team member. Please try again.';
-        alert(message);
-      })
+	      .then(() => {
+	        resetForm();
+	        onClose();
+	      })
+	      .catch((error: any) => {
+	        const message = error?.data?.message || 'Failed to add team member. Please try again.';
+	        setSubmitError(message);
+	      })
       .finally(() => {
         setIsLoading(false);
       });
@@ -175,21 +178,40 @@ export function CreateClinicianModal({
         value={specializationText}
         onChange={(e) => setSpecializationText(e.target.value)}
       />
-      <Textarea
-        label="Bio / Notes"
-        placeholder="Licensed clinical psychologist with 8 years experience"
-        value={bio}
-        onChange={(e) => setBio(e.target.value)}
-      />
+	      <Textarea
+	        label="Bio / Notes"
+	        placeholder="Licensed clinical psychologist with 8 years experience"
+	        value={bio}
+	        onChange={(e) => setBio(e.target.value)}
+	      />
 
-      <div className="flex justify-end gap-3 pt-4 border-t border-border/50">
-        <Button type="button" variant="outline" onClick={onClose}>
-          Cancel
+	      <div className="flex justify-end gap-3 pt-4 border-t border-border/50">
+	        <Button type="button" variant="outline" onClick={onClose}>
+	          Cancel
         </Button>
         <Button type="submit" isLoading={isLoading}>
           Add Clinician
         </Button>
       </div>
-    </form>
-  </Modal>;
+	    </form>
+
+      <Modal
+        isOpen={Boolean(submitError)}
+        onClose={() => setSubmitError('')}
+        title="Unable To Add Clinician"
+        description="This team member could not be added."
+        size="sm"
+      >
+        <div className="space-y-5">
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {submitError}
+          </div>
+          <div className="flex justify-end border-t border-border/50 pt-4">
+            <Button type="button" onClick={() => setSubmitError('')}>
+              OK
+            </Button>
+          </div>
+        </div>
+      </Modal>
+	  </Modal>;
 }

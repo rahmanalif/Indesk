@@ -14,6 +14,9 @@ type PricingPlan = {
   features: string[];
 };
 
+const pluralize = (count: number, singular: string, plural = `${singular}s`) =>
+  `${count} ${count === 1 ? singular : plural}`;
+
 const formatFeatureLabel = (key: string) =>
   key
     .split('_')
@@ -54,16 +57,37 @@ export function PricingSection() {
   const { ref, isInView } = useInView({ threshold: 0.1 });
   const { data, isLoading, isError } = useGetAvailablePlansQuery();
 
-  const apiPlans = (data?.response?.data || []).map((plan) => {
+  const apiPlans = (data?.response?.data || [])
+    .filter((plan) => plan.isActive !== false)
+    .map((plan) => {
     const featureItems = Object.entries(plan.features || {})
       .filter(([, enabled]) => Boolean(enabled))
       .map(([key]) => formatFeatureLabel(key));
 
     const limits: string[] = [];
+    const seatPolicyItems: string[] = [];
+
+    if (typeof plan.seatPolicy?.includedClinicians === 'number') {
+      seatPolicyItems.push(
+        plan.seatPolicy.extraCliniciansAllowed
+          ? `${plan.seatPolicy.includedClinicians} ${plan.seatPolicy.includedClinicians === 1 ? 'clinician' : 'clinicians'} + add more`
+          : `${pluralize(plan.seatPolicy.includedClinicians, 'clinician')} included`
+      );
+    }
+    if (typeof plan.seatPolicy?.includedAdminUsers === 'number') {
+      seatPolicyItems.push(`${pluralize(plan.seatPolicy.includedAdminUsers, 'admin user')} included`);
+    }
+    if (plan.seatPolicy?.extraCliniciansAllowed) {
+      seatPolicyItems.push('Extra clinicians available');
+    }
+
     if (typeof plan.clientLimit === 'number') {
       limits.push(plan.clientLimit === 0 ? 'Unlimited clients' : `${plan.clientLimit} clients`);
     }
-    if (typeof plan.clinicianLimit === 'number') {
+    if (
+      typeof plan.clinicianLimit === 'number' &&
+      typeof plan.seatPolicy?.includedClinicians !== 'number'
+    ) {
       limits.push(
         plan.clinicianLimit === 0
           ? 'Unlimited clinicians'
@@ -78,7 +102,7 @@ export function PricingSection() {
       description: plan.description || '',
       isPopular: Boolean(plan.isPopular),
       type: plan.type || '',
-      features: [...limits, ...featureItems],
+      features: [...seatPolicyItems, ...limits, ...featureItems],
     };
   });
 

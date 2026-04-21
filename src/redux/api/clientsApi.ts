@@ -373,6 +373,12 @@ export interface SubscriptionPlanFeatures {
   advanced_reporting?: boolean;
 }
 
+export interface SubscriptionSeatPolicy {
+  includedClinicians?: number;
+  includedAdminUsers?: number;
+  extraCliniciansAllowed?: boolean;
+}
+
 export interface SubscriptionPlan {
   id: string;
   name: string;
@@ -382,6 +388,7 @@ export interface SubscriptionPlan {
   clientLimit?: number | null;
   clinicianLimit?: number | null;
   features?: SubscriptionPlanFeatures;
+  seatPolicy?: SubscriptionSeatPolicy;
   isPopular?: boolean;
   savings?: string | null;
   isActive?: boolean;
@@ -395,6 +402,23 @@ export interface GetAvailablePlansResponse {
   message: string;
   response: {
     data: SubscriptionPlan[];
+  };
+}
+
+export interface ContactProviderIssueRequest {
+  subject: string;
+  message: string;
+  clinicId?: string;
+  type?: string;
+  priority?: string;
+}
+
+export interface ContactProviderIssueResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response?: {
+    data?: Record<string, unknown>;
   };
 }
 
@@ -509,6 +533,34 @@ export interface SubscriptionUsage {
   planName: string;
   planType: string;
   subscriptionStatus: string;
+  included?: number;
+  remaining?: number;
+  overage?: number;
+}
+
+export interface SubscriptionUsageSeatBlock {
+  currentCount: number;
+  limit: number;
+  included?: number;
+  remaining?: number;
+  overage?: number;
+  canAddClinician?: boolean;
+  canAddAdminUser?: boolean;
+  billableCount?: number;
+  ownerExempted?: boolean;
+  isUnlimited?: boolean;
+}
+
+export interface SubscriptionPaymentMethod {
+  id: string;
+  brand: string;
+  last4: string;
+  expMonth: number;
+  expYear: number;
+  funding?: string | null;
+  country?: string | null;
+  displayLabel?: string | null;
+  expiresLabel?: string | null;
 }
 
 export interface GetCurrentSubscriptionResponse {
@@ -518,8 +570,52 @@ export interface GetCurrentSubscriptionResponse {
   response: {
     data: {
       subscription: Subscription;
-      usage: SubscriptionUsage;
+      usage: SubscriptionUsage & {
+        clinicians?: SubscriptionUsageSeatBlock;
+        adminUsers?: SubscriptionUsageSeatBlock;
+        plan?: {
+          name?: string;
+          price?: number;
+          seatPolicy?: SubscriptionSeatPolicy;
+        };
+      };
+      paymentMethod?: SubscriptionPaymentMethod | null;
     };
+  };
+}
+
+export interface GetSubscriptionPaymentMethodResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response: {
+    data: {
+      paymentMethod: SubscriptionPaymentMethod | null;
+    };
+  };
+}
+
+export interface CreateBillingPortalSessionRequest {
+  returnUrl?: string;
+}
+
+export interface CreateBillingPortalSessionResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response?: {
+    data?: {
+      url?: string;
+    };
+  };
+}
+
+export interface CancelSubscriptionResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response?: {
+    data?: Record<string, unknown>;
   };
 }
 
@@ -1225,9 +1321,38 @@ export const clientsApi = createApi({
       providesTags: ['Clients'],
     }),
 
+    getSubscriptionPaymentMethod: builder.query<GetSubscriptionPaymentMethodResponse, void>({
+      query: () => '/subscription/payment-method',
+      providesTags: ['Clients'],
+    }),
+
+    createBillingPortalSession: builder.mutation<CreateBillingPortalSessionResponse, CreateBillingPortalSessionRequest | void>({
+      query: (body) => ({
+        url: '/subscription/billing-portal',
+        method: 'POST',
+        body,
+      }),
+    }),
+
+    cancelSubscription: builder.mutation<CancelSubscriptionResponse, void>({
+      query: () => ({
+        url: '/subscription/cancel',
+        method: 'POST',
+      }),
+      invalidatesTags: ['Clients'],
+    }),
+
     getAvailablePlans: builder.query<GetAvailablePlansResponse, void>({
       query: () => '/plans/available',
       providesTags: ['Clients'],
+    }),
+
+    contactProviderIssue: builder.mutation<ContactProviderIssueResponse, ContactProviderIssueRequest>({
+      query: (body) => ({
+        url: '/issue/contact-provider',
+        method: 'POST',
+        body,
+      }),
     }),
 
     initiatePlanOnboarding: builder.mutation<InitiatePlanOnboardingResponse, InitiatePlanOnboardingRequest>({
@@ -1453,7 +1578,11 @@ export const {
   useGetInvoicesQuery,
   useGetInvoiceStatsQuery,
   useGetCurrentSubscriptionQuery,
+  useGetSubscriptionPaymentMethodQuery,
+  useCreateBillingPortalSessionMutation,
+  useCancelSubscriptionMutation,
   useGetAvailablePlansQuery,
+  useContactProviderIssueMutation,
   useInitiatePlanOnboardingMutation,
   useVerifyPlanOnboardingEmailMutation,
   useCreatePlanCheckoutMutation,

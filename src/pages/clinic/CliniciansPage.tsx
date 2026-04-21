@@ -5,26 +5,39 @@ import { Input } from '../../components/ui/Input';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
-import { useGetClinicQuery } from '../../redux/api/clientsApi';
+import { Modal } from '../../components/ui/Modal';
+import { useGetClinicMembersQuery, useGetCurrentSubscriptionQuery } from '../../redux/api/clientsApi';
 import { CreateClinicianModal } from '../../components/modals/CreateClinicianModal';
 import { ClinicianProfileModal } from '../../components/modals/ClinicianProfileModal';
 import { EditClinicianModal } from '../../components/modals/EditClinicianModal';
 import { ClinicianScheduleModal } from '../../components/modals/ClinicianScheduleModal';
 
 export function CliniciansPage() {
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
+	    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+	    const [isSeatWarningOpen, setIsSeatWarningOpen] = useState(false);
+	    const [searchTerm, setSearchTerm] = useState('');
     const [selectedClinician, setSelectedClinician] = useState<any>(null);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
 
     // Custom Dropdown State
-    const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
-    const dropdownRef = useRef<HTMLDivElement>(null);
-    const { data: clinicResponse, isLoading: clinicLoading, isError: clinicError } = useGetClinicQuery();
-    const clinicMembers = clinicResponse?.response?.data?.members || [];
-    const apiOrigin = (() => {
+	    const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+	    const dropdownRef = useRef<HTMLDivElement>(null);
+	    const { data: clinicMembersResponse, isLoading: clinicLoading, isError: clinicError } = useGetClinicMembersQuery({ page: 1, limit: 50 });
+	    const { data: subscriptionResponse } = useGetCurrentSubscriptionQuery();
+	    const clinicMembers = clinicMembersResponse?.response?.data?.docs || [];
+	    const subscriptionUsage = subscriptionResponse?.response?.data?.usage;
+	    const includedClinicians = subscriptionUsage?.plan?.seatPolicy?.includedClinicians;
+	    const clinicianCount = subscriptionUsage?.clinicians?.currentCount ?? 0;
+	    const extraCliniciansAllowed = subscriptionUsage?.plan?.seatPolicy?.extraCliniciansAllowed;
+	    const shouldWarnForExtraClinician = typeof includedClinicians === 'number' && clinicianCount >= includedClinicians;
+	    const clinicianSeatWarningMessage = shouldWarnForExtraClinician && typeof includedClinicians === 'number'
+	        ? extraCliniciansAllowed
+	            ? `Your current plan includes ${includedClinicians} clinician${includedClinicians === 1 ? '' : 's'}. Adding another clinician may create an extra charge on your subscription.`
+	            : `Your current plan includes ${includedClinicians} clinician${includedClinicians === 1 ? '' : 's'}. Adding another clinician may require a plan upgrade or extra charge.`
+	        : '';
+	    const apiOrigin = (() => {
         try {
             return new URL(import.meta.env.VITE_CLIENTS_API_BASE_URL).origin;
         } catch {
@@ -63,10 +76,18 @@ export function CliniciansPage() {
         setOpenDropdownId(null);
     };
 
-    const toggleDropdown = (e: React.MouseEvent, id: string) => {
-        e.stopPropagation();
-        setOpenDropdownId(openDropdownId === id ? null : id);
-    };
+	    const toggleDropdown = (e: React.MouseEvent, id: string) => {
+	        e.stopPropagation();
+	        setOpenDropdownId(openDropdownId === id ? null : id);
+	    };
+
+	    const openCreateClinicianFlow = () => {
+	        if (shouldWarnForExtraClinician) {
+	            setIsSeatWarningOpen(true);
+	            return;
+	        }
+	        setIsCreateModalOpen(true);
+	    };
 
     const formattedMembers = clinicMembers.map((member: any) => {
         const firstName = member.user?.firstName || '';
@@ -85,21 +106,22 @@ export function CliniciansPage() {
             : undefined;
         const phone = `${member.user?.countryCode || ''}${member.user?.phoneNumber || ''}`.trim();
 
-        return {
-            id: member.id as string,
-            name,
-            role: member.role || 'Clinician',
-            email: member.user?.email || '',
+		        return {
+		            id: member.id as string,
+		            name,
+		            role: member.role || 'Clinician',
+	            email: member.user?.email || '',
             avatar,
             phoneNumber: phone,
             bio: member.user?.bio || '',
             availability: Array.isArray(member.availability) ? member.availability : [],
-            specialization: Array.isArray(member.specialization) ? member.specialization : [],
-            status: member.user?.isOnline ? 'Available' : 'Offline',
-            specialty,
-            clients: '-',
-        };
-    });
+		            specialization: Array.isArray(member.specialization) ? member.specialization : [],
+		            status: member.user?.isOnline ? 'Available' : 'Offline',
+		            specialty,
+		            clients: member._count?.assignedClients ?? '-',
+                sessions: member._count?.appointments ?? '-',
+		        };
+		    });
 
     const filteredClinicians = formattedMembers.filter(c =>
         c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -121,10 +143,10 @@ export function CliniciansPage() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <Button onClick={() => setIsCreateModalOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Team Member
-                </Button>
+	                <Button onClick={openCreateClinicianFlow}>
+	                    <Plus className="mr-2 h-4 w-4" />
+	                    Add Team Member
+	                </Button>
             </div>
 
             {/* Clinicians Grid */}
@@ -211,7 +233,33 @@ export function CliniciansPage() {
                 ))}
             </div>
 
-            <CreateClinicianModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+	            <Modal
+	                isOpen={isSeatWarningOpen}
+	                onClose={() => setIsSeatWarningOpen(false)}
+	                title="Extra Charge Warning"
+	                description="Adding another clinician may affect your subscription billing."
+	            >
+	                <div className="space-y-5">
+	                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+	                        {clinicianSeatWarningMessage}
+	                    </div>
+	                    <div className="flex justify-end gap-3 border-t border-border/50 pt-4">
+	                        <Button type="button" variant="outline" onClick={() => setIsSeatWarningOpen(false)}>
+	                            Cancel
+	                        </Button>
+	                        <Button
+	                            type="button"
+	                            onClick={() => {
+	                                setIsSeatWarningOpen(false);
+	                                setIsCreateModalOpen(true);
+	                            }}
+	                        >
+	                            Continue
+	                        </Button>
+	                    </div>
+	                </div>
+	            </Modal>
+	            <CreateClinicianModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
             <ClinicianProfileModal
                 isOpen={isProfileOpen}
                 onClose={() => setIsProfileOpen(false)}

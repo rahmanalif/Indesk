@@ -1,28 +1,28 @@
 import { useMemo, useState } from 'react';
 import { cn } from '../lib/utils';
-import { Check, CreditCard, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Check, CreditCard, Plus } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { AddSubscriptionModal } from '../components/modals/AddSubscriptionModal';
 import { UpdatePaymentModal } from '../components/modals/UpdatePaymentModal';
-import { EditSubscriptionModal } from '../components/modals/EditSubscriptionModal';
 import { BillingDetailsModal } from '../components/modals/BillingDetailsModal';
 import { Pagination } from '../components/ui/Pagination';
-import { useGetClinicTransactionsQuery, useGetCurrentSubscriptionQuery } from '../redux/api/clientsApi';
+import { useCancelSubscriptionMutation, useGetClinicTransactionsQuery, useGetCurrentSubscriptionQuery, useGetSubscriptionPaymentMethodQuery } from '../redux/api/clientsApi';
 
 export function SubscriptionPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [selectedSubscription, setSelectedSubscription] = useState<any>(null);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [selectedBilling, setSelectedBilling] = useState<any>(null);
   const [isBillingOpen, setIsBillingOpen] = useState(false);
 
   const { data: subscriptionResponse, isLoading: subscriptionLoading, isError: subscriptionError } = useGetCurrentSubscriptionQuery();
   const subscriptionData = subscriptionResponse?.response?.data?.subscription;
+  const { data: paymentMethodResponse, isLoading: paymentMethodLoading, isError: paymentMethodError } = useGetSubscriptionPaymentMethodQuery();
+  const paymentMethod = paymentMethodResponse?.response?.data?.paymentMethod ?? null;
+  const [cancelSubscription, { isLoading: isCancellingSubscription }] = useCancelSubscriptionMutation();
 
-  const subscriptions = useMemo(() => {
+	  const subscriptions = useMemo(() => {
     if (!subscriptionData) {
       return [];
     }
@@ -44,8 +44,16 @@ export function SubscriptionPage() {
         status,
       },
     ];
-  }, [subscriptionData]);
+	  }, [subscriptionData]);
 
+  const paymentMethodTitle = paymentMethod?.displayLabel
+    || (paymentMethod?.brand && paymentMethod?.last4
+      ? `${paymentMethod.brand.toUpperCase()} ending in ${paymentMethod.last4}`
+      : 'No default payment method');
+  const paymentMethodExpiry = paymentMethod?.expiresLabel
+    || (paymentMethod?.expMonth && paymentMethod?.expYear
+      ? `${String(paymentMethod.expMonth).padStart(2, '0')}/${String(paymentMethod.expYear).slice(-2)}`
+      : null);
   // Pagination for Billing History
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -57,17 +65,21 @@ export function SubscriptionPage() {
   const totalPages = transactionsResponse?.response?.data?.totalPages || 1;
   const totalDocs = transactionsResponse?.response?.data?.totalDocs || transactions.length;
 
-  const handleEdit = (sub: any) => {
-    setSelectedSubscription(sub);
-    setIsEditOpen(true);
-  };
-
   const handleAddSubscription = () => {
     setIsAddOpen(false);
   };
 
-  const handleDeleteSubscription = () => {
-    alert('Please contact support to cancel or change your subscription.');
+  const handleCancelSubscription = async () => {
+    if (!window.confirm('Are you sure you want to cancel this subscription?')) {
+      return;
+    }
+
+    try {
+      const response = await cancelSubscription().unwrap();
+      alert(response.message || 'Subscription cancelled successfully.');
+    } catch (error: any) {
+      alert(error?.data?.message || error?.message || 'Failed to cancel subscription.');
+    }
   };
 
   const handleBillingClick = (item: any) => {
@@ -87,9 +99,9 @@ export function SubscriptionPage() {
           </p>
         </div>
 
-        <Button onClick={() => setIsAddOpen(true)}>
+        {/* <Button onClick={() => setIsAddOpen(true)}>
           <Plus className="mr-2 h-4 w-4" /> Add Subscription
-        </Button>
+        </Button> */}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -151,14 +163,15 @@ export function SubscriptionPage() {
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-primary" onClick={() => handleEdit(sub)}>
-                            <Edit2 className="h-3 w-3" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-destructive" onClick={handleDeleteSubscription}>
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs"
+                          onClick={handleCancelSubscription}
+                          isLoading={isCancellingSubscription}
+                        >
+                          Cancel
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -199,11 +212,14 @@ export function SubscriptionPage() {
                   </div>
 
                   <div className="flex justify-end gap-2">
-                    <Button variant="outline" size="sm" className="h-8 text-xs flex-1" onClick={() => handleEdit(sub)}>
-                      Edit Plan
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={handleDeleteSubscription}>
-                      <Trash2 className="h-4 w-4" />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-xs flex-1"
+                      onClick={handleCancelSubscription}
+                      isLoading={isCancellingSubscription}
+                    >
+                      Cancel
                     </Button>
                   </div>
                 </Card>
@@ -222,15 +238,27 @@ export function SubscriptionPage() {
             <CardTitle className="text-lg">Payment Method</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-3 p-3 border rounded-lg bg-white/50">
-              <div className="h-8 w-12 bg-gray-100 rounded flex items-center justify-center border">
-                <CreditCard className="h-5 w-5 text-gray-600" />
+            {paymentMethodLoading ? (
+              <div className="text-sm text-muted-foreground">Loading payment method...</div>
+            ) : paymentMethod ? (
+              <div className="flex items-center gap-3 p-3 border rounded-lg bg-white/50">
+                <div className="h-8 w-12 bg-gray-100 rounded flex items-center justify-center border">
+                  <CreditCard className="h-5 w-5 text-gray-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{paymentMethodTitle}</p>
+                  {paymentMethodExpiry && (
+                    <p className="text-xs text-muted-foreground">Expires {paymentMethodExpiry}</p>
+                  )}
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">Visa ending in 4242</p>
-                <p className="text-xs text-muted-foreground">Expires 12/25</p>
+            ) : (
+              <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                {paymentMethodError
+                  ? 'Unable to load payment method details.'
+                  : 'No default payment method found.'}
               </div>
-            </div>
+            )}
             <Button variant="outline" className="w-full" onClick={() => setIsPaymentOpen(true)}>
               Update Payment Method
             </Button>
@@ -336,7 +364,6 @@ export function SubscriptionPage() {
       </Card>
 
       <AddSubscriptionModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onAdd={handleAddSubscription} />
-      <EditSubscriptionModal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} subscription={selectedSubscription} />
       <UpdatePaymentModal isOpen={isPaymentOpen} onClose={() => setIsPaymentOpen(false)} />
       <BillingDetailsModal isOpen={isBillingOpen} onClose={() => setIsBillingOpen(false)} billingItem={selectedBilling} />
     </div>

@@ -23,7 +23,12 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, isAuthenticated, isLoading: authLoading, error: authError, clearError } = useAuth();
-  const { data: plansResponse } = useGetAvailablePlansQuery();
+  const {
+    data: plansResponse,
+    isLoading: isPlansLoading,
+    isFetching: isPlansFetching,
+    error: plansError,
+  } = useGetAvailablePlansQuery();
   const [initiatePlanOnboarding, { isLoading: isInitiating }] = useInitiatePlanOnboardingMutation();
   const [verifyPlanOnboardingEmail, { isLoading: isVerifyingEmail }] = useVerifyPlanOnboardingEmailMutation();
   const [createPlanCheckout, { isLoading: isCreatingCheckout }] = useCreatePlanCheckoutMutation();
@@ -33,7 +38,13 @@ export function LoginPage() {
   const isSignupMode = searchParams.get('mode') === 'signup';
   const requestedPlanId = searchParams.get('planId');
   const shouldFocusPlanField = searchParams.get('focus') === 'plan';
-  const availablePlans = plansResponse?.response?.data || [];
+  const availablePlans = Array.isArray(plansResponse)
+    ? plansResponse
+    : Array.isArray(plansResponse?.response?.data)
+      ? plansResponse.response.data
+      : Array.isArray(plansResponse?.data)
+        ? plansResponse.data
+        : [];
   const planOptions = availablePlans.map((plan) => ({
     value: plan.id,
     label: `${plan.name} - £${Number(plan.price).toFixed(Number.isInteger(plan.price) ? 0 : 2)}/mo`,
@@ -100,6 +111,10 @@ export function LoginPage() {
   const selectedCountryPhone = getCountryPhoneOption(signupData.countryCode);
   const isSignupLoading = isInitiating || isVerifyingEmail || isCreatingCheckout || isCancellingOnboarding;
   const isLoading = authLoading || isSignupLoading;
+  const isPlanSelectDisabled = isLoading || ((isPlansLoading || isPlansFetching) && planOptions.length === 0);
+  const planLoadErrorMessage = !planOptions.length && plansError
+    ? 'Plans could not be loaded from the backend.'
+    : '';
 
   useEffect(() => {
     setShowSignupPanel(isSignupMode);
@@ -168,7 +183,7 @@ export function LoginPage() {
       confirmPassword: '',
       clinicName: '',
       clinicEmail: '',
-      countryCode: '+44',
+      countryCode: '',
       clinicPhone: '',
       addressStreet: '',
       addressCity: '',
@@ -545,7 +560,7 @@ export function LoginPage() {
       confirmPassword: '',
       clinicName: '',
       clinicEmail: '',
-      countryCode: '+44',
+      countryCode: '',
       clinicPhone: '',
       addressStreet: '',
       addressCity: '',
@@ -782,7 +797,7 @@ export function LoginPage() {
                       value={signupData.planId}
                       onChange={handleSignupInputChange}
                       className={`${signupErrors.planId ? 'border-red-500' : ''}`}
-                      disabled={isLoading || planOptions.length === 0}
+                      disabled={isPlanSelectDisabled}
                     >
                       <option value="">Select a plan</option>
                       {planOptions.map((plan) => (
@@ -791,6 +806,7 @@ export function LoginPage() {
                         </option>
                       ))}
                     </Select>
+                    {planLoadErrorMessage && <p className="text-sm text-red-500">{planLoadErrorMessage}</p>}
                     {signupErrors.planId && <p className="text-sm text-red-500">{signupErrors.planId}</p>}
                   </div>
                 </div>
