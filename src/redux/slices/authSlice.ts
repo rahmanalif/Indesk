@@ -10,6 +10,28 @@ interface User {
   isEmailVerified: boolean;
   phoneNumber: string | null;
   isOnline: boolean;
+  subscription?: {
+    id: string;
+    clinicId: string;
+    planId: string;
+    status: string;
+    stripeCustomerId: string | null;
+    stripeSubscriptionId: string | null;
+    currentPeriodStart: string | null;
+    currentPeriodEnd: string | null;
+    trialStart: string | null;
+    trialEnd: string | null;
+    cancelledAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+    plan?: {
+      id: string;
+      name: string;
+      type: string;
+      description?: string | null;
+      price: number;
+    };
+  } | null;
 }
 
 interface Tokens {
@@ -112,6 +134,14 @@ const authSlice = createSlice({
       state.user = { ...state.user, ...action.payload };
       localStorage.setItem('user', JSON.stringify(state.user));
     },
+    updateSubscription: (state, action: PayloadAction<User['subscription']>) => {
+      if (!state.user) return;
+      state.user = {
+        ...state.user,
+        subscription: action.payload,
+      };
+      localStorage.setItem('user', JSON.stringify(state.user));
+    },
     logout: (state) => {
       state.user = null;
       state.tokens = null;
@@ -131,5 +161,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { setCredentials, setLoading, setError, updateUser, logout, clearError } = authSlice.actions;
+export const { setCredentials, setLoading, setError, updateUser, updateSubscription, logout, clearError } = authSlice.actions;
 export default authSlice.reducer;

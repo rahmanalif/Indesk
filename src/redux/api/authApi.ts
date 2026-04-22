@@ -36,6 +36,28 @@ interface AuthenticatedUser {
   lastLoginAt: string | null;
   createdAt: string;
   updatedAt: string;
+  subscription?: {
+    id: string;
+    clinicId: string;
+    planId: string;
+    status: string;
+    stripeCustomerId: string | null;
+    stripeSubscriptionId: string | null;
+    currentPeriodStart: string | null;
+    currentPeriodEnd: string | null;
+    trialStart: string | null;
+    trialEnd: string | null;
+    cancelledAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+    plan?: {
+      id: string;
+      name: string;
+      type: string;
+      description?: string | null;
+      price: number;
+    };
+  } | null;
 }
 
 interface LoginResponse {

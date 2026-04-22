@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { RenewSubscriptionPrompt } from './RenewSubscriptionPrompt';
 import { cn } from '../lib/utils';
 export function AdminLayout() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -27,6 +28,8 @@ export function AdminLayout() {
           </div>
         </main>
       </div>
+
+      <RenewSubscriptionPrompt />
     </div>
   );
 }

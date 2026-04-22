@@ -619,6 +619,24 @@ export interface CancelSubscriptionResponse {
   };
 }
 
+export interface RenewSubscriptionRequest {
+  planId: string;
+}
+
+export interface RenewSubscriptionResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response?: {
+    data?: {
+      url?: string;
+      checkoutUrl?: string;
+      checkoutURL?: string;
+      subscription?: Subscription;
+    };
+  };
+}
+
 export interface ClinicTransactionUser {
   id: string;
   email: string;
@@ -1342,6 +1360,15 @@ export const clientsApi = createApi({
       invalidatesTags: ['Clients'],
     }),
 
+    renewSubscription: builder.mutation<RenewSubscriptionResponse, RenewSubscriptionRequest>({
+      query: (body) => ({
+        url: '/subscription/renew',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Clients'],
+    }),
+
     getAvailablePlans: builder.query<GetAvailablePlansResponse, void>({
       query: () => '/plans/available',
       providesTags: ['Clients'],
@@ -1581,6 +1608,7 @@ export const {
   useGetSubscriptionPaymentMethodQuery,
   useCreateBillingPortalSessionMutation,
   useCancelSubscriptionMutation,
+  useRenewSubscriptionMutation,
   useGetAvailablePlansQuery,
   useContactProviderIssueMutation,
   useInitiatePlanOnboardingMutation,
