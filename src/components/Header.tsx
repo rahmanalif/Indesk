@@ -218,7 +218,7 @@ export function Header({
             onClick={() => setIsReportModalOpen(true)}
           >
             <TriangleAlert className="h-4 w-4" />
-            Report
+            Help & Feedback
           </Button>
 
           <Button

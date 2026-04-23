@@ -187,7 +187,7 @@ export const COUNTRY_PHONE_OPTIONS: CountryPhoneOption[] = [
   createPhoneOption('+256', 'Uganda (+256)'),
   createPhoneOption('+380', 'Ukraine (+380)'),
   createPhoneOption('+971', 'United Arab Emirates (+971)', { minDigits: 9, maxDigits: 9, example: '501234567' }),
-  createPhoneOption('+44', 'United Kingdom (+44)', { minDigits: 10, maxDigits: 11, example: '07860599155' }),
+  createPhoneOption('+44', 'United Kingdom (+44)', { minDigits: 10, maxDigits: 11, example: '07860123456' }),
   createPhoneOption('+1', 'United States (+1)', { minDigits: 10, maxDigits: 10, example: '2025550123' }),
   createPhoneOption('+598', 'Uruguay (+598)'),
   createPhoneOption('+998', 'Uzbekistan (+998)'),
