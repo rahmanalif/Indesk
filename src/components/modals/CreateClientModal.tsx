@@ -65,13 +65,13 @@ export function CreateClientModal({
     dateOfBirth: '',
     gender: '',
     phoneNumber: '',
-    countryCode: '+1',
+    countryCode: '+44',
     address: {
       street: '',
       city: '',
       state: '',
       zip: '',
-      country: 'USA'
+      country: 'UK'
     },
     insuranceProvider: '',
     insuranceNumber: '',
@@ -335,7 +335,7 @@ export function CreateClientModal({
               <h4 className="text-sm font-semibold text-foreground">Address</h4>
               <Input
                 label="Street Address"
-                placeholder="123 Main St"
+                placeholder="221B Baker Street"
                 name="street"
                 value={formData.address.street}
                 onChange={handleAddressChange}
@@ -344,14 +344,14 @@ export function CreateClientModal({
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Input
                   label="City"
-                  placeholder="Springfield"
+                  placeholder="London"
                   name="city"
                   value={formData.address.city}
                   onChange={handleAddressChange}
                 />
                 <Input
                   label="State"
-                  placeholder="Illinois"
+                  placeholder="Greater London"
                   name="state"
                   value={formData.address.state}
                   onChange={handleAddressChange}
@@ -361,7 +361,7 @@ export function CreateClientModal({
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Input
                   label="ZIP/Postal Code"
-                  placeholder="62704"
+                  placeholder="NW1 6XE"
                   name="zip"
                   value={formData.address.zip}
                   onChange={handleAddressChange}
