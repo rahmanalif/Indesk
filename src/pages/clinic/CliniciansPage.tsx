@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSelector } from 'react-redux';
 import { Plus, Search, Mail, MoreHorizontal, UserCheck } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -11,6 +12,7 @@ import { CreateClinicianModal } from '../../components/modals/CreateClinicianMod
 import { ClinicianProfileModal } from '../../components/modals/ClinicianProfileModal';
 import { EditClinicianModal } from '../../components/modals/EditClinicianModal';
 import { ClinicianScheduleModal } from '../../components/modals/ClinicianScheduleModal';
+import { RootState } from '../../store';
 
 export function CliniciansPage() {
 	    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -26,6 +28,7 @@ export function CliniciansPage() {
 	    const dropdownRef = useRef<HTMLDivElement>(null);
 	    const { data: clinicMembersResponse, isLoading: clinicLoading, isError: clinicError } = useGetClinicMembersQuery({ page: 1, limit: 50 });
 	    const { data: subscriptionResponse } = useGetCurrentSubscriptionQuery();
+	    const currentUserId = useSelector((state: RootState) => state.auth.user?.id);
 	    const clinicMembers = clinicMembersResponse?.response?.data?.docs || [];
 	    const subscriptionUsage = subscriptionResponse?.response?.data?.usage;
 	    const includedClinicians = subscriptionUsage?.plan?.seatPolicy?.includedClinicians;
@@ -105,6 +108,8 @@ export function CliniciansPage() {
                     : `${apiOrigin}${avatarPath}`)
             : undefined;
         const phone = `${member.user?.countryCode || ''}${member.user?.phoneNumber || ''}`.trim();
+        const isCurrentUser = member.userId === currentUserId || member.user?.id === currentUserId;
+        const isOnline = isCurrentUser || Boolean(member.user?.isOnline);
 
 		        return {
 		            id: member.id as string,
@@ -116,7 +121,7 @@ export function CliniciansPage() {
             bio: member.user?.bio || '',
             availability: Array.isArray(member.availability) ? member.availability : [],
 		            specialization: Array.isArray(member.specialization) ? member.specialization : [],
-		            status: member.user?.isOnline ? 'Available' : 'Offline',
+			            status: isOnline ? 'Available' : 'Offline',
 		            specialty,
 		            clients: member._count?.assignedClients ?? '-',
                 sessions: member._count?.appointments ?? '-',

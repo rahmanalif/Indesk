@@ -38,6 +38,8 @@ interface InvoicePreviewModalProps {
   fixedClientId?: string;
 }
 
+const formatInvoiceCurrency = (value: number) => `£${Number(value || 0).toFixed(2)}`;
+
 export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = 'view', fixedClientId }: InvoicePreviewModalProps) {
   const { branding } = useData();
   const { data: clinicResponse } = useGetClinicQuery();
@@ -600,7 +602,7 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
                               <span className="mx-1">-</span>
                               Duration: {appointment.session?.duration} min
                               <span className="mx-1">-</span>
-                              ${appointment.session?.price}
+                              {formatInvoiceCurrency(appointment.session?.price || 0)}
                             </div>
                           </div>
                         </div>
@@ -677,11 +679,11 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
                           placeholder="0.00"
                         />
                       ) : (
-                        <div className="font-medium text-sm">${item.unitPrice.toFixed(2)}</div>
+                        <div className="font-medium text-sm">{formatInvoiceCurrency(item.unitPrice)}</div>
                       )}
                     </td>
                     <td className="py-3 px-2 text-right">
-                      <div className="font-medium text-sm">${item.total.toFixed(2)}</div>
+                      <div className="font-medium text-sm">{formatInvoiceCurrency(item.total)}</div>
                     </td>
                     {isEditing && (
                       <td className="text-center">
@@ -729,7 +731,7 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
               <div className="w-64 space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>{formatInvoiceCurrency(subtotal)}</span>
                 </div>
                 {isEditing ? (
                   <div className="flex justify-between items-center text-sm">
@@ -747,12 +749,12 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
                 ) : (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Tax ({taxRate}%)</span>
-                    <span>${tax.toFixed(2)}</span>
+                    <span>{formatInvoiceCurrency(tax)}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-lg font-bold border-t border-dashed pt-3 mt-2">
                   <span>Total</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>{formatInvoiceCurrency(total)}</span>
                 </div>
               </div>
             </div>

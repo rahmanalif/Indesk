@@ -118,7 +118,7 @@ export function PricingSection() {
           {isError && <p className="text-sm text-warm-gray mt-3">Unable to load live plans, showing default pricing.</p>}
         </div>
 
-        <div ref={ref} className={`grid grid-cols-1 ${plans.length >= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-8 items-start`}>
+        <div ref={ref} className={`grid grid-cols-1 ${plans.length >= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-8`}>
           {plans.map((plan, index) => {
             const highlight = plan.isPopular;
             const cta = plan.type === 'enterprise' ? 'Contact Sales' : 'Choose Plan';
@@ -127,7 +127,7 @@ export function PricingSection() {
             return (
               <div
                 key={plan.id}
-                className={`relative rounded-2xl p-8 transition-all duration-500 ${
+                className={`relative rounded-2xl p-8 transition-all duration-500 flex flex-col h-full ${
                   highlight
                     ? 'bg-white border-2 border-terracotta shadow-xl z-10 transform md:-translate-y-4'
                     : 'bg-warm-white border border-warm-gray/10 shadow-sm hover:shadow-md'
@@ -149,7 +149,7 @@ export function PricingSection() {
                   <p className="text-sm text-warm-gray">{plan.description}</p>
                 </div>
 
-                <ul className="space-y-4 mb-8">
+                <ul className="space-y-4 mb-8 flex-grow">
                   {plan.features.map((feature, idx) => (
                     <li key={`${plan.id}-${idx}`} className="flex items-start">
                       <Check size={18} className="text-terracotta mt-0.5 mr-3 flex-shrink-0" />
@@ -164,7 +164,7 @@ export function PricingSection() {
                     highlight
                       ? 'bg-[#7D9663] text-white hover:bg-[#6f8658] shadow-md hover:shadow-lg'
                       : 'bg-[#7D9663] text-white hover:bg-[#6f8658] shadow-sm hover:shadow-md'
-                  } block text-center`}
+                  } block text-center mt-auto`}
                 >
                   {cta}
                 </Link>

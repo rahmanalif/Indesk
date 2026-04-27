@@ -29,6 +29,21 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
             return;
         }
 
+        if (newPass.length < 8) {
+            alert('Password must be at least 8 characters');
+            return;
+        }
+
+        if (!/\d/.test(newPass)) {
+            alert('Password must contain at least one number');
+            return;
+        }
+
+        if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(newPass)) {
+            alert('Password must contain at least one special character');
+            return;
+        }
+
         setIsLoading(true);
         changePassword({
             oldPassword: current,
@@ -71,6 +86,9 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
                         onChange={(e) => setNewPass(e.target.value)}
                         required
                     />
+                    <p className="text-xs text-muted-foreground">
+                        Password must be at least 8 characters long and include at least one number and one special character.
+                    </p>
                 </div>
                 <div className="space-y-2">
                     <label className="text-sm font-medium">Confirm New Password</label>

@@ -387,7 +387,6 @@ export function CreateClientModal({
               <div className="grid grid-cols-1 gap-4">
                 <Input
                   label="Provider"
-                  placeholder="Blue Cross"
                   name="insuranceProvider"
                   value={formData.insuranceProvider}
                   onChange={handleChange}

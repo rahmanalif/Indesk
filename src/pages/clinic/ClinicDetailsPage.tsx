@@ -10,8 +10,8 @@ import { useGetClinicQuery, useUpdateClinicMutation } from '../../redux/api/clie
 
 const CLINIC_CURRENCY_STORAGE_KEY = 'clinic_currency_preference';
 const CURRENCY_OPTIONS = [
-    { value: 'USD', label: 'US Dollar (USD $)' },
     { value: 'GBP', label: 'British Pound (GBP £)' },
+    { value: 'USD', label: 'US Dollar (USD $)' },
 ];
 
 export function ClinicDetailsPage() {
@@ -43,7 +43,7 @@ export function ClinicDetailsPage() {
     const [clinicPhoneInput, setClinicPhoneInput] = useState('');
     const [countryCodeInput, setCountryCodeInput] = useState('');
     const [clinicWebsiteInput, setClinicWebsiteInput] = useState('');
-    const [currencyInput, setCurrencyInput] = useState(() => localStorage.getItem(CLINIC_CURRENCY_STORAGE_KEY) || 'USD');
+    const [currencyInput, setCurrencyInput] = useState(() => localStorage.getItem(CLINIC_CURRENCY_STORAGE_KEY) || 'GBP');
     const [streetInput, setStreetInput] = useState('');
     const [cityInput, setCityInput] = useState('');
     const [stateInput, setStateInput] = useState('');

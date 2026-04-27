@@ -20,7 +20,7 @@ interface SharedDoc {
     file?: File;
 }
 
-export function ShareDocumentModal({ isOpen, onClose, documentName = 'ACE: Adverse Childhood Experiences Questionnaire', templateId }: ShareDocumentModalProps) {
+export function ShareDocumentModal({ isOpen, onClose, documentName, templateId }: ShareDocumentModalProps) {
     const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
     const [instructions, setInstructions] = useState('');
     const [isSent, setIsSent] = useState(false);
@@ -35,9 +35,7 @@ export function ShareDocumentModal({ isOpen, onClose, documentName = 'ACE: Adver
         status: 'active',
     });
 
-    const [includedDocs, setIncludedDocs] = useState<SharedDoc[]>([
-        { id: '1', name: documentName, type: 'Clinical Outcome Measure' }
-    ]);
+    const [includedDocs, setIncludedDocs] = useState<SharedDoc[]>([]);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const hasUploadedDocument = includedDocs.some((doc) => Boolean(doc.file));
@@ -54,11 +52,15 @@ export function ShareDocumentModal({ isOpen, onClose, documentName = 'ACE: Adver
         setAssessmentShareToken(null);
         setCopied(false);
         setSendError(null);
-        setIncludedDocs([{ id: '1', name: documentName, type: 'Clinical Outcome Measure' }]);
+        if (documentName) {
+            setIncludedDocs([{ id: '1', name: documentName, type: 'Clinical Outcome Measure' }]);
+        } else {
+            setIncludedDocs([]);
+        }
     };
 
     useEffect(() => {
-        if (!isOpen) {
+        if (isOpen) {
             resetModalState();
         }
     }, [isOpen, documentName]);
@@ -288,10 +290,11 @@ export function ShareDocumentModal({ isOpen, onClose, documentName = 'ACE: Adver
             <div className="space-y-4 animate-in fade-in duration-300">
                 <div className="rounded-xl border border-green-200 bg-green-50 p-3 flex items-center gap-2">
                     <Check className="h-4 w-4 text-green-600" />
-                    <p className="text-sm font-semibold text-green-700">Assessment Sent to the client succesfully!</p>
+                    <p className="text-sm font-semibold text-green-700">Assessment link generated successfully!</p>
                 </div>
                 <div className="rounded-xl border border-border bg-background p-4 space-y-3">
-                    <p className="text-sm font-bold text-foreground">Public Link</p>
+                    <p className="text-sm font-bold text-foreground">Share Link</p>
+                    <p className="text-xs text-muted-foreground mt-1">Copy this link and send it to your client via email or chat.</p>
                     <div className="flex items-center gap-2 bg-muted/50 border border-border rounded-xl p-3">
                         <p className="flex-1 text-xs text-muted-foreground font-mono truncate">{getShareUrl() || 'Generating link...'}</p>
                     </div>

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { Plus, Search, Calendar } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -8,15 +9,34 @@ import { Card, CardContent } from '../../components/ui/Card';
 import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
 import { useCreateClinicalNoteMutation, useGetClientByIdQuery } from '../../redux/api/clientsApi';
+import { RootState } from '../../store';
 
 export function ClientNotesPage() {
     const { id } = useParams();
+    const currentUser = useSelector((state: RootState) => state.auth.user);
     const { data: clientData, isLoading, isError, error } = useGetClientByIdQuery(id ?? '', {
         skip: !id
     });
     const [isAdding, setIsAdding] = useState(false);
     const [newNoteContent, setNewNoteContent] = useState('');
     const [createClinicalNote, { isLoading: isCreating, error: createError }] = useCreateClinicalNoteMutation();
+
+    const getNoteAuthor = (note: any) => {
+        const author = note.author || note.createdBy || note.user || note.clinician?.user || note.clinician;
+        const firstName = author?.firstName || '';
+        const lastName = author?.lastName || '';
+        const authorName = [firstName, lastName].filter(Boolean).join(' ').trim();
+        const isCurrentUserNote = note.authorId === currentUser?.id || note.userId === currentUser?.id;
+        const currentUserName = [currentUser?.firstName, currentUser?.lastName].filter(Boolean).join(' ').trim();
+        const name = authorName || (isCurrentUserNote ? currentUserName : '') || author?.email || 'Clinician';
+        const role = author?.role || (isCurrentUserNote ? currentUser?.role : '') || 'Clinician';
+
+        return {
+            name,
+            role,
+            fallback: name.split(' ').map((part: string) => part[0]).join('').slice(0, 2).toUpperCase() || 'CN',
+        };
+    };
 
     const notes = useMemo(() => {
         const rawNotes = clientData?.response?.data?.notes || [];
@@ -116,7 +136,10 @@ export function ClientNotesPage() {
                     </div>
                 )}
 
-                {notes.map((note) => (
+                {notes.map((note) => {
+                    const author = getNoteAuthor(note);
+
+                    return (
                     <div key={note.id} className="flex gap-0 sm:gap-4 group">
                         {/* Timeline Node */}
                         <div className="hidden sm:flex flex-col items-center">
@@ -129,10 +152,10 @@ export function ClientNotesPage() {
                             <CardContent className="pt-6">
                                 <div className="flex justify-between items-start mb-3">
                                     <div className="flex items-center gap-3">
-                                        <Avatar fallback="CN" className="h-8 w-8 text-xs" />
+                                        <Avatar fallback={author.fallback} className="h-8 w-8 text-xs" />
                                         <div>
-                                            <p className="font-semibold text-sm">Clinician</p>
-                                            <p className="text-xs text-muted-foreground">Clinician</p>
+                                            <p className="font-semibold text-sm">{author.name}</p>
+                                            <p className="text-xs text-muted-foreground capitalize">{author.role}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -151,7 +174,8 @@ export function ClientNotesPage() {
                             </CardContent>
                         </Card>
                     </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );

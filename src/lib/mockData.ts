@@ -90,28 +90,28 @@ export const SESSION_TYPES = [{
   id: 1,
   name: 'Initial Consultation',
   duration: '60 min',
-  price: '$150',
+  price: '£150',
   color: 'bg-blue-100 text-blue-700',
   reminders: ['Email', 'SMS']
 }, {
   id: 2,
   name: 'Standard Therapy',
   duration: '50 min',
-  price: '$120',
+  price: '£120',
   color: 'bg-green-100 text-green-700',
   reminders: ['Email']
 }, {
   id: 3,
   name: 'Follow-up Check-in',
   duration: '30 min',
-  price: '$80',
+  price: '£80',
   color: 'bg-purple-100 text-purple-700',
   reminders: ['Email']
 }, {
   id: 4,
   name: 'Group Session',
   duration: '90 min',
-  price: '$60',
+  price: '£60',
   color: 'bg-orange-100 text-orange-700',
   reminders: ['Email', 'SMS']
 }];

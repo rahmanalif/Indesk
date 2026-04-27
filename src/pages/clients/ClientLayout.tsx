@@ -12,17 +12,19 @@ import {
     Calendar as CalendarIcon,
     Activity,
     ClipboardCheck,
-    ClipboardList
+    ClipboardList,
+    Download
 } from 'lucide-react';
 import { ClientHistoryModal } from '../../components/modals/ClientHistoryModal';
 import { CreateAppointmentModal } from '../../components/modals/CreateAppointmentModal';
 import { InvoicePreviewModal } from '../../components/modals/InvoicePreviewModal';
 import { ClientIntakeLinkModal } from '../../components/modals/ClientIntakeLinkModal';
+import { ClientExportModal } from '../../components/modals/ClientExportModal';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
-import { useGetClientByIdQuery } from '../../redux/api/clientsApi';
+import { useGetClientAppointmentsQuery, useGetClientByIdQuery, useGetInvoicesQuery } from '../../redux/api/clientsApi';
 import { cn } from '../../lib/utils';
 
 export function ClientLayout() {
@@ -33,6 +35,10 @@ export function ClientLayout() {
   const { data: clientResponse, isLoading, isError, error } = useGetClientByIdQuery(id as string, {
     skip: !id,
   });
+  const { data: clientAppointmentsResponse } = useGetClientAppointmentsQuery(id as string, {
+    skip: !id,
+  });
+  const { data: invoicesResponse } = useGetInvoicesQuery({ page: 1, limit: 100 });
 
   const client = useMemo(() => {
     const data = clientResponse?.response?.data;
@@ -68,6 +74,7 @@ export function ClientLayout() {
     const [isBookingOpen, setIsBookingOpen] = useState(false);
     const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
     const [isIntakeLinkOpen, setIsIntakeLinkOpen] = useState(false);
+    const [isExportOpen, setIsExportOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -96,6 +103,9 @@ export function ClientLayout() {
     ];
 
     const activeTab = location.pathname.split('/').pop() || 'details';
+    const clientNotes = client.rawClient?.notes || [];
+    const clientAppointments = clientAppointmentsResponse?.response?.data?.docs || [];
+    const clientInvoices = (invoicesResponse?.response?.data?.docs || []).filter((invoice: any) => invoice.clientId === client.id);
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500 w-full">
@@ -165,6 +175,14 @@ export function ClientLayout() {
                                     >
                                         <LinkIcon className="h-4 w-4 mr-2" />
                                         Intake Link
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setIsExportOpen(true)}
+                                        className="h-10 lg:h-11 px-6 rounded-xl bg-secondary/10 border-primary/5 font-bold text-[10px] uppercase tracking-widest hover:bg-secondary/20 transition-all shrink-0"
+                                    >
+                                        <Download className="h-4 w-4 mr-2" />
+                                        Export
                                     </Button>
                                     <Button
                                         variant="outline"
@@ -238,6 +256,15 @@ export function ClientLayout() {
                 clientId={client.id}
                 clientName={client.name}
                 publicToken={client.rawClient?.publicToken}
+            />
+
+            <ClientExportModal
+                isOpen={isExportOpen}
+                onClose={() => setIsExportOpen(false)}
+                client={client}
+                notes={clientNotes}
+                appointments={clientAppointments}
+                invoices={clientInvoices}
             />
         </div>
     );

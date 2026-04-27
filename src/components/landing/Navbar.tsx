@@ -11,7 +11,7 @@ export function Navbar({ mode = 'fixed', forceSolid = false }: NavbarProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const isLandingPage = location.pathname === '/landing';
+  const isLandingPage = location.pathname === '/';
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
@@ -37,7 +37,7 @@ export function Navbar({ mode = 'fixed', forceSolid = false }: NavbarProps) {
     href: '#faq'
   }];
 
-  const getNavHref = (href: string) => (isLandingPage ? href : `/landing${href}`);
+  const getNavHref = (href: string) => (isLandingPage ? href : `/${href}`);
 
   return (
     <nav
@@ -48,7 +48,7 @@ export function Navbar({ mode = 'fixed', forceSolid = false }: NavbarProps) {
           {/* Logo */}
           <div className="flex items-center">
             <Link
-              to="/landing"
+              to="/"
               className="text-2xl font-serif font-bold text-charcoal tracking-tight">
 
               <img className='h-12 w-auto' src="/landing/logo.png" alt="" />

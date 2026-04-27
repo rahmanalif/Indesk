@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { setCredentials, logout, clearError, setError, setLoading } from '../redux/slices/authSlice';
-import { useLoginMutation, useLogoutMutation, useRegisterMutation, useVerifyAccountMutation } from '../redux/api/authApi';
+import { authApi, useLoginMutation, useLogoutMutation, useRegisterMutation, useVerifyAccountMutation } from '../redux/api/authApi';
 import { RootState } from '../store';
 
 export const useAuth = () => {
@@ -25,6 +25,7 @@ export const useAuth = () => {
       const response = await loginApi({ email, password }).unwrap();
       
       if (response.success) {
+        dispatch(authApi.util.resetApiState());
         // setCredentials now handles localStorage persistence
         dispatch(setCredentials({
           user: response.response.data,
@@ -73,6 +74,7 @@ export const useAuth = () => {
       const response = await verifyAccountApi({ email, code }).unwrap();
 
       if (response.success) {
+        dispatch(authApi.util.resetApiState());
         dispatch(setCredentials({
           user: response.response.data,
           tokens: response.response.tokens,
@@ -98,6 +100,7 @@ export const useAuth = () => {
     } catch (error) {
       // Ignore logout errors and still clear local auth state
     } finally {
+      dispatch(authApi.util.resetApiState());
       // logout action now handles localStorage cleanup
       dispatch(logout());
       navigate('/login');

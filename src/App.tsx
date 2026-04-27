@@ -46,7 +46,7 @@ function HomeRedirect() {
     return <SmartRedirect preferredRoutes={['/dashboard', '/profile']} fallbackPath="/no-access" />;
   }
 
-  return <Navigate to="/landing" replace />;
+  return <PublicLandingPage />;
 }
 
 export function App() {
@@ -54,21 +54,20 @@ export function App() {
     <DataProvider>
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
-          {/* Public Auth Routes */}
+          {/* Public Routes */}
+          <Route path="/" element={<HomeRedirect />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/landing" element={<PublicLandingPage />} />
           <Route path="/legal/:slug" element={<LegalDocumentPage />} />
           <Route path="/client-intake-form" element={<PublicClientIntakePage />} />
           <Route path="/assessment-portal/:token" element={<PublicAssessmentPage />} />
           <Route path="/clinic-portal/:linkId" element={<PublicClinicPage />} />
           <Route path="/clinic-portal/:linkId/clinician/:id" element={<PublicClinicianPage />} />
+          <Route path="/landing" element={<Navigate to="/" replace />} />
 
           {/* Protected Admin Routes */}
-          <Route path="/" element={<AdminLayout />}>
-            <Route index element={<HomeRedirect />} />
-
+          <Route element={<AdminLayout />}>
             <Route path="dashboard" element={
               <ProtectedRoute permission="clinician_dashboard">
                 <DashboardPage />
@@ -149,7 +148,11 @@ export function App() {
               </ProtectedRoute>
             } />
 
-            <Route path="profile" element={<UserProfilePage />} />
+            <Route path="profile" element={
+              <ProtectedRoute>
+                <UserProfilePage />
+              </ProtectedRoute>
+            } />
             <Route path="no-access" element={
               <ProtectedRoute>
                 <NoPermissionsPage />

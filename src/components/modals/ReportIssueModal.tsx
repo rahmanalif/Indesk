@@ -112,7 +112,7 @@ export function ReportIssueModal({ isOpen, onClose, clinicId }: ReportIssueModal
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title="Report An Issue"
+      title="Report An Issue or Ask For a Feature"
       description="Send a message to the platform provider."
     >
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -131,7 +131,6 @@ export function ReportIssueModal({ isOpen, onClose, clinicId }: ReportIssueModal
               setSubmitSuccess('');
             }
           }}
-          placeholder="Unable to update subscription"
           maxLength={200}
           error={errors.subject}
           disabled={isLoading}
@@ -152,7 +151,6 @@ export function ReportIssueModal({ isOpen, onClose, clinicId }: ReportIssueModal
               setSubmitSuccess('');
             }
           }}
-          placeholder="Describe the issue you are seeing."
           className="min-h-32"
           maxLength={2000}
           error={errors.message}
@@ -173,7 +171,7 @@ export function ReportIssueModal({ isOpen, onClose, clinicId }: ReportIssueModal
 
         <div className="flex justify-end gap-3 border-t pt-4">
           <Button type="button" variant="ghost" onClick={handleClose} disabled={isLoading}>
-            Cancel
+            Close
           </Button>
           <Button type="submit" isLoading={isLoading}>
             Send

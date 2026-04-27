@@ -322,11 +322,11 @@ function InteractiveAreaChart({ data, labels }: { data: { revenue: number[], exp
           <div className="font-bold mb-1">{labels[hoverIndex]}</div>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-[#839362]" />
-            <span>Rev: ${data.revenue[hoverIndex].toLocaleString()}</span>
+            <span>Rev: £{data.revenue[hoverIndex].toLocaleString()}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-[#ef4444]" />
-            <span>Exp: ${data.expenses[hoverIndex].toLocaleString()}</span>
+            <span>Exp: £{data.expenses[hoverIndex].toLocaleString()}</span>
           </div>
         </div>
       )}
@@ -735,7 +735,7 @@ export function MoneyMattersPage() {
           </div>
           <CardContent className="p-6 relative z-10">
             <p className="opacity-80 font-medium text-sm uppercase tracking-wide">Total Income</p>
-            <h3 className="text-3xl font-bold mt-2">${data.totalIncome.toLocaleString()}</h3>
+            <h3 className="text-3xl font-bold mt-2">£{data.totalIncome.toLocaleString()}</h3>
             <div className="flex items-center mt-2 opacity-90 text-sm bg-white/10 w-fit px-2 py-1 rounded">
               <totalIncomeTone.icon className="mr-1 h-4 w-4" /> {formatMetricDelta(data.totalIncomeGrowth, 'vs prev')}
             </div>
@@ -744,7 +744,7 @@ export function MoneyMattersPage() {
         <Card>
           <CardContent className="p-6">
             <p className="text-muted-foreground font-medium text-sm uppercase tracking-wide">Avg Revenue</p>
-            <h3 className="text-3xl font-bold mt-2 text-foreground">${data.avgRevenue.toLocaleString()}</h3>
+            <h3 className="text-3xl font-bold mt-2 text-foreground">£{data.avgRevenue.toLocaleString()}</h3>
             <div className={`flex items-center mt-2 text-sm ${avgRevenueTone.className}`}>
               <avgRevenueTone.icon className="mr-1 h-4 w-4" /> {formatMetricDelta(data.avgRevenueGrowth, 'growth')}
             </div>
@@ -753,7 +753,7 @@ export function MoneyMattersPage() {
         <Card>
           <CardContent className="p-6">
             <p className="text-muted-foreground font-medium text-sm uppercase tracking-wide">Outstanding</p>
-            <h3 className="text-3xl font-bold mt-2 text-foreground">${data.outstanding.toLocaleString()}</h3>
+            <h3 className="text-3xl font-bold mt-2 text-foreground">£{data.outstanding.toLocaleString()}</h3>
             <div className={`flex items-center mt-2 text-sm ${outstandingTone.className}`}>
               <outstandingTone.icon className="mr-1 h-4 w-4" /> {formatMetricDelta(data.outstandingGrowth, 'growth')}
             </div>
@@ -762,7 +762,7 @@ export function MoneyMattersPage() {
         <Card>
           <CardContent className="p-6">
             <p className="text-muted-foreground font-medium text-sm uppercase tracking-wide">Expenses Total</p>
-            <h3 className="text-3xl font-bold mt-2 text-foreground">${data.expensesTotal.toLocaleString()}</h3>
+            <h3 className="text-3xl font-bold mt-2 text-foreground">£{data.expensesTotal.toLocaleString()}</h3>
             <div className={`flex items-center mt-2 text-sm ${expensesMarginTone.className}`}>
               <expensesMarginTone.icon className="mr-1 h-4 w-4" /> {formatMetricDelta(data.expensesMargin, 'margin')}
             </div>

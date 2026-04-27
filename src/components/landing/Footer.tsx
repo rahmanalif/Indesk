@@ -2,10 +2,10 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 const productLinks = [
-  { label: 'Why InDesk', href: '/landing#why' },
-  { label: 'Features', href: '/landing#features' },
-  { label: 'Pricing', href: '/landing#pricing' },
-  { label: 'FAQ', href: '/landing#faq' },
+  { label: 'Why InDesk', href: '#why' },
+  { label: 'Features', href: '#features' },
+  { label: 'Pricing', href: '#pricing' },
+  { label: 'FAQ', href: '#faq' },
 ];
 
 const accountLinks = [
@@ -38,7 +38,7 @@ export function Footer() {
         <div className="mb-16 grid grid-cols-1 items-start gap-12 border-b border-white/10 pb-12 md:grid-cols-4">
           <div className="md:pr-8">
             <Link
-              to="/landing"
+              to="/"
               className="mb-6 block text-2xl font-serif font-bold tracking-tight text-white"
             >
               <img className="h-20 w-auto" src="/landing/logo.png" alt="InDesk" />

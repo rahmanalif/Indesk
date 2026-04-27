@@ -28,8 +28,19 @@ export function Header({
 }: HeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuth();
-  const { data: selfProfileResponse, error: selfProfileError } = useGetSelfProfileQuery();
+  const { user, tokens, isAuthenticated, logout } = useAuth();
+  const hasValidAccessToken = Boolean(
+    tokens?.access?.token &&
+    (!tokens.access.expiresAt || new Date(tokens.access.expiresAt) > new Date())
+  );
+  const {
+    data: selfProfileResponse,
+    error: selfProfileError,
+    isFetching: isSelfProfileFetching,
+  } = useGetSelfProfileQuery(undefined, {
+    skip: !isAuthenticated || !hasValidAccessToken,
+    refetchOnMountOrArgChange: true,
+  });
   const selfProfileStatus =
     typeof selfProfileError === 'object' &&
     selfProfileError !== null &&
@@ -134,14 +145,14 @@ export function Header({
 
   // Click outside handler
   useEffect(() => {
-    if (selfProfileStatus === 401 && !hasHandledUnauthorizedRef.current) {
+    if (selfProfileStatus === 401 && !isSelfProfileFetching && !hasHandledUnauthorizedRef.current) {
       hasHandledUnauthorizedRef.current = true;
       logout();
     }
     if (selfProfileStatus !== 401) {
       hasHandledUnauthorizedRef.current = false;
     }
-  }, [selfProfileStatus, logout]);
+  }, [isSelfProfileFetching, selfProfileStatus, logout]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -214,7 +225,7 @@ export function Header({
           <Button
             variant="outline"
             size="sm"
-            className="hidden items-center gap-2 rounded-full border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100 sm:inline-flex"
+            className="hidden items-center gap-2 rounded-full bg-[#839362] text-white hover:bg-[#839362]/90 hover:text-white sm:inline-flex"
             onClick={() => setIsReportModalOpen(true)}
           >
             <TriangleAlert className="h-4 w-4" />

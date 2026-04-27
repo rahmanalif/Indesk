@@ -108,7 +108,7 @@ export function ClinicianScheduleModal({ isOpen, onClose, clinician }: Clinician
                         <div className="text-xs text-muted-foreground">Hours Booked</div>
                     </div>
                     <div className="text-center">
-                        <div className="text-2xl font-bold text-green-600">$520</div>
+                        <div className="text-2xl font-bold text-green-600">£520</div>
                         <div className="text-xs text-muted-foreground">Est. Revenue</div>
                     </div>
                 </div>

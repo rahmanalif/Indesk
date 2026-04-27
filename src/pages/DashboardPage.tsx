@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { Calendar } from '../components/Calendar';
 import type { ViewMode } from '../components/Calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
@@ -8,6 +9,7 @@ import { Check, ChevronLeft, ChevronRight, Users } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useGetCalendarAppointmentsQuery, useGetClinicMembersQuery } from '../redux/api/clientsApi';
 import { Button } from '../components/ui/Button';
+import { RootState } from '../store';
 const statusColors: Record<string, string> = {
   confirmed: 'bg-blue-100 border-blue-200 text-blue-700',
   scheduled: 'bg-blue-100 border-blue-200 text-blue-700',
@@ -109,23 +111,26 @@ export function DashboardPage() {
   } = useGetClinicMembersQuery({ page: 1, limit: 100 });
 
   const clinicMembers = clinicMembersResponse?.response?.data?.docs ?? [];
+  const currentUserId = useSelector((state: RootState) => state.auth.user?.id);
 
   const clinicians = useMemo(() => {
     return clinicMembers.map((member: any) => {
       const firstName = member.user?.firstName || '';
       const lastName = member.user?.lastName || '';
       const fullName = [firstName, lastName].filter(Boolean).join(' ').trim();
+      const isCurrentUser = member.userId === currentUserId || member.user?.id === currentUserId;
+      const isOnline = isCurrentUser || Boolean(member.user?.isOnline);
 
       return {
         id: String(member.id),
         userId: member.userId,
         name: fullName || member.user?.email || 'Unknown clinician',
         role: member.role || member.user?.role || '',
-        status: member.user?.isOnline ? 'Available' : 'Offline',
+        status: isOnline ? 'Available' : 'Offline',
         avatar: member.user?.avatar,
       };
     });
-  }, [clinicMembers]);
+  }, [clinicMembers, currentUserId]);
 
   useEffect(() => {
     setSelectedCalendarKey(ALL_CALENDARS_KEY);

@@ -1,11 +1,20 @@
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { RenewSubscriptionPrompt } from './RenewSubscriptionPrompt';
 import { cn } from '../lib/utils';
+import { RootState } from '../store';
+
 export function AdminLayout() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
+
+  if (!isAuthenticated || !user) {
+    return <Outlet />;
+  }
+
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar - Desktop Only */}

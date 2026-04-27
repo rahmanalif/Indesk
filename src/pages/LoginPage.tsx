@@ -214,8 +214,14 @@ export function LoginPage() {
     if (!signupData.password) {
       errors.password = 'Password is required';
       isValid = false;
-    } else if (signupData.password.length < 6) {
-      errors.password = 'Password must be at least 6 characters';
+    } else if (signupData.password.length < 8) {
+      errors.password = 'Password must be at least 8 characters';
+      isValid = false;
+    } else if (!/\d/.test(signupData.password)) {
+      errors.password = 'Password must contain at least one number';
+      isValid = false;
+    } else if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(signupData.password)) {
+      errors.password = 'Password must contain at least one special character';
       isValid = false;
     }
     if (!signupData.confirmPassword) {
@@ -913,7 +919,13 @@ export function LoginPage() {
                       {showSignupPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
-                  {signupErrors.password && <p className="text-sm text-red-500">{signupErrors.password}</p>}
+                  {signupErrors.password ? (
+                    <p className="text-sm text-red-500">{signupErrors.password}</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Password must be at least 8 characters long and include at least one number and one special character.
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

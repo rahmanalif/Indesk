@@ -32,7 +32,7 @@ export function CreateClinicianModal({
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('clinician');
-  const [countryCode, setCountryCode] = useState('+1');
+  const [countryCode, setCountryCode] = useState('+44');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [availability, setAvailability] = useState<string[]>(['monday', 'tuesday', 'wednesday', 'thursday', 'friday']);
   const [bio, setBio] = useState('');
@@ -55,7 +55,7 @@ export function CreateClinicianModal({
     setLastName('');
     setEmail('');
     setPhoneNumber('');
-    setCountryCode('+1');
+    setCountryCode('+44');
     setPhoneError('');
     setSubmitError('');
     setRole('clinician');

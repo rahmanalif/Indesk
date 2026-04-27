@@ -168,12 +168,12 @@ function openPrintInvoice(opts: {
 
       <div class="total-row">
         <div class="total-box">
-          <div class="total-line"><span>Subtotal</span><span>${opts.price}</span></div>
-          <div class="total-line"><span>Tax (0%)</span><span>$0.00</span></div>
-          <div class="total-line big"><span>Total Due</span><span>${opts.price}</span></div>
-        </div>
-      </div>
-    </div>
+          <div className="total-line"><span>Subtotal</span><span>£${opts.price}</span></div>
+          <div className="total-line"><span>Tax (0%)</span><span>£0.00</span></div>
+          <div className="total-line big"><span>Total Due</span><span>£${opts.price}</span></div>
+          </div>
+          </div>
+          </div>
 
     <div class="footer">
       <p>Thank you for choosing <strong>${opts.clinicName}</strong>.<br/>
