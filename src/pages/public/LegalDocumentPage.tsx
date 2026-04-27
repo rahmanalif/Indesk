@@ -1,4 +1,5 @@
 import { ArrowLeft, CalendarDays, FileText } from 'lucide-react';
+import { useEffect } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { Footer } from '../../components/landing/Footer';
 import { Navbar } from '../../components/landing/Navbar';
@@ -7,8 +8,12 @@ import { legalDocumentsBySlug } from '../../content/legalDocuments';
 export function LegalDocumentPage() {
   const { slug } = useParams<{ slug: string }>();
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [slug]);
+
   if (!slug || !legalDocumentsBySlug[slug]) {
-    return <Navigate to="/landing" replace />;
+    return <Navigate to="/" replace />;
   }
 
   const document = legalDocumentsBySlug[slug];
@@ -29,7 +34,7 @@ export function LegalDocumentPage() {
 
         <div className="relative mx-auto flex min-h-[360px] max-w-5xl flex-col justify-end px-4 pb-14 pt-16 sm:px-6 lg:px-8">
           <Link
-            to="/landing"
+            to="/"
             className="mb-8 inline-flex w-fit items-center gap-2 text-sm font-medium text-charcoal/70 transition-colors hover:text-terracotta"
           >
             <ArrowLeft size={16} />
@@ -93,10 +98,7 @@ export function LegalDocumentPage() {
                 key={section.heading}
                 className="rounded-3xl border border-charcoal/10 bg-white p-8 shadow-sm sm:p-10"
               >
-                <div className="mb-4 flex items-center gap-4">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-terracotta/10 text-sm font-semibold text-terracotta">
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
+                <div className="mb-4">
                   <h2 className="text-2xl font-serif font-semibold text-charcoal">
                     {section.heading}
                   </h2>

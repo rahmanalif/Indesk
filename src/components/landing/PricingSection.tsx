@@ -40,7 +40,15 @@ const fallbackPlans: PricingPlan[] = [
     description: 'Advanced features for growing practices',
     isPopular: true,
     type: 'professional',
-    features: ['100 clients', 'Notes', 'Clients', 'Assessments', 'Appointments', 'Integrations', 'Advanced Reporting'],
+    features: [
+      'One Clinician included in the price – pay to add maximum 5 more',
+      '100 clients',
+      'Clinical Notes',
+      'Assessments & Questionnaires',
+      'Calendar & Appointments',
+      'Integrations',
+      'Advanced Reporting'
+    ],
   },
   {
     id: 'fallback-enterprise',
@@ -67,26 +75,39 @@ export function PricingSection() {
     const limits: string[] = [];
     const seatPolicyItems: string[] = [];
 
-    if (typeof plan.seatPolicy?.includedClinicians === 'number') {
-      seatPolicyItems.push(
-        plan.seatPolicy.extraCliniciansAllowed
-          ? `${plan.seatPolicy.includedClinicians} ${plan.seatPolicy.includedClinicians === 1 ? 'clinician' : 'clinicians'} + add more`
-          : `${pluralize(plan.seatPolicy.includedClinicians, 'clinician')} included`
-      );
+    const isProfessional = plan.type?.toLowerCase().includes('professional') || plan.name?.toLowerCase().includes('professional');
+    const included = plan.seatPolicy?.includedClinicians ?? (isProfessional ? 1 : 0);
+    const totalLimit = plan.clinicianLimit ?? (isProfessional ? 6 : 0);
+    const extraAllowed = totalLimit > included ? totalLimit - included : 5;
+
+    if (isProfessional || (included === 1 && totalLimit === 6)) {
+      seatPolicyItems.push(`One Clinician included in the price – pay to add maximum ${extraAllowed} more`);
+    } else if (typeof plan.seatPolicy?.includedClinicians === 'number') {
+      if (plan.seatPolicy.extraCliniciansAllowed) {
+        if (totalLimit > included) {
+          seatPolicyItems.push(`${included === 1 ? 'One' : included} Clinician included in the price – pay to add maximum ${totalLimit - included} more`);
+        } else if (totalLimit === 0) {
+          seatPolicyItems.push(`${included} ${included === 1 ? 'clinician' : 'clinicians'} included + add more`);
+        } else {
+          seatPolicyItems.push(`${pluralize(included, 'clinician')} included`);
+        }
+      } else {
+        seatPolicyItems.push(`${pluralize(included, 'clinician')} included`);
+      }
     }
+
     if (typeof plan.seatPolicy?.includedAdminUsers === 'number') {
       seatPolicyItems.push(`${pluralize(plan.seatPolicy.includedAdminUsers, 'admin user')} included`);
-    }
-    if (plan.seatPolicy?.extraCliniciansAllowed) {
-      seatPolicyItems.push('Extra clinicians available');
     }
 
     if (typeof plan.clientLimit === 'number') {
       limits.push(plan.clientLimit === 0 ? 'Unlimited clients' : `${plan.clientLimit} clients`);
     }
+    
+    // Only add basic clinician limit if we didn't already add a complex seat policy line
     if (
-      typeof plan.clinicianLimit === 'number' &&
-      typeof plan.seatPolicy?.includedClinicians !== 'number'
+      seatPolicyItems.length === 0 &&
+      typeof plan.clinicianLimit === 'number'
     ) {
       limits.push(
         plan.clinicianLimit === 0
@@ -153,7 +174,9 @@ export function PricingSection() {
                   {plan.features.map((feature, idx) => (
                     <li key={`${plan.id}-${idx}`} className="flex items-start">
                       <Check size={18} className="text-terracotta mt-0.5 mr-3 flex-shrink-0" />
-                      <span className="text-charcoal/80 text-sm">{feature}</span>
+                      <span className={`text-charcoal/80 text-sm ${feature.includes('Clinician included') ? 'font-bold text-charcoal' : ''}`}>
+                        {feature}
+                      </span>
                     </li>
                   ))}
                 </ul>

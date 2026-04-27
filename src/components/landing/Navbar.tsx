@@ -12,6 +12,11 @@ export function Navbar({ mode = 'fixed', forceSolid = false }: NavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   const isLandingPage = location.pathname === '/';
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
@@ -49,6 +54,7 @@ export function Navbar({ mode = 'fixed', forceSolid = false }: NavbarProps) {
           <div className="flex items-center">
             <Link
               to="/"
+              onClick={scrollToTop}
               className="text-2xl font-serif font-bold text-charcoal tracking-tight">
 
               <img className='h-12 w-auto' src="/landing/logo.png" alt="" />

@@ -23,6 +23,10 @@ const legalLinks = [
 ];
 
 export function Footer() {
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <footer className="relative overflow-hidden bg-gradient-to-b from-[#2A3D25] to-[#1E2D1A] pb-12 pt-20 text-cream">
       <div
@@ -39,13 +43,14 @@ export function Footer() {
           <div className="md:pr-8">
             <Link
               to="/"
+              onClick={scrollToTop}
               className="mb-6 block text-2xl font-serif font-bold tracking-tight text-white"
             >
               <img className="h-20 w-auto" src="/landing/logo.png" alt="InDesk" />
             </Link>
             <p className="max-w-sm text-sm leading-relaxed text-white/60">
               Practice management software for psychologists and therapists.
-              Everything public users can actually access from this site is linked here.
+              
             </p>
           </div>
 
@@ -84,8 +89,16 @@ export function Footer() {
               Contact & Legal
             </h4>
             <div className="mb-6 space-y-2 text-sm text-white/60">
-              <p>info@myindesk.com</p>
-              <p>www.myindesk.com</p>
+              <p>
+                <a href="mailto:info@myindesk.com" className="hover:text-terracotta transition-colors">
+                  info@myindesk.com
+                </a>
+              </p>
+              <p>
+                <a href="https://www.myindesk.com" target="_blank" rel="noopener noreferrer" className="hover:text-terracotta transition-colors">
+                  www.myindesk.com
+                </a>
+              </p>
             </div>
             <ul className="space-y-4 text-sm text-white/60">
               {legalLinks.map((link) => (
