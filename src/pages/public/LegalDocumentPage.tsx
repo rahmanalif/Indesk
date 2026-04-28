@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, FileText } from 'lucide-react';
+import { ArrowLeft, CalendarDays, FileText, Check } from 'lucide-react';
 import { useEffect } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { Footer } from '../../components/landing/Footer';
@@ -85,43 +85,58 @@ export function LegalDocumentPage() {
           </aside>
 
           <article className="space-y-8">
-            <div className="rounded-3xl border border-charcoal/10 bg-white p-8 shadow-sm sm:p-10">
+            {/* <div className="rounded-3xl border border-charcoal/10 bg-white p-8 shadow-sm sm:p-10">
               <div className="space-y-5 text-base leading-8 text-warm-gray">
                 {document.intro.map((paragraph) => (
                   <p key={paragraph}>{paragraph}</p>
                 ))}
               </div>
-            </div>
+            </div> */}
 
-            {document.sections.map((section, index) => (
-              <section
-                key={section.heading}
-                className="rounded-3xl border border-charcoal/10 bg-white p-8 shadow-sm sm:p-10"
-              >
-                <div className="mb-4">
-                  <h2 className="text-2xl font-serif font-semibold text-charcoal">
-                    {section.heading}
-                  </h2>
-                </div>
+            {document.sections.map((section, index) => {
+              const headingParts = section.heading.split(' ');
+              const firstPart = headingParts[0];
+              const isNumbered = /^\d+(\.\d+)*$/.test(firstPart);
+              const number = isNumbered ? firstPart : null;
+              const headingText = isNumbered ? headingParts.slice(1).join(' ') : section.heading;
 
-                <div className="space-y-5 text-base leading-8 text-warm-gray">
-                  {section.paragraphs.map((paragraph) => (
-                    <p key={paragraph}>{paragraph}</p>
-                  ))}
-                </div>
+              return (
+                <section
+                  key={section.heading}
+                  className="rounded-3xl border border-charcoal/10 bg-white p-8 shadow-sm sm:p-10 transition-all hover:shadow-md"
+                >
+                  <div className="mb-6 flex items-start gap-4">
+                    {number && (
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-terracotta text-sm font-bold text-white shadow-sm">
+                        {number}
+                      </div>
+                    )}
+                    <h2 className={`text-2xl font-serif font-semibold text-charcoal ${number ? 'pt-1' : ''}`}>
+                      {headingText}
+                    </h2>
+                  </div>
 
-                {section.bullets && (
-                  <ul className="mt-6 space-y-3 text-base text-warm-gray">
-                    {section.bullets.map((bullet) => (
-                      <li key={bullet} className="flex gap-3 leading-7">
-                        <span className="mt-2 h-2 w-2 rounded-full bg-terracotta" />
-                        <span>{bullet}</span>
-                      </li>
+                  <div className="space-y-5 text-base leading-8 text-warm-gray">
+                    {section.paragraphs.map((paragraph) => (
+                      <p key={paragraph}>{paragraph}</p>
                     ))}
-                  </ul>
-                )}
-              </section>
-            ))}
+                  </div>
+
+                  {section.bullets && (
+                    <ul className="mt-6 space-y-4 text-base text-warm-gray">
+                      {section.bullets.map((bullet, idx) => (
+                        <li key={idx} className="flex gap-4 leading-7">
+                          <div className="mt-1.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-terracotta text-white">
+                            <Check size={12} strokeWidth={3} />
+                          </div>
+                          <span className="text-charcoal/80">{bullet}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              );
+            })}
           </article>
         </div>
       </section>

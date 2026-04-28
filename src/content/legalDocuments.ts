@@ -133,7 +133,7 @@ export const legalDocuments: LegalDocument[] = [
       {
         heading: '1.10 Your Rights',
         paragraphs: [
-          'To exercise any right, write to info@myindesk.com. We will respond within one calendar month.',
+          'To exercise any right, write to info@myindesk.com. We will respond within one calendar week.',
         ],
         bullets: [
           'Access: request a copy of the personal information we hold about you.',

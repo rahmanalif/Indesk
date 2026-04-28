@@ -761,7 +761,7 @@ export function MoneyMattersPage() {
         </Card>
         <Card>
           <CardContent className="p-6">
-            <p className="text-muted-foreground font-medium text-sm uppercase tracking-wide">Expenses Total</p>
+            <p className="text-muted-foreground font-medium text-sm uppercase tracking-wide">Indesk costs</p>
             <h3 className="text-3xl font-bold mt-2 text-foreground">£{data.expensesTotal.toLocaleString()}</h3>
             <div className={`flex items-center mt-2 text-sm ${expensesMarginTone.className}`}>
               <expensesMarginTone.icon className="mr-1 h-4 w-4" /> {formatMetricDelta(data.expensesMargin, 'margin')}
@@ -774,10 +774,10 @@ export function MoneyMattersPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="border-border/50 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle>Revenue vs Expenses</CardTitle>
+            <CardTitle>Revenue vs Indesk Costs</CardTitle>
             <div className="flex gap-4 text-xs font-semibold text-muted-foreground">
               <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#839362]" /> Revenue</div>
-              <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#ef4444]" /> Expenses</div>
+              <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#ef4444]" /> Indesk Costs</div>
             </div>
           </CardHeader>
           <CardContent>
