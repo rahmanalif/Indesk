@@ -272,7 +272,6 @@ const getCatmullRomPath = (data: number[], width: number, height: number, maxVal
 function InteractiveAreaChart({ data, labels }: { data: { revenue: number[], expenses: number[] }, labels: string[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
-  const [_mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   const height = 200; // Internal SVG height
   const width = 400;  // Internal SVG width
@@ -297,7 +296,6 @@ function InteractiveAreaChart({ data, labels }: { data: { revenue: number[], exp
     );
 
     setHoverIndex(index);
-    setMousePos({ x, y: e.clientY - rect.top });
   };
 
   const handleMouseLeave = () => setHoverIndex(null);
@@ -586,15 +584,15 @@ function SessionTypeChart({
 
   // Render concentric rounded bars (Radial Bar Chart style)
   // Largest outer, smallest inner
-  const size = 260;
+  const size = 300;
   const center = size / 2;
-  const maxRadius = center - 10;
-  const barWidth = 12;
+  const maxRadius = center - 12;
+  const barWidth = 10;
   const gap = 12;
 
   return (
-    <div className="flex flex-col md:flex-row items-center justify-around p-4 h-auto md:h-[300px] gap-6">
-      <div className="relative w-[260px] h-[260px]">
+    <div className="flex flex-col md:flex-row items-center justify-around p-4 h-auto md:h-[320px] gap-6">
+      <div className="relative h-[300px] w-[300px] shrink-0">
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="transform -rotate-90">
           {data.map((item, index) => {
             const radius = maxRadius - (index * (barWidth + gap));
@@ -637,9 +635,13 @@ function SessionTypeChart({
         </svg>
 
         {/* Center Stats */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-4xl font-extrabold text-foreground">{total}</span>
-          <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Total Sessions</span>
+        <div className="absolute inset-0 pointer-events-none select-none text-center">
+          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-4xl font-extrabold leading-none text-foreground">
+            {total}
+          </span>
+          <span className="absolute left-1/2 top-[calc(50%+28px)] w-32 -translate-x-1/2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Total Sessions
+          </span>
         </div>
       </div>
 

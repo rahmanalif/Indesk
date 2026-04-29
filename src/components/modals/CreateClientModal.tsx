@@ -4,8 +4,10 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { Select } from '../ui/Select';
+import { DatePicker } from '../ui/DatePicker';
 import {
   COUNTRY_PHONE_OPTIONS,
+  COUNTRY_OPTIONS,
   getCountryPhoneError,
   getCountryPhoneOption,
   normalizePhoneDigits,
@@ -17,6 +19,25 @@ import {
 } from '../../redux/api/clientsApi';
 
 const CLIENT_ASSIGNABLE_ROLES = new Set(['clinician', 'superadmin', 'admin']);
+const DOB_MIN_YEAR = 1900;
+const DOB_MAX_YEAR = new Date().getFullYear();
+const DOB_DEFAULT_VIEW_DATE = new Date(1990, 0, 1);
+
+function parseLocalDate(value: string) {
+  if (!value) return undefined;
+  const [year, month, day] = value.split('-').map(Number);
+  if (!year || !month || !day) return undefined;
+  const date = new Date(year, month - 1, day);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+function formatLocalDate(date: Date | undefined) {
+  if (!date) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 interface CreateClientModalProps {
   isOpen: boolean;
@@ -71,7 +92,7 @@ export function CreateClientModal({
       city: '',
       state: '',
       zip: '',
-      country: 'UK'
+      country: 'United Kingdom'
     },
     insuranceProvider: '',
     insuranceNumber: '',
@@ -254,12 +275,14 @@ export function CreateClientModal({
               />
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Input
+                <DatePicker
                   label="Date of Birth"
-                  type="date"
-                  name="dateOfBirth"
-                  value={formData.dateOfBirth}
-                  onChange={handleChange}
+                  date={parseLocalDate(formData.dateOfBirth)}
+                  setDate={(date) => setFormData((prev) => ({ ...prev, dateOfBirth: formatLocalDate(date) }))}
+                  placeholder="Select date of birth"
+                  minYear={DOB_MIN_YEAR}
+                  maxYear={DOB_MAX_YEAR}
+                  defaultViewDate={DOB_DEFAULT_VIEW_DATE}
                 />
                 <Select
                   label="Gender"
@@ -350,7 +373,7 @@ export function CreateClientModal({
                   onChange={handleAddressChange}
                 />
                 <Input
-                  label="State"
+                  label="County"
                   placeholder="Greater London"
                   name="state"
                   value={formData.address.state}
@@ -371,13 +394,7 @@ export function CreateClientModal({
                   name="country"
                   value={formData.address.country}
                   onChange={handleAddressSelectChange}
-                  options={[
-                    { value: 'USA', label: 'United States' },
-                    { value: 'UK', label: 'United Kingdom' },
-                    { value: 'Canada', label: 'Canada' },
-                    { value: 'Australia', label: 'Australia' },
-                    { value: 'India', label: 'India' },
-                  ]}
+                  options={COUNTRY_OPTIONS}
                 />
               </div>
             </div>

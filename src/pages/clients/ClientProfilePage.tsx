@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../..
 import { Badge } from '../../components/ui/Badge';
 import { DatePicker } from '../../components/ui/DatePicker';
 import { Select } from '../../components/ui/Select';
+import { COUNTRY_OPTIONS } from '../../lib/countryPhoneOptions';
 import { useUpdateClientMutation } from '../../redux/api/clientsApi';
 import { useGetIntegrationsQuery } from '../../redux/api/integrationApi';
 
@@ -309,11 +310,12 @@ export function ClientProfilePage() {
                                     onChange={(e) => handleAddressChange('zip', e.target.value)}
                                     className="h-11 rounded-xl bg-secondary/30" 
                                 />
-                                <Input 
+                                <Select 
                                     label="Country" 
                                     value={formData.address.country} 
                                     onChange={(e) => handleAddressChange('country', e.target.value)}
-                                    className="h-11 rounded-xl bg-secondary/30" 
+                                    triggerClassName="h-11 rounded-xl bg-secondary/30"
+                                    options={COUNTRY_OPTIONS}
                                 />
                             </div>
                         </CardContent>

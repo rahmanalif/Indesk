@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Button } from './Button';
@@ -10,6 +11,9 @@ interface DatePickerProps {
   className?: string;
   triggerClassName?: string;
   placeholder?: string;
+  minYear?: number;
+  maxYear?: number;
+  defaultViewDate?: Date;
 }
 
 export function DatePicker({
@@ -18,17 +22,68 @@ export function DatePicker({
   label,
   className,
   triggerClassName,
-  placeholder = "Select Date"
+  placeholder = "Select Date",
+  minYear,
+  maxYear,
+  defaultViewDate
 }: DatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [viewDate, setViewDate] = useState(date || new Date());
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const [popoverStyle, setPopoverStyle] = useState<CSSProperties>({});
+  const today = new Date();
+  const firstYear = minYear ?? today.getFullYear() - 100;
+  const lastYear = maxYear ?? today.getFullYear() + 10;
+  const clampYear = useCallback(
+    (year: number) => Math.min(Math.max(year, firstYear), lastYear),
+    [firstYear, lastYear]
+  );
+  const getInitialViewDate = () => {
+    const initial = date || defaultViewDate || today;
+    return new Date(clampYear(initial.getFullYear()), initial.getMonth(), 1);
+  };
+  const [viewDate, setViewDate] = useState(getInitialViewDate);
 
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
+  const yearOptions = Array.from(
+    { length: lastYear - firstYear + 1 },
+    (_, index) => firstYear + index
+  );
+
+  const updatePopoverPosition = useCallback(() => {
+    if (!containerRef.current) return;
+
+    const triggerRect = containerRef.current.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const gutter = 16;
+    const width = Math.min(350, viewportWidth - gutter * 2);
+    const maxHeight = Math.min(440, viewportHeight - gutter * 2);
+    const measuredHeight = popoverRef.current?.offsetHeight || maxHeight;
+    const availableBelow = viewportHeight - triggerRect.bottom - gutter;
+    const preferredTop = availableBelow >= Math.min(measuredHeight, maxHeight)
+      ? triggerRect.bottom + 12
+      : triggerRect.top - Math.min(measuredHeight, maxHeight) - 12;
+    const top = Math.min(
+      Math.max(preferredTop, gutter),
+      viewportHeight - Math.min(measuredHeight, maxHeight) - gutter
+    );
+    const left = Math.min(
+      Math.max(triggerRect.right - width, gutter),
+      viewportWidth - width - gutter
+    );
+
+    setPopoverStyle({
+      left,
+      top,
+      width,
+      maxHeight,
+    });
+  }, []);
 
   const getDaysInMonth = (month: number, year: number) => {
     const firstDay = new Date(year, month, 1).getDay();
@@ -49,12 +104,34 @@ export function DatePicker({
 
   const handlePrevMonth = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
+    setViewDate((current) => {
+      const next = new Date(current.getFullYear(), current.getMonth() - 1, 1);
+      if (next.getFullYear() < firstYear) {
+        return new Date(firstYear, 0, 1);
+      }
+      return next;
+    });
   };
 
   const handleNextMonth = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
+    setViewDate((current) => {
+      const next = new Date(current.getFullYear(), current.getMonth() + 1, 1);
+      if (next.getFullYear() > lastYear) {
+        return new Date(lastYear, 11, 1);
+      }
+      return next;
+    });
+  };
+
+  const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextMonth = Number(e.target.value);
+    setViewDate((current) => new Date(current.getFullYear(), nextMonth, 1));
+  };
+
+  const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const nextYear = Number(e.target.value);
+    setViewDate((current) => new Date(nextYear, current.getMonth(), 1));
   };
 
   const handleSelectDate = (d: Date) => {
@@ -69,13 +146,36 @@ export function DatePicker({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(target) &&
+        !popoverRef.current?.contains(target)
+      ) {
         setIsOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    updatePopoverPosition();
+    window.addEventListener('resize', updatePopoverPosition);
+    window.addEventListener('scroll', updatePopoverPosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePopoverPosition);
+      window.removeEventListener('scroll', updatePopoverPosition, true);
+    };
+  }, [isOpen, updatePopoverPosition]);
+
+  useEffect(() => {
+    if (date) {
+      setViewDate(new Date(clampYear(date.getFullYear()), date.getMonth(), 1));
+    }
+  }, [clampYear, date]);
 
   return (
     <div className={cn('space-y-1.5 relative w-full', className)} ref={containerRef}>
@@ -105,16 +205,41 @@ export function DatePicker({
         )}
       </div>
 
-      {isOpen && (
-        <div className="absolute top-full left-0 sm:left-auto sm:right-0 mt-3 z-[100] bg-white/95 backdrop-blur-xl border border-primary/10 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] p-6 animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-300 w-[calc(100vw-2rem)] sm:w-[350px] max-w-[350px] -translate-x-0 sm:translate-x-0">
+      {isOpen && createPortal(
+        <div
+          ref={popoverRef}
+          style={popoverStyle}
+          className="fixed z-[1000] overflow-y-auto bg-white/95 backdrop-blur-xl border border-primary/10 rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.1)] p-6 animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-300"
+        >
           {/* Header */}
           <div className="flex items-center justify-between mb-6 relative">
             <div className="absolute -left-6 top-1/2 -translate-y-1/2 w-[5px] h-8 bg-primary rounded-r-lg" />
             <div className="flex flex-col">
               <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-0.5 opacity-60">Select Date</span>
-              <h4 className="text-[15px] font-black text-slate-800">
-                {months[viewDate.getMonth()]} {viewDate.getFullYear()}
-              </h4>
+              <div className="flex items-center gap-2">
+                <select
+                  aria-label="Month"
+                  value={viewDate.getMonth()}
+                  onChange={handleMonthChange}
+                  className="h-9 max-w-[128px] rounded-xl border border-primary/10 bg-secondary/40 px-3 text-[13px] font-black text-slate-800 outline-none transition focus:ring-2 focus:ring-primary/20"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {months.map((month, index) => (
+                    <option key={month} value={index}>{month}</option>
+                  ))}
+                </select>
+                <select
+                  aria-label="Year"
+                  value={viewDate.getFullYear()}
+                  onChange={handleYearChange}
+                  className="h-9 w-[92px] rounded-xl border border-primary/10 bg-secondary/40 px-3 text-[13px] font-black text-slate-800 outline-none transition focus:ring-2 focus:ring-primary/20"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {yearOptions.map((year) => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div className="flex gap-1.5">
               <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-primary/10 text-primary" onClick={handlePrevMonth}>
@@ -166,7 +291,8 @@ export function DatePicker({
               Go to Today
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

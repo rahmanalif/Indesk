@@ -1,5 +1,5 @@
 import { useInView } from '../../hooks/landing/useInView';
-import { Heart } from 'lucide-react';
+import { Heart, Database, RefreshCw } from 'lucide-react';
 export function WhySection() {
   const { ref, isInView } = useInView({
     threshold: 0.1,
@@ -25,15 +25,16 @@ export function WhySection() {
     image: '/landing/chobi.jpg',
     imageFit: 'scale-down'
   },
-  // {
-  //   title: 'Track What Matters',
-  //   description:
-  //   "Visualise patient progress at a glance. InDesk automatically plots outcome measure scores over time - PHQ-9, GAD-7, PCL-5, and more - so you can see what's working, spot trends early, and share meaningful progress updates with patients and referrers alike. No spreadsheets. No manual charting. Just clear, clinical insight built into every session.",
-  //   color: 'bg-terracotta/20',
-  //   align: 'left',
-  //   image: '/landing/imagesai (4).jpg',
-  //   imageFit: 'fit'
-  // }
+  {
+    title: 'Clinical Data Portability',
+    description:
+    'Moving to a new platform shouldn’t mean losing your history. With InDesk, you can import your existing clinical data during setup and export your full records at any time. We believe you should always have full ownership and easy access to your practice information.',
+    icon: Database,
+    color: 'bg-peach',
+    align: 'left',
+    image: '/landing/imagesai (3).jpg',
+    imageFit: 'cover'
+  },
 ];
 
   return (

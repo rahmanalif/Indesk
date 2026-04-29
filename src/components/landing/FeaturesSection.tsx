@@ -46,16 +46,16 @@ export function FeaturesSection() {
 
   // },
   {
-    title: 'Integrations, Updates, and Resources',
+    title: 'Integrations and Data Management',
     description:
-    'See what is already available in InDesk, what is coming next, and the resources that help your practice get more from the platform.',
+    'InDesk seamlessly connects with the tools you already use, like Zoom, Google Meet, and Stripe, while ensuring you maintain full control over your clinical data.',
     image: '/landing/imagesai (4).jpg',
     imageFit: 'cover',
     bullets: [
-    'Available integrations at a glance',
-    'Incoming product updates and roadmap visibility',
-    'Resources to support setup and day-to-day use',
-    'Clear guidance on what is live now and what is coming soon']
+    'Native integrations with Zoom, Google Meet, and Stripe',
+    'Import existing clinical data for a seamless transition',
+    'Export your full clinical records at any time',
+    'Resources to support setup and day-to-day use']
 
   }];
 

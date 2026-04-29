@@ -198,6 +198,12 @@ export const COUNTRY_PHONE_OPTIONS: CountryPhoneOption[] = [
   createPhoneOption('+263', 'Zimbabwe (+263)'),
 ];
 
+export const COUNTRY_OPTIONS = COUNTRY_PHONE_OPTIONS.map((option) => {
+  const name = option.label.split(' (')[0];
+  return { value: name, label: name };
+}).sort((a, b) => a.label.localeCompare(b.label));
+
+
 export const getCountryPhoneOption = (countryCode: string) =>
   COUNTRY_PHONE_OPTIONS.find((option) => option.value === countryCode) || COUNTRY_PHONE_OPTIONS[0];
 
