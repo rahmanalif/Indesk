@@ -6,6 +6,7 @@ import { Badge } from '../components/ui/Badge';
 import { CreateSessionTypeModal } from '../components/modals/CreateSessionTypeModal';
 import { EditSessionModal } from '../components/modals/EditSessionModal';
 import { useDeleteSessionMutation, useGetSessionsQuery } from '../redux/api/clientsApi';
+import { normalizeReminderLabels } from '../lib/sessionReminders';
 
 export function SessionsPage() {
   const { data: sessionsResponse, isLoading, isError } = useGetSessionsQuery();
@@ -58,7 +59,7 @@ export function SessionsPage() {
         <div className="text-sm text-muted-foreground">No sessions found.</div>
       )}
       {sessionTypes.map(session => {
-        const reminders = session.reminders || [];
+        const reminders = normalizeReminderLabels(session.reminders);
         const colorClass = session.color || 'bg-slate-100 text-slate-700';
         return (
           <Card key={session.id} className="group hover:shadow-md transition-all border-border/50">
@@ -110,7 +111,7 @@ export function SessionsPage() {
                       None
                     </Badge>
                   )}
-                  {reminders.map((reminder: string) => (
+                  {reminders.map((reminder) => (
                     <Badge key={reminder} variant="secondary" className="text-xs">
                       {reminder}
                     </Badge>

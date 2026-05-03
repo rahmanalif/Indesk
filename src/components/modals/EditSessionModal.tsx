@@ -6,6 +6,7 @@ import { Button } from '../ui/Button';
 import { Checkbox } from '../ui/Checkbox';
 import { Textarea } from '../ui/Textarea';
 import { useUpdateSessionMutation } from '../../redux/api/clientsApi';
+import { normalizeReminderLabels, toReminderCodes, type ReminderLabel } from '../../lib/sessionReminders';
 
 interface EditSessionModalProps {
     isOpen: boolean;
@@ -20,7 +21,10 @@ export function EditSessionModal({ isOpen, onClose, session }: EditSessionModalP
 
     useEffect(() => {
         if (session) {
-            setFormData({ ...session });
+            setFormData({
+                ...session,
+                reminders: normalizeReminderLabels(session.reminders),
+            });
         }
     }, [session]);
 
@@ -39,7 +43,7 @@ export function EditSessionModal({ isOpen, onClose, session }: EditSessionModalP
             description: formData.description || null,
             duration: Number.isFinite(durationValue) ? durationValue : 0,
             price: Number.isFinite(priceValue) ? priceValue : 0,
-            reminders: formData.reminders || [],
+            reminders: formData.reminders?.length ? toReminderCodes(formData.reminders) : null,
         })
             .unwrap()
             .then(() => {
@@ -97,7 +101,7 @@ export function EditSessionModal({ isOpen, onClose, session }: EditSessionModalP
                             onCheckedChange={(checked) => {
                                 const reminders = checked
                                     ? [...(formData.reminders || []), 'Email']
-                                    : (formData.reminders || []).filter((r: string) => r !== 'Email');
+                                    : (formData.reminders || []).filter((r: ReminderLabel) => r !== 'Email');
                                 setFormData({ ...formData, reminders });
                             }}
                         />
@@ -107,7 +111,7 @@ export function EditSessionModal({ isOpen, onClose, session }: EditSessionModalP
                             onCheckedChange={(checked) => {
                                 const reminders = checked
                                     ? [...(formData.reminders || []), 'SMS']
-                                    : (formData.reminders || []).filter((r: string) => r !== 'SMS');
+                                    : (formData.reminders || []).filter((r: ReminderLabel) => r !== 'SMS');
                                 setFormData({ ...formData, reminders });
                             }}
                         />

@@ -236,8 +236,8 @@ export function ClientProfilePage() {
 
     return (
         <form onSubmit={handleSave} className="space-y-4 animate-in slide-in-from-bottom-4 duration-500">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="md:col-span-2 space-y-4">
+            <div className="grid grid-cols-1 gap-4 2xl:grid-cols-[minmax(0,2fr)_minmax(320px,0.95fr)]">
+                <div className="min-w-0 space-y-4">
                     {/* Personal Info */}
                     <Card>
                         <CardHeader>
@@ -339,7 +339,7 @@ export function ClientProfilePage() {
             </Card>
                 </div>
 
-                <div className="space-y-4">
+                <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-3 2xl:block 2xl:space-y-4">
                     {/* Upcoming Appointments Card */}
                     <Card className="border-primary/20 shadow-md shadow-primary/5">
                         <CardHeader className="pb-3 text-primary/80">

@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
-import { Plus, Search, Mail, MoreHorizontal, UserCheck } from 'lucide-react';
+import { CreditCard, Plus, Search, Mail, MoreHorizontal, UserCheck } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
-import { useGetClinicMembersQuery, useGetCurrentSubscriptionQuery } from '../../redux/api/clientsApi';
+import { useDeleteClinicMemberMutation, useGetClinicMembersQuery, useGetCurrentSubscriptionQuery } from '../../redux/api/clientsApi';
 import { CreateClinicianModal } from '../../components/modals/CreateClinicianModal';
 import { ClinicianProfileModal } from '../../components/modals/ClinicianProfileModal';
 import { EditClinicianModal } from '../../components/modals/EditClinicianModal';
@@ -28,17 +28,27 @@ export function CliniciansPage() {
 	    const dropdownRef = useRef<HTMLDivElement>(null);
 	    const { data: clinicMembersResponse, isLoading: clinicLoading, isError: clinicError } = useGetClinicMembersQuery({ page: 1, limit: 50 });
 	    const { data: subscriptionResponse } = useGetCurrentSubscriptionQuery();
+	    const [deleteClinicMember, { isLoading: isDeletingClinicMember }] = useDeleteClinicMemberMutation();
 	    const currentUserId = useSelector((state: RootState) => state.auth.user?.id);
 	    const clinicMembers = clinicMembersResponse?.response?.data?.docs || [];
 	    const subscriptionUsage = subscriptionResponse?.response?.data?.usage;
+	    const planName = subscriptionUsage?.plan?.name || subscriptionUsage?.planName || 'your current plan';
+	    const planPrice = subscriptionUsage?.plan?.price;
 	    const includedClinicians = subscriptionUsage?.plan?.seatPolicy?.includedClinicians;
+	    const includedAdminUsers = subscriptionUsage?.plan?.seatPolicy?.includedAdminUsers;
 	    const clinicianCount = subscriptionUsage?.clinicians?.currentCount ?? 0;
+	    const adminUserCount = subscriptionUsage?.adminUsers?.currentCount ?? 0;
+	    const clinicianLimit = subscriptionUsage?.clinicians?.limit;
+	    const adminUserLimit = subscriptionUsage?.adminUsers?.limit;
 	    const extraCliniciansAllowed = subscriptionUsage?.plan?.seatPolicy?.extraCliniciansAllowed;
 	    const shouldWarnForExtraClinician = typeof includedClinicians === 'number' && clinicianCount >= includedClinicians;
+	    const formattedPlanPrice = typeof planPrice === 'number'
+	        ? `£${planPrice.toFixed(Number.isInteger(planPrice) ? 0 : 2)}/month`
+	        : null;
 	    const clinicianSeatWarningMessage = shouldWarnForExtraClinician && typeof includedClinicians === 'number'
 	        ? extraCliniciansAllowed
-	            ? `Your current plan includes ${includedClinicians} clinician${includedClinicians === 1 ? '' : 's'}. Adding another clinician may create an extra charge on your subscription.`
-	            : `Your current plan includes ${includedClinicians} clinician${includedClinicians === 1 ? '' : 's'}. Adding another clinician may require a plan upgrade or extra charge.`
+	            ? `Adding another clinician will exceed the ${includedClinicians} clinician${includedClinicians === 1 ? '' : 's'} included in ${planName}. Any extra seat charge will be applied according to this plan.`
+	            : `Adding another clinician will exceed the ${includedClinicians} clinician${includedClinicians === 1 ? '' : 's'} included in ${planName}. You may need to upgrade your plan before this team member can be added.`
 	        : '';
 	    const apiOrigin = (() => {
         try {
@@ -77,6 +87,18 @@ export function CliniciansPage() {
         setSelectedClinician(clinician);
         setIsScheduleModalOpen(true);
         setOpenDropdownId(null);
+    };
+
+    const handleRemoveClinician = async (clinician: any) => {
+        setOpenDropdownId(null);
+        const confirmed = window.confirm(`Remove ${clinician.name} from this clinic?`);
+        if (!confirmed) return;
+
+        try {
+            await deleteClinicMember(clinician.id).unwrap();
+        } catch (error: any) {
+            window.alert(error?.data?.message || error?.message || 'Failed to remove team member.');
+        }
     };
 
 	    const toggleDropdown = (e: React.MouseEvent, id: string) => {
@@ -120,6 +142,7 @@ export function CliniciansPage() {
             phoneNumber: phone,
             bio: member.user?.bio || '',
             availability: Array.isArray(member.availability) ? member.availability : [],
+            availabilitySchedule: Array.isArray(member.availabilitySchedule) ? member.availabilitySchedule : [],
 		            specialization: Array.isArray(member.specialization) ? member.specialization : [],
 			            status: isOnline ? 'Available' : 'Offline',
 		            specialty,
@@ -186,8 +209,12 @@ export function CliniciansPage() {
                                         View Schedule
                                     </button>
                                     <div className="h-px bg-border my-1" />
-                                    <button className="w-full text-left px-4 py-2 text-sm hover:bg-red-50 text-red-600 transition-colors flex items-center gap-2" onClick={() => { setOpenDropdownId(null); }}>
-                                        Deactivate
+                                    <button
+                                        className="w-full text-left px-4 py-2 text-sm hover:bg-red-50 text-red-600 transition-colors flex items-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                        onClick={() => handleRemoveClinician(clinician)}
+                                        disabled={isDeletingClinicMember}
+                                    >
+                                        Remove
                                     </button>
                                 </div>
                             )}
@@ -241,12 +268,36 @@ export function CliniciansPage() {
 	            <Modal
 	                isOpen={isSeatWarningOpen}
 	                onClose={() => setIsSeatWarningOpen(false)}
-	                title="Extra Charge Warning"
-	                description="Adding another clinician may affect your subscription billing."
+	                title="Subscription Update Warning"
+	                description="Adding a clinician or admin can affect your subscription billing."
 	            >
 	                <div className="space-y-5">
-	                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-	                        {clinicianSeatWarningMessage}
+	                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+	                        <div className="flex gap-3">
+	                            <CreditCard className="mt-0.5 h-4 w-4 shrink-0" />
+	                            <div className="space-y-2">
+	                                <p className="font-semibold">{clinicianSeatWarningMessage}</p>
+	                                <p>
+	                                    Current plan: <span className="font-semibold">{planName}</span>
+	                                    {formattedPlanPrice ? <span> ({formattedPlanPrice})</span> : null}
+	                                </p>
+	                                <div className="grid gap-1 text-xs sm:grid-cols-2">
+	                                    <p>
+	                                        Clinicians: <span className="font-semibold">{clinicianCount}</span>
+	                                        {typeof includedClinicians === 'number' ? <span> / {includedClinicians} included</span> : null}
+	                                        {typeof clinicianLimit === 'number' && clinicianLimit > 0 ? <span> ({clinicianLimit} max)</span> : null}
+	                                    </p>
+	                                    <p>
+	                                        Admins: <span className="font-semibold">{adminUserCount}</span>
+	                                        {typeof includedAdminUsers === 'number' ? <span> / {includedAdminUsers} included</span> : null}
+	                                        {typeof adminUserLimit === 'number' && adminUserLimit > 0 ? <span> ({adminUserLimit} max)</span> : null}
+	                                    </p>
+	                                </div>
+	                                <p className="text-xs">
+	                                    Exact prorated charges are handled by your subscription billing settings and may appear on your next invoice.
+	                                </p>
+	                            </div>
+	                        </div>
 	                    </div>
 	                    <div className="flex justify-end gap-3 border-t border-border/50 pt-4">
 	                        <Button type="button" variant="outline" onClick={() => setIsSeatWarningOpen(false)}>

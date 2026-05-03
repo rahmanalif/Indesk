@@ -3,19 +3,16 @@ import { Link, MessageSquare, Mail, PoundSterling } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-import { Select } from '../ui/Select';
 import { Checkbox } from '../ui/Checkbox';
 import { Textarea } from '../ui/Textarea';
 import { useCreateSessionMutation } from '../../redux/api/clientsApi';
 import { useGetIntegrationsQuery } from '../../redux/api/integrationApi';
 import { useNavigate } from 'react-router-dom';
+import { toReminderCodes, type ReminderLabel } from '../../lib/sessionReminders';
 
 const normalizeIntegrationKey = (value?: string) => {
   if (!value) return '';
   const normalized = value.toLowerCase().trim().replace(/[\s-]+/g, '_');
-  if (normalized === 'mail_chimp' || normalized === 'mailchimp_marketing' || normalized === 'mail_chimp_marketing') {
-    return 'mailchimp';
-  }
   if (normalized === 'twilo') {
     return 'twilio';
   }
@@ -49,23 +46,17 @@ export function CreateSessionTypeModal({
 
   const integrationListRaw = integrationsResponse?.response?.data;
   const integrationList = Array.isArray(integrationListRaw) ? integrationListRaw : integrationListRaw?.docs || [];
-  const mailchimpIntegration = integrationList.find((integration: any) => {
-    const typeKey = normalizeIntegrationKey(integration?.type);
-    const nameKey = normalizeIntegrationKey(integration?.name);
-    return typeKey === 'mailchimp' || nameKey === 'mailchimp';
-  });
   const twilioIntegration = integrationList.find((integration: any) => {
     const typeKey = normalizeIntegrationKey(integration?.type);
     const nameKey = normalizeIntegrationKey(integration?.name);
     return typeKey === 'twilio' || nameKey === 'twilio';
   });
 
-  const isMailchimpConnected = isConnectedIntegration(mailchimpIntegration);
   const isTwilioConnected = isConnectedIntegration(twilioIntegration);
   const selectedReminders = [
-    emailReminder && isMailchimpConnected ? 'Email' : null,
+    emailReminder ? 'Email' : null,
     smsReminder && isTwilioConnected ? 'SMS' : null,
-  ].filter(Boolean) as string[];
+  ].filter(Boolean) as ReminderLabel[];
 
   const handleConnectIntegration = () => {
     onClose();
@@ -84,7 +75,7 @@ export function CreateSessionTypeModal({
       description: description || null,
       duration: Number.isFinite(durationValue) ? durationValue : 0,
       price: Number.isFinite(priceValue) ? priceValue : 0,
-      reminders: selectedReminders.length ? selectedReminders : null,
+      reminders: selectedReminders.length ? toReminderCodes(selectedReminders) : null,
     })
       .unwrap()
       .then(() => {
@@ -137,20 +128,23 @@ export function CreateSessionTypeModal({
           icon={<PoundSterling className="h-4 w-4" />}
           required
         />
-        <Select
-          label="Color Code"
-          value={selectedColor}
-          onChange={(e) => setSelectedColor(e.target.value)}
-          triggerClassName="h-11 rounded-xl"
-          options={[
-            { value: 'blue', label: 'Blue', color: '#3b82f6' },
-            { value: 'green', label: 'Green', color: '#22c55e' },
-            { value: 'purple', label: 'Purple', color: '#a855f7' },
-            { value: 'orange', label: 'Orange', color: '#f97316' },
-            { value: 'rose', label: 'Rose', color: '#f43f5e' },
-            { value: 'amber', label: 'Amber', color: '#f59e0b' }
-          ]}
-        />
+        <div className="w-full space-y-1.5">
+          <label className="text-[10px] font-bold text-primary uppercase tracking-[0.15em] ml-1 block">
+            Color Code
+          </label>
+          <select
+            value={selectedColor}
+            onChange={(e) => setSelectedColor(e.target.value)}
+            className="flex h-11 w-full rounded-xl border border-primary/10 bg-secondary/30 px-5 py-2 text-sm font-semibold shadow-inner transition-all hover:bg-secondary/50 focus:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <option value="blue">Blue</option>
+            <option value="green">Green</option>
+            <option value="purple">Purple</option>
+            <option value="orange">Orange</option>
+            <option value="rose">Rose</option>
+            <option value="amber">Amber</option>
+          </select>
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -163,29 +157,12 @@ export function CreateSessionTypeModal({
                   <Mail className="h-4 w-4 text-primary" />
                   <span className="text-sm font-medium text-foreground">Email Reminder</span>
                 </div>
-                {/* <p className="text-sm text-muted-foreground">
-                  Uses {mailchimpIntegration?.name || 'Mailchimp'} for email reminder delivery.
-                </p> */}
-                {/* <p className={`text-xs font-medium ${isMailchimpConnected ? 'text-emerald-700' : 'text-amber-700'}`}>
-                  {isMailchimpConnected ? `${mailchimpIntegration?.name || 'Mailchimp'} connected` : 'Mailchimp not connected'}
-                </p> */}
               </div>
               <Checkbox
-                checked={emailReminder && isMailchimpConnected}
+                checked={emailReminder}
                 onCheckedChange={setEmailReminder}
-                disabled={!isMailchimpConnected}
               />
             </div>
-
-            {!isMailchimpConnected && (
-              <div className="mt-3 flex items-center justify-between gap-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                <span>Connect Mailchimp to enable email reminders.</span>
-                <Button type="button" variant="outline" size="sm" onClick={handleConnectIntegration}>
-                  <Link className="mr-2 h-3.5 w-3.5" />
-                  Connect
-                </Button>
-              </div>
-            )}
           </div>
 
           <div className="rounded-xl border border-border/60 p-4">

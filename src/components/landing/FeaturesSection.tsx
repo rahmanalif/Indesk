@@ -1,5 +1,5 @@
 import { useInView } from '../../hooks/landing/useInView';
-import { Check } from 'lucide-react';
+import { Check, ArrowRight } from 'lucide-react';
 export function FeaturesSection() {
   const { ref, isInView } = useInView({
     threshold: 0.1,
@@ -46,7 +46,7 @@ export function FeaturesSection() {
 
   // },
   {
-    title: 'Integrations and Data Management',
+    title: 'Connected Tools and Data Control',
     description:
     'InDesk seamlessly connects with the tools you already use, like Zoom, Google Meet, and Stripe, while ensuring you maintain full control over your clinical data.',
     image: '/landing/imagesai (4).jpg',
@@ -85,25 +85,25 @@ export function FeaturesSection() {
                 <div
                 className={`w-full lg:w-5/12 ${index % 2 === 1 ? 'lg:order-2' : ''}`}>
 
-	                  <div className="aspect-[4/3] bg-cream rounded-xl flex items-center justify-center relative overflow-hidden group">
-	                    <div className="absolute inset-0 ">
-	                      {'video' in feature ? (
-	                        <video
-	                          className="h-full w-full object-cover"
-	                          autoPlay
-	                          muted
-	                          loop
-	                          playsInline
-	                          preload="metadata"
-	                          poster={feature.poster}
-	                        >
-	                          <source src={feature.video} type="video/mp4" />
-	                        </video>
-	                      ) : (
-	                        <img className="h-full w-full object-cover" src={feature.image} alt="" loading="lazy" />
-	                      )}
-	                    </div>
-	                    <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-terracotta/10 rounded-full blur-2xl"></div>
+                  <div className="aspect-[4/3] bg-cream rounded-xl flex items-center justify-center relative overflow-hidden group">
+                    <div className="absolute inset-0 ">
+                      {'video' in feature ? (
+                        <video
+                          className="h-full w-full object-cover"
+                          autoPlay
+                          muted
+                          loop
+                          playsInline
+                          preload="metadata"
+                          poster={feature.poster}
+                        >
+                          <source src={feature.video} type="video/mp4" />
+                        </video>
+                      ) : (
+                        <img className="h-full w-full object-cover" src={feature.image} alt="" loading="lazy" />
+                      )}
+                    </div>
+                    <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-terracotta/10 rounded-full blur-2xl"></div>
 
                     {/* <div className="relative z-10 p-6 bg-white rounded-2xl shadow-sm transform transition-transform duration-500 group-hover:-translate-y-2 border border-warm-gray/5">
                       <feature.icon
@@ -136,6 +136,21 @@ export function FeaturesSection() {
                       </div>
                   )}
                   </div>
+
+                  {feature.title === 'Connected Tools and Data Control' && (
+                    <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <a 
+                        href="#integrations"
+                        className="group inline-flex w-full items-center justify-center rounded-full border border-terracotta/25 bg-cream px-5 py-3 text-sm font-semibold text-terracotta shadow-sm transition-all hover:border-terracotta/40 hover:bg-peach/50 hover:text-terracotta-dark sm:w-auto"
+                      >
+                        View supported tools and data features
+                        <ArrowRight className="ml-2 h-4 w-4 transform transition-transform group-hover:translate-x-1" />
+                      </a>
+                      {/* <span className="text-sm text-warm-gray">
+                        Includes supported tools, data export, access control, and workflow features.
+                      </span> */}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

@@ -4,8 +4,12 @@ import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { Select } from '../ui/Select';
 import { Textarea } from '../ui/Textarea';
-import { Checkbox } from '../ui/Checkbox';
+import { AvailabilityScheduleEditor } from '../clinicians/AvailabilityScheduleEditor';
 import { useUpdateClinicMemberMutation, useUpdateClinicMemberRoleMutation } from '../../redux/api/clientsApi';
+import {
+    buildAvailabilitySchedulePayload,
+    normalizeAvailabilitySchedule,
+} from '../../lib/clinicianAvailability';
 
 interface EditClinicianModalProps {
     isOpen: boolean;
@@ -31,11 +35,13 @@ export function EditClinicianModal({ isOpen, onClose, clinician }: EditClinician
             const availability = Array.isArray(clinician.availability)
                 ? clinician.availability.map((d: string) => d.toLowerCase())
                 : [];
+            const availabilitySchedule = normalizeAvailabilitySchedule(clinician.availabilitySchedule, availability);
 
             setFormData({
                 ...clinician,
                 role: clinician.role || 'clinician',
                 availability,
+                availabilitySchedule,
                 specializationText: specialization.join(', '),
                 bio: clinician.bio || '',
             });
@@ -43,18 +49,6 @@ export function EditClinicianModal({ isOpen, onClose, clinician }: EditClinician
     }, [clinician]);
 
     if (!formData) return null;
-
-    const toggleAvailability = (day: string, checked: boolean) => {
-        const dayValue = day.toLowerCase();
-        setFormData((prev: any) => {
-            const current = Array.isArray(prev.availability) ? prev.availability : [];
-            if (checked) {
-                if (current.includes(dayValue)) return prev;
-                return { ...prev, availability: [...current, dayValue] };
-            }
-            return { ...prev, availability: current.filter((item: string) => item !== dayValue) };
-        });
-    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -75,6 +69,10 @@ export function EditClinicianModal({ isOpen, onClose, clinician }: EditClinician
         updateClinicMember({
             memberId: formData.id,
             availability: Array.isArray(formData.availability) ? formData.availability : [],
+            availabilitySchedule: buildAvailabilitySchedulePayload(
+                Array.isArray(formData.availability) ? formData.availability : [],
+                Array.isArray(formData.availabilitySchedule) ? formData.availabilitySchedule : []
+            ),
             specialization,
         })
             .unwrap()
@@ -97,67 +95,71 @@ export function EditClinicianModal({ isOpen, onClose, clinician }: EditClinician
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Edit Clinician Details">
+        <Modal isOpen={isOpen} onClose={onClose} title="Edit Clinician Details" size="xl">
             <form onSubmit={handleSubmit} className="space-y-6 mt-2">
-                <div className="grid grid-cols-2 gap-4">
-                    <Input
-                        label="Full Name"
-                        value={formData.name || ''}
-                        disabled
-                    />
-                    <Input
-                        label="Email Address"
-                        type="email"
-                        value={formData.email || ''}
-                        disabled
-                    />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <Input
-                        label="Phone Number"
-                        value={formData.phoneNumber || ''}
-                        disabled
-                    />
-                    <Select
-                        label="Role"
-                        value={formData.role || 'clinician'}
-                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                        options={[
-                            { value: 'clinician', label: 'Clinician' },
-                            { value: 'admin', label: 'Admin' },
-                            { value: 'superAdmin', label: 'Super Admin' }
-                        ]}
-                    />
-                </div>
-
-                <div className="space-y-3">
-                    <label className="text-sm font-medium">Availability</label>
-                    <div className="grid grid-cols-2 gap-3">
-                        {DAYS.map(day => (
-                            <Checkbox
-                                key={day}
-                                label={day}
-                                checked={Array.isArray(formData.availability) && formData.availability.includes(day.toLowerCase())}
-                                onCheckedChange={(checked) => toggleAvailability(day, checked)}
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.95fr)]">
+                    <div className="space-y-5">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <Input
+                                label="Full Name"
+                                value={formData.name || ''}
+                                disabled
                             />
-                        ))}
-                    </div>
-                </div>
+                            <Input
+                                label="Email Address"
+                                type="email"
+                                value={formData.email || ''}
+                                disabled
+                            />
+                        </div>
 
-                <Input
-                    label="Specialization"
-                    value={formData.specializationText || ''}
-                    onChange={(e) => setFormData({ ...formData, specializationText: e.target.value })}
-                    placeholder="Therapy, Counseling"
-                />
-                <Textarea
-                    label="Bio / Notes"
-                    value={formData.bio || ''}
-                    onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                    placeholder="Specializations, background, etc."
-                    disabled
-                />
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <Input
+                                label="Phone Number"
+                                value={formData.phoneNumber || ''}
+                                disabled
+                            />
+                            <Select
+                                label="Role"
+                                value={formData.role || 'clinician'}
+                                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                                options={[
+                                    { value: 'clinician', label: 'Clinician' },
+                                    { value: 'admin', label: 'Admin' },
+                                    { value: 'superAdmin', label: 'Super Admin' }
+                                ]}
+                            />
+                        </div>
+
+                        <Input
+                            label="Specialization"
+                            value={formData.specializationText || ''}
+                            onChange={(e) => setFormData({ ...formData, specializationText: e.target.value })}
+                            placeholder="Therapy, Counseling"
+                        />
+                        <Textarea
+                            label="Bio / Notes"
+                            value={formData.bio || ''}
+                            onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                            placeholder="Specializations, background, etc."
+                            disabled
+                            className="min-h-[128px]"
+                        />
+                    </div>
+
+                    <AvailabilityScheduleEditor
+                        days={DAYS}
+                        selectedDays={Array.isArray(formData.availability) ? formData.availability : []}
+                        schedule={Array.isArray(formData.availabilitySchedule) ? formData.availabilitySchedule : []}
+                        onChange={(nextDays, nextSchedule) => {
+                            setFormData({
+                                ...formData,
+                                availability: nextDays,
+                                availabilitySchedule: nextSchedule,
+                            });
+                        }}
+                    />
+                </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t border-border/50">
                     <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>

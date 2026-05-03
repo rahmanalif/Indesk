@@ -113,8 +113,8 @@ export function ClientLayout() {
                 <>
                     {/* Full Width Header Card */}
                     <Card className="border-none shadow-sm bg-white overflow-hidden">
-                        <CardContent className="p-4 sm:p-6 lg:p-8">
-                            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                        <CardContent className="p-4 sm:p-6 xl:p-8">
+                            <div className="flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-6">
                                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
                                     <div className="flex items-center gap-3">
                                         <Button variant="ghost" size="icon" onClick={() => navigate('/clients')} className="shrink-0 rounded-xl hover:bg-primary/5">
@@ -151,11 +151,11 @@ export function ClientLayout() {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex flex-col sm:flex-row lg:flex-row items-start sm:items-center gap-3 w-auto pt-4 lg:pt-0 border-t border-border/40 lg:border-none">
+                                <div className="grid w-full grid-cols-1 gap-2 border-t border-border/40 pt-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 2xl:flex 2xl:w-auto 2xl:items-center 2xl:gap-3 2xl:border-none 2xl:pt-0">
                                     <Button
                                         variant="outline"
                                         onClick={() => setIsHistoryOpen(true)}
-                                        className="h-10 lg:h-11 px-6 rounded-xl bg-secondary/10 border-primary/5 font-bold text-[10px] uppercase tracking-widest hover:bg-secondary/20 transition-all shrink-0"
+                                        className="h-10 justify-center rounded-xl bg-secondary/10 border-primary/5 px-3 font-bold text-[10px] uppercase tracking-widest hover:bg-secondary/20 transition-all 2xl:h-11 2xl:px-6"
                                     >
                                         <HistoryIcon className="h-4 w-4 mr-2" />
                                         History
@@ -163,7 +163,7 @@ export function ClientLayout() {
                                     <Button
                                         variant="outline"
                                         onClick={() => navigate(`/clients/${id}/letters`)}
-                                        className="h-10 lg:h-11 px-6 rounded-xl bg-secondary/10 border-primary/5 font-bold text-[10px] uppercase tracking-widest hover:bg-secondary/20 transition-all shrink-0"
+                                        className="h-10 justify-center rounded-xl bg-secondary/10 border-primary/5 px-3 font-bold text-[10px] uppercase tracking-widest hover:bg-secondary/20 transition-all 2xl:h-11 2xl:px-6"
                                     >
                                         <FileText className="h-4 w-4 mr-2" />
                                         Letter
@@ -171,7 +171,7 @@ export function ClientLayout() {
                                     <Button
                                         variant="outline"
                                         onClick={() => setIsIntakeLinkOpen(true)}
-                                        className="h-10 lg:h-11 px-6 rounded-xl bg-secondary/10 border-primary/5 font-bold text-[10px] uppercase tracking-widest hover:bg-secondary/20 transition-all shrink-0"
+                                        className="h-10 justify-center rounded-xl bg-secondary/10 border-primary/5 px-3 font-bold text-[10px] uppercase tracking-widest hover:bg-secondary/20 transition-all 2xl:h-11 2xl:px-6"
                                     >
                                         <LinkIcon className="h-4 w-4 mr-2" />
                                         Intake Link
@@ -179,7 +179,7 @@ export function ClientLayout() {
                                     <Button
                                         variant="outline"
                                         onClick={() => setIsExportOpen(true)}
-                                        className="h-10 lg:h-11 px-6 rounded-xl bg-secondary/10 border-primary/5 font-bold text-[10px] uppercase tracking-widest hover:bg-secondary/20 transition-all shrink-0"
+                                        className="h-10 justify-center rounded-xl bg-secondary/10 border-primary/5 px-3 font-bold text-[10px] uppercase tracking-widest hover:bg-secondary/20 transition-all 2xl:h-11 2xl:px-6"
                                     >
                                         <Download className="h-4 w-4 mr-2" />
                                         Export
@@ -187,14 +187,14 @@ export function ClientLayout() {
                                     <Button
                                         variant="outline"
                                         onClick={() => setIsInvoiceOpen(true)}
-                                        className="h-10 lg:h-11 px-6 rounded-xl bg-secondary/10 border-primary/5 font-bold text-[10px] uppercase tracking-widest hover:bg-secondary/20 transition-all shrink-0"
+                                        className="h-10 justify-center rounded-xl bg-secondary/10 border-primary/5 px-3 font-bold text-[10px] uppercase tracking-widest hover:bg-secondary/20 transition-all 2xl:h-11 2xl:px-6"
                                     >
                                         <Receipt className="h-4 w-4 mr-2" />
                                         Invoice
                                     </Button>
                                     <Button
                                         onClick={() => setIsBookingOpen(true)}
-                                        className="h-10 lg:h-11 px-6 rounded-xl shadow-sm font-bold text-[10px] uppercase tracking-widest transition-all shrink-0"
+                                        className="h-10 justify-center rounded-xl px-3 shadow-sm font-bold text-[10px] uppercase tracking-widest transition-all 2xl:h-11 2xl:px-6"
                                     >
                                         <CalendarIcon className="h-4 w-4 mr-2" />
                                         Appointment

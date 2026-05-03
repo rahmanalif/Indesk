@@ -52,7 +52,7 @@ export interface SessionType {
   description: string | null;
   price: number | null;
   color: string | null;
-  reminders: string[] | null;
+  reminders: Array<string | number> | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -207,6 +207,10 @@ export interface ClinicMember {
   role: string;
   clinicianToken?: string | null;
   availability?: string[] | null;
+  availabilitySchedule?: Array<{
+    day: string;
+    slots: Array<{ startTime: string; endTime: string }>;
+  }> | null;
   specialization?: string[] | null;
   createdAt: string;
   updatedAt: string;
@@ -257,6 +261,10 @@ export interface ClinicMemberItem {
   role: string;
   clinicianToken?: string | null;
   availability?: string[] | null;
+  availabilitySchedule?: Array<{
+    day: string;
+    slots: Array<{ startTime: string; endTime: string }>;
+  }> | null;
   specialization?: string[] | null;
   createdAt: string;
   updatedAt: string;
@@ -709,7 +717,7 @@ export interface CreateSessionRequest {
   description?: string | null;
   duration: number;
   price: number;
-  reminders?: string[] | null;
+  reminders?: number[] | null;
 }
 
 interface CreateSessionResponse {
@@ -727,7 +735,7 @@ export interface UpdateSessionRequest {
   description?: string | null;
   duration: number;
   price: number;
-  reminders?: string[] | null;
+  reminders?: number[] | null;
 }
 
 type UpdateSessionResponse = CreateSessionResponse;
@@ -769,17 +777,31 @@ export interface CreateClinicMemberRequest {
   bio?: string;
   specialization?: string[];
   availability?: string[];
+  availabilitySchedule?: Array<{
+    day: string;
+    slots: Array<{ startTime: string; endTime: string }>;
+  }>;
 }
 
 export interface UpdateClinicMemberRequest {
   memberId: string;
   availability?: string[];
+  availabilitySchedule?: Array<{
+    day: string;
+    slots: Array<{ startTime: string; endTime: string }>;
+  }>;
   specialization?: string[];
 }
 
 export interface UpdateClinicMemberRoleRequest {
   memberId: string;
   role: string;
+}
+
+export interface DeleteClinicMemberResponse {
+  success: boolean;
+  status: number;
+  message: string;
 }
 
 interface ClinicMemberMutationResponse {
@@ -1557,6 +1579,14 @@ export const clientsApi = createApi({
       }),
       invalidatesTags: ['Clients'],
     }),
+
+    deleteClinicMember: builder.mutation<DeleteClinicMemberResponse, string>({
+      query: (memberId) => ({
+        url: `/clinic-member/${memberId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Clients'],
+    }),
     
     updateClient: builder.mutation<UpdateClientResponse, UpdateClientRequest>({
       query: ({ clientId, ...body }) => ({
@@ -1629,6 +1659,7 @@ export const {
   useCreateClinicMemberMutation,
   useUpdateClinicMemberMutation,
   useUpdateClinicMemberRoleMutation,
+  useDeleteClinicMemberMutation,
   useUpdateClientMutation,
   useDeleteClientMutation,
   useCreateClinicalNoteMutation,

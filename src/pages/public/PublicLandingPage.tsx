@@ -3,6 +3,7 @@ import { HeroSection } from '../../components/landing/HeroSection';
 import { LogoBar } from '../../components/landing/LogoBar';
 import { WhySection } from '../../components/landing/WhySection';
 import { FeaturesSection } from '../../components/landing/FeaturesSection';
+import { IntegrationsSection } from '../../components/landing/IntegrationsSection';
 import { SocialProofSection } from '../../components/landing/SocialProofSection';
 import { PricingSection } from '../../components/landing/PricingSection';
 import { FAQSection } from '../../components/landing/FAQSection';
@@ -19,6 +20,7 @@ export function PublicLandingPage() {
       <WhySection />
       
       <FeaturesSection />
+      <IntegrationsSection />
       {/* <ComplianceSection /> */}
       {/* <SocialProofSection /> */}
       <PricingSection />
