@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { Calendar } from '../components/Calendar';
 import type { ViewMode } from '../components/Calendar';
@@ -47,8 +47,6 @@ const getDurationMinutes = (start?: string, end?: string, fallback?: number) => 
   return fallback ?? 30;
 };
 
-const ALL_CALENDARS_KEY = 'all-calendars';
-
 const formatApiDate = (date: Date) => formatLocalDate(date);
 
 const getCalendarRange = (date: Date, view: ViewMode) => {
@@ -85,7 +83,7 @@ export function DashboardPage() {
   const [isCliniciansCollapsed, setIsCliniciansCollapsed] = useState(false);
   const [calendarView, setCalendarView] = useState<ViewMode>('month');
   const [calendarDate, setCalendarDate] = useState(new Date());
-  const [selectedCalendarKey, setSelectedCalendarKey] = useState<string>(ALL_CALENDARS_KEY);
+  const [selectedClinicianIds, setSelectedClinicianIds] = useState<string[]>([]);
   const calendarQueryView: ViewMode = calendarView === 'day' ? 'week' : calendarView;
 
   const calendarRange = useMemo(
@@ -102,7 +100,7 @@ export function DashboardPage() {
   } = useGetCalendarAppointmentsQuery({
     ...calendarRange,
     view: calendarQueryView,
-    clinicianId: selectedCalendarKey === ALL_CALENDARS_KEY ? undefined : selectedCalendarKey,
+    clinicianId: selectedClinicianIds.length === 1 ? selectedClinicianIds[0] : undefined,
   });
 
   const {
@@ -132,9 +130,24 @@ export function DashboardPage() {
     });
   }, [clinicMembers, currentUserId]);
 
-  useEffect(() => {
-    setSelectedCalendarKey(ALL_CALENDARS_KEY);
-  }, []);
+  const currentUserClinician = useMemo(
+    () => clinicians.find((clinician: any) => clinician.userId === currentUserId),
+    [clinicians, currentUserId]
+  );
+
+  const selectedClinicianSet = useMemo(() => new Set(selectedClinicianIds), [selectedClinicianIds]);
+  const hasClinicianFilter = selectedClinicianIds.length > 0;
+  const isMyCalendarSelected = currentUserClinician ? selectedClinicianSet.has(String(currentUserClinician.id)) : false;
+
+  const toggleClinician = (clinicianId?: string) => {
+    if (!clinicianId) return;
+
+    setSelectedClinicianIds((prev) =>
+      prev.includes(clinicianId)
+        ? prev.filter((id) => id !== clinicianId)
+        : [...prev, clinicianId]
+    );
+  };
 
   const apiAppointments = useMemo(() => {
     const rawData = appointmentsResponse?.response?.data;
@@ -145,6 +158,7 @@ export function DashboardPage() {
         : Array.isArray(rawData?.events)
           ? rawData.events
         : [];
+    const selectedIds = selectedClinicianIds;
     return docs
       .map((apt: any) => {
         const client = apt.client ? `${apt.client.firstName} ${apt.client.lastName}`.trim() : 'Unknown Client';
@@ -162,7 +176,7 @@ export function DashboardPage() {
           id: apt.id,
           clientName: client,
           clinician: clinicianName,
-          clinicianId: apt.clinicianId || apt.clinician?.id || clinicianUser?.id,
+          clinicianId: String(apt.clinicianId || apt.clinician?.id || clinicianUser?.id || ''),
           startDateTime: startValue,
           endDateTime: endValue,
           date,
@@ -175,10 +189,9 @@ export function DashboardPage() {
           videoLink: apt.zoomJoinUrl || apt.zoomStartUrl || 'https://zoom.us',
         };
       })
-      .filter(Boolean);
-  }, [appointmentsResponse]);
-
-  const isMyCalendarSelected = selectedCalendarKey === ALL_CALENDARS_KEY;
+      .filter(Boolean)
+      .filter((appointment: any) => selectedIds.length === 0 || selectedIds.includes(String(appointment.clinicianId)));
+  }, [appointmentsResponse, selectedClinicianIds]);
   const showAppointmentsLoading = appointmentsLoading;
   const showAppointmentsError = appointmentsError;
 
@@ -210,14 +223,19 @@ export function DashboardPage() {
         <CardContent className="p-0 flex-1 overflow-y-auto">
           {!isCliniciansCollapsed ? (
             <div className="p-2 space-y-1">
+              <div className="px-2 pb-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                {hasClinicianFilter ? `${selectedClinicianIds.length} selected` : 'Showing all'}
+              </div>
               {/* My Calendar Option (For Admin mainly, or self) */}
               <button
-                onClick={() => setSelectedCalendarKey(ALL_CALENDARS_KEY)}
+                onClick={() => toggleClinician(currentUserClinician?.id)}
+                disabled={!currentUserClinician}
                 className={cn(
                   "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all duration-200 border",
                   isMyCalendarSelected
                     ? "bg-primary/5 border-primary/20 shadow-sm"
-                    : "hover:bg-muted/50 border-transparent text-muted-foreground hover:text-foreground"
+                    : "hover:bg-muted/50 border-transparent text-muted-foreground hover:text-foreground",
+                  !currentUserClinician && "cursor-not-allowed opacity-50 hover:bg-transparent"
                 )}
               >
                 <div className={cn(
@@ -233,6 +251,16 @@ export function DashboardPage() {
                 {isMyCalendarSelected && <Check className="w-4 h-4 text-primary" />}
               </button>
 
+              {hasClinicianFilter && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedClinicianIds([])}
+                  className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                >
+                  Show all calendars
+                </button>
+              )}
+
               <div className="h-px bg-border/50 my-2 mx-2" />
 
               {clinicMembersLoading ? (
@@ -241,11 +269,12 @@ export function DashboardPage() {
                 <div className="px-3 py-4 text-sm text-muted-foreground">No clinicians found.</div>
               ) : (
                 clinicians.map((clinician: any) => {
-                  const isSelected = selectedCalendarKey === String(clinician.id);
+                  const clinicianId = String(clinician.id);
+                  const isSelected = selectedClinicianSet.has(clinicianId);
                   return (
                     <button
                       key={clinician.id}
-                      onClick={() => setSelectedCalendarKey(String(clinician.id))}
+                      onClick={() => toggleClinician(clinicianId)}
                       className={cn(
                         "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all duration-200 border group",
                         isSelected
@@ -287,12 +316,14 @@ export function DashboardPage() {
           ) : (
             <div className="p-2 flex flex-col items-center gap-2">
               <button
-                onClick={() => setSelectedCalendarKey(ALL_CALENDARS_KEY)}
+                onClick={() => toggleClinician(currentUserClinician?.id)}
+                disabled={!currentUserClinician}
                 className={cn(
                   "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors",
                   isMyCalendarSelected
                     ? "bg-primary text-white border-primary"
-                    : "bg-muted text-muted-foreground border-transparent hover:border-primary/20"
+                    : "bg-muted text-muted-foreground border-transparent hover:border-primary/20",
+                  !currentUserClinician && "cursor-not-allowed opacity-50"
                 )}
                 title="My Calendar"
                 aria-label="My Calendar"
@@ -303,11 +334,12 @@ export function DashboardPage() {
               <div className="h-px w-8 bg-border/60 my-1" />
 
               {!clinicMembersLoading && clinicians.map((clinician: any) => {
-                const isSelected = selectedCalendarKey === String(clinician.id);
+                const clinicianId = String(clinician.id);
+                const isSelected = selectedClinicianSet.has(clinicianId);
                 return (
                   <button
                     key={clinician.id}
-                    onClick={() => setSelectedCalendarKey(String(clinician.id))}
+                    onClick={() => toggleClinician(clinicianId)}
                     className={cn(
                       "relative rounded-full p-0.5 border-2 transition-colors",
                       isSelected ? "border-primary" : "border-transparent hover:border-primary/20"

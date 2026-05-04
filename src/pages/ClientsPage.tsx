@@ -370,16 +370,30 @@ export function ClientsPage() {
         return;
       }
 
-      const response = await bulkImportClients({ clients }).unwrap();
+      const existingEmails = new Set(
+        (clientsData?.response?.data?.docs || [])
+          .map((client: any) => String(client.email || '').trim().toLowerCase())
+          .filter(Boolean)
+      );
+      const clientsToImport = clients.filter((client) => !existingEmails.has(String(client.email || '').trim().toLowerCase()));
+      const duplicateRows = clients.length - clientsToImport.length;
+
+      if (clientsToImport.length === 0) {
+        alert(`No new clients to import. ${duplicateRows} row${duplicateRows === 1 ? '' : 's'} already exist${duplicateRows === 1 ? 's' : ''} by email.`);
+        return;
+      }
+
+      const response = await bulkImportClients({ clients: clientsToImport }).unwrap();
       const importedCount = response?.response?.data?.importedCount;
       const failedCount = response?.response?.data?.failedCount;
       const importedSummary =
         typeof importedCount === 'number' || typeof failedCount === 'number'
           ? ` Imported: ${importedCount ?? 0}, Failed: ${failedCount ?? 0}.`
-          : ` Sent: ${clients.length}.`;
+          : ` Sent: ${clientsToImport.length}.`;
       const skippedSummary = skippedRows > 0 ? ` Skipped rows: ${skippedRows}.` : '';
+      const duplicateSummary = duplicateRows > 0 ? ` Existing emails skipped: ${duplicateRows}.` : '';
 
-      alert((response?.message || 'Clients imported successfully.') + importedSummary + skippedSummary);
+      alert((response?.message || 'Clients imported successfully.') + importedSummary + skippedSummary + duplicateSummary);
       await refetch();
     } catch (importError: any) {
       alert(importError?.data?.message || 'Failed to import clients. Please check your CSV and try again.');

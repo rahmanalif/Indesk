@@ -1170,6 +1170,17 @@ const toNonFutureIsoDate = (value?: string): string | undefined => {
   return normalizedDate <= todayIsoDate ? normalizedDate : undefined;
 };
 
+const normalizeClientStatusValue = (value?: string): BulkImportClientItem['status'] | undefined => {
+  const normalized = String(value || '').trim().toLowerCase().replace(/[_-]+/g, ' ');
+  if (!normalized) return undefined;
+  if (normalized === 'active') return 'active';
+  if (normalized === 'inactive') return 'inactive';
+  if (normalized === 'pending' || normalized === 'waiting' || normalized === 'waiting list' || normalized === 'waitlist') {
+    return 'pending';
+  }
+  return undefined;
+};
+
 const sanitizeBulkImportClient = (client: BulkImportClientItem): BulkImportClientItem => {
   const safeClient = {
     ...(client as BulkImportClientItem & {
@@ -1201,6 +1212,7 @@ const sanitizeBulkImportClient = (client: BulkImportClientItem): BulkImportClien
     dateOfBirth: toNonFutureIsoDate(safeClient.dateOfBirth),
     phoneNumber: normalizedPhoneNumber,
     countryCode: normalizedCountryCode,
+    status: normalizeClientStatusValue(safeClient.status),
   };
 };
 

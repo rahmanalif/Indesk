@@ -11,6 +11,48 @@ interface ClientsReportModalProps {
     clients: any[];
 }
 
+const csvEscape = (value: unknown) => {
+    const text = value === null || value === undefined ? '' : String(value);
+    return `"${text.replace(/"/g, '""')}"`;
+};
+
+const downloadCsv = (filename: string, rows: Array<Array<unknown>>) => {
+    const csv = rows.map((row) => row.map(csvEscape).join(',')).join('\r\n');
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+};
+
+const splitName = (client: any) => {
+    const rawClient = client.rawClient || {};
+    const firstName = rawClient.firstName || client.firstName || '';
+    const lastName = rawClient.lastName || client.lastName || '';
+
+    if (firstName || lastName) {
+        return { firstName, lastName };
+    }
+
+    const parts = String(client.name || '').trim().split(/\s+/).filter(Boolean);
+    return {
+        firstName: parts[0] || '',
+        lastName: parts.slice(1).join(' '),
+    };
+};
+
+const toImportStatus = (client: any) => {
+    const rawStatus = client.rawClient?.status || client.status || '';
+    const normalized = String(rawStatus).trim().toLowerCase();
+    if (normalized === 'waiting list' || normalized === 'waiting') return 'pending';
+    if (normalized === 'active' || normalized === 'pending' || normalized === 'inactive') return normalized;
+    return 'active';
+};
+
 export function ClientsReportModal({ isOpen, onClose, clients }: ClientsReportModalProps) {
     const [isGenerating, setIsGenerating] = useState(false);
 
@@ -40,6 +82,30 @@ export function ClientsReportModal({ isOpen, onClose, clients }: ClientsReportMo
         } finally {
             setIsGenerating(false);
         }
+    };
+
+    const handleDownloadCsv = () => {
+        const rows: Array<Array<unknown>> = [
+            ['First Name', 'Last Name', 'Email', 'Status', 'Phone Number', 'Country Code', 'Date of Birth', 'Gender', 'Note'],
+            ...clients.map((client) => {
+                const rawClient = client.rawClient || {};
+                const { firstName, lastName } = splitName(client);
+
+                return [
+                    firstName,
+                    lastName,
+                    client.email || rawClient.email || '',
+                    toImportStatus(client),
+                    rawClient.phoneNumber || '',
+                    rawClient.countryCode || '',
+                    rawClient.dateOfBirth || '',
+                    rawClient.gender || '',
+                    rawClient.note || '',
+                ];
+            }),
+        ];
+
+        downloadCsv(`Clients_Import_Template_${new Date().toISOString().split('T')[0]}.csv`, rows);
     };
 
     if (!clients) return null;
@@ -132,6 +198,9 @@ export function ClientsReportModal({ isOpen, onClose, clients }: ClientsReportMo
 
                 <div className="flex justify-end gap-3 pt-4 border-t">
                     <Button variant="ghost" onClick={onClose} disabled={isGenerating}>Cancel</Button>
+                    <Button variant="outline" onClick={handleDownloadCsv} disabled={isGenerating} className="gap-2">
+                        <Download className="h-4 w-4" /> Download Directory CSV
+                    </Button>
                     <Button onClick={handleDownload} disabled={isGenerating} className="gap-2">
                         {isGenerating ? 'Exporting...' : <><Download className="h-4 w-4" /> Download Directory PDF</>}
                     </Button>

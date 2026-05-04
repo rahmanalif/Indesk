@@ -29,6 +29,24 @@ const formatDateTime = (value?: string | null) => {
 
 const formatCurrency = (value?: number | null) => `£${Number(value || 0).toFixed(2)}`;
 
+const csvEscape = (value: unknown) => {
+  const text = value === null || value === undefined ? '' : String(value);
+  return `"${text.replace(/"/g, '""')}"`;
+};
+
+const downloadCsv = (filename: string, rows: Array<Array<unknown>>) => {
+  const csv = rows.map((row) => row.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
 const getAuthorName = (note: any) => {
   const author = note.author || note.createdBy || note.user || note.clinician?.user || note.clinician;
   const name = [author?.firstName, author?.lastName].filter(Boolean).join(' ').trim();
@@ -70,6 +88,59 @@ export function ClientExportModal({ isOpen, onClose, client, notes, appointments
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleDownloadCsv = () => {
+    const rows: Array<Array<unknown>> = [
+      ['Section', 'Field', 'Value', 'Date', 'Clinician', 'Status', 'Amount', 'Note'],
+      ['Client', 'Name', clientName, '', '', client?.status || '', '', ''],
+      ['Client', 'Email', client?.email || client?.rawClient?.email || '', '', '', '', '', ''],
+      ['Client', 'Phone', client?.phone || client?.rawClient?.phoneNumber || '', '', '', '', '', ''],
+      ['Summary', 'Clinical Notes', notes.length, '', '', '', '', ''],
+      ['Summary', 'Appointments', appointments.length, '', '', '', '', ''],
+      ['Summary', 'Invoices', invoices.length, '', '', '', '', ''],
+      [],
+      ['Clinical Notes', 'Author', '', 'Created At', '', '', '', 'Note'],
+      ...notes.map((note) => [
+        'Clinical Notes',
+        getAuthorName(note),
+        '',
+        formatDateTime(note.createdAt),
+        '',
+        '',
+        '',
+        note.note || '',
+      ]),
+      [],
+      ['Appointments', 'Session', '', 'Date', 'Clinician', 'Status', '', 'Note'],
+      ...appointments.map((appointment) => [
+        'Appointments',
+        appointment.session?.name || appointment.title || '',
+        '',
+        formatDateTime(appointment.startTime || appointment.start),
+        getAppointmentClinician(appointment),
+        appointment.status || '',
+        '',
+        appointment.note || '',
+      ]),
+      [],
+      ['Invoices', 'Invoice ID', '', 'Date', '', 'Status', 'Total', ''],
+      ...invoices.map((invoice) => [
+        'Invoices',
+        invoice.id || '',
+        '',
+        formatDateTime(invoice.invoiceDate || invoice.createdAt),
+        '',
+        invoice.status || '',
+        formatCurrency(invoice.totalAmount ?? invoice.total),
+        '',
+      ]),
+    ];
+
+    downloadCsv(
+      `Client_Record_${clientName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`,
+      rows
+    );
   };
 
   return (
@@ -182,6 +253,9 @@ export function ClientExportModal({ isOpen, onClose, client, notes, appointments
 
         <div className="flex justify-end gap-3 pt-4 border-t">
           <Button variant="ghost" onClick={onClose} disabled={isGenerating}>Cancel</Button>
+          <Button variant="outline" onClick={handleDownloadCsv} disabled={isGenerating} className="gap-2">
+            <Download className="h-4 w-4" /> Download CSV
+          </Button>
           <Button onClick={handleDownload} disabled={isGenerating} className="gap-2">
             {isGenerating ? 'Exporting...' : <><Download className="h-4 w-4" /> Download Client PDF</>}
           </Button>
