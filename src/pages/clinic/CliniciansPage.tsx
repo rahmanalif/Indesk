@@ -233,11 +233,7 @@ export function CliniciansPage() {
                             </div>
 
                             <h3 className="font-bold text-lg text-foreground">{clinician.name}</h3>
-                                <p className="text-sm font-medium text-primary mb-1">{clinician.role}</p>
-                                <div className="flex items-center gap-1.5 mb-3 px-3 py-1 bg-secondary/30 rounded-full border border-primary/5">
-                                    <div className={`h-2 w-2 rounded-full ${clinician.status === 'Available' ? 'bg-green-500' : clinician.status === 'In Session' ? 'bg-orange-500' : 'bg-slate-400'}`} />
-                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{clinician.status}</span>
-                                </div>
+                                <p className="text-sm font-medium text-primary mb-3">{clinician.role}</p>
                                 <div className="flex gap-2 mb-4">
                                     <Badge variant="outline" className="text-xs font-normal text-muted-foreground">
                                         {clinician.specialty}

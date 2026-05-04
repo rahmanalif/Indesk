@@ -111,7 +111,9 @@ export function InvoicesPage() {
           <h3 className="text-2xl font-bold mt-2">
             £{monthlySalesAmount.toFixed(2)}
           </h3>
-          <p className="text-xs text-green-600 mt-1">+12% from last month</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {monthlySalesCount} invoices this month
+          </p>
         </CardContent>
       </Card>
       <Card>

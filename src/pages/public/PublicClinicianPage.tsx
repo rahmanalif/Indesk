@@ -19,8 +19,25 @@ export function PublicClinicianPage() {
   });
   const clinic = clinicResponse?.response?.data;
 
+  const apiOrigin = useMemo(() => {
+    try {
+      return new URL(import.meta.env.VITE_CLIENTS_API_BASE_URL).origin;
+    } catch {
+      return '';
+    }
+  }, []);
+
+  const resolveImageUrl = (value?: string | null) => {
+    if (!value) return null;
+    if (value.startsWith('http')) return value;
+    if (!apiOrigin) return value;
+    if (value.startsWith('/uploads/')) return `${apiOrigin}/public${value}`;
+    return `${apiOrigin}${value}`;
+  };
+
   const color = clinic?.color || branding.color || '#0066FF';
   const clinicName = clinic?.name || 'Clinic';
+  const clinicLogo = resolveImageUrl(clinic?.logo) || branding.logo;
   const clinicPhone = `${clinic?.countryCode || ''}${clinic?.phoneNumber || ''}`.trim() || '-';
 
   const clinicians = useMemo(() => {
@@ -151,9 +168,13 @@ export function PublicClinicianPage() {
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/80 border-b border-slate-200/60 shadow-sm">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg flex items-center justify-center text-white font-black text-sm" style={{ background: brandGradient(color) }}>
-              {clinicName[0]}
-            </div>
+            {clinicLogo ? (
+              <img src={clinicLogo} alt="Logo" className="h-8 w-8 rounded-lg object-cover shadow-sm" />
+            ) : (
+              <div className="h-8 w-8 rounded-lg flex items-center justify-center text-white font-black text-sm" style={{ background: brandGradient(color) }}>
+                {clinicName[0]}
+              </div>
+            )}
             <button
               onClick={() => navigate(`/clinic-portal/${linkId}`)}
               className="flex items-center gap-2 text-sm font-semibold transition-colors hover:opacity-80"

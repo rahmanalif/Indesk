@@ -12,6 +12,37 @@ const CLINIC_CURRENCY_STORAGE_KEY = 'clinic_currency_preference';
 const CURRENCY_OPTIONS = [
     { value: 'GBP', label: 'British Pound (GBP £)' },
     { value: 'USD', label: 'US Dollar (USD $)' },
+    { value: 'EUR', label: 'Euro (EUR €)' },
+    { value: 'CAD', label: 'Canadian Dollar (CAD $)' },
+    { value: 'AUD', label: 'Australian Dollar (AUD $)' },
+    { value: 'AED', label: 'UAE Dirham (AED د.إ)' },
+    { value: 'SAR', label: 'Saudi Riyal (SAR ر.س)' },
+    { value: 'QAR', label: 'Qatari Riyal (QAR ر.ق)' },
+    { value: 'KWD', label: 'Kuwaiti Dinar (KWD د.ك)' },
+    { value: 'OMR', label: 'Omani Rial (OMR ر.ع)' },
+    { value: 'BHD', label: 'Bahraini Dinar (BHD .د.ب)' },
+    { value: 'INR', label: 'Indian Rupee (INR ₹)' },
+    { value: 'SGD', label: 'Singapore Dollar (SGD $)' },
+
+    // --- Europe ---
+    { value: 'CHF', label: 'Swiss Franc (CHF Fr)' },
+    { value: 'SEK', label: 'Swedish Krona (SEK kr)' },
+    { value: 'NOK', label: 'Norwegian Krone (NOK kr)' },
+    { value: 'DKK', label: 'Danish Krone (DKK kr)' },
+    { value: 'PLN', label: 'Polish Złoty (PLN zł)' },
+    { value: 'CZK', label: 'Czech Koruna (CZK Kč)' },
+    { value: 'HUF', label: 'Hungarian Forint (HUF Ft)' },
+    { value: 'RON', label: 'Romanian Leu (RON lei)' },
+    { value: 'BGN', label: 'Bulgarian Lev (BGN лв)' },
+    { value: 'HRK', label: 'Croatian Kuna (HRK kn)' }, // note: Croatia now uses EUR
+    { value: 'RSD', label: 'Serbian Dinar (RSD дин)' },
+    { value: 'ISK', label: 'Icelandic Króna (ISK kr)' },
+    { value: 'ALL', label: 'Albanian Lek (ALL L)' },
+    { value: 'MKD', label: 'North Macedonian Denar (MKD ден)' },
+    { value: 'BAM', label: 'Bosnia-Herzegovina Mark (BAM KM)' },
+    { value: 'MDL', label: 'Moldovan Leu (MDL L)' },
+    { value: 'UAH', label: 'Ukrainian Hryvnia (UAH ₴)' },
+    { value: 'GEL', label: 'Georgian Lari (GEL ₾)' }
 ];
 
 export function ClinicDetailsPage() {
@@ -181,7 +212,7 @@ export function ClinicDetailsPage() {
                                         <div className="rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
                                             <p className="text-sm font-medium text-foreground">Selected Currency</p>
                                             <p className="mt-1 text-sm text-muted-foreground">
-                                                {currencyInput === 'GBP' ? 'British Pound (£)' : 'US Dollar ($)'}
+                                                {CURRENCY_OPTIONS.find(opt => opt.value === currencyInput)?.label || currencyInput}
                                             </p>
                                         </div>
                                     </div>
