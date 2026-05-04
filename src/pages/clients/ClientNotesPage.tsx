@@ -8,7 +8,7 @@ import { Textarea } from '../../components/ui/Textarea';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
-import { useCreateClinicalNoteMutation, useGetClientByIdQuery } from '../../redux/api/clientsApi';
+import { useCreateClinicalNoteMutation, useGetClientByIdQuery, useGetClinicMembersQuery } from '../../redux/api/clientsApi';
 import { RootState } from '../../store';
 
 export function ClientNotesPage() {
@@ -17,24 +17,46 @@ export function ClientNotesPage() {
     const { data: clientData, isLoading, isError, error } = useGetClientByIdQuery(id ?? '', {
         skip: !id
     });
+    const { data: clinicMembersResponse } = useGetClinicMembersQuery({ page: 1, limit: 100 });
     const [isAdding, setIsAdding] = useState(false);
     const [newNoteContent, setNewNoteContent] = useState('');
     const [createClinicalNote, { isLoading: isCreating, error: createError }] = useCreateClinicalNoteMutation();
 
+    const clinicMembersByAuthorId = useMemo(() => {
+        const members = clinicMembersResponse?.response?.data?.docs || [];
+        const map = new Map<string, any>();
+
+        members.forEach((member: any) => {
+            if (member.id) map.set(member.id, member);
+            if (member.userId) map.set(member.userId, member);
+            if (member.user?.id) map.set(member.user.id, member);
+        });
+
+        return map;
+    }, [clinicMembersResponse]);
+
     const getNoteAuthor = (note: any) => {
-        const author = note.author || note.createdBy || note.user || note.clinician?.user || note.clinician;
+        const matchedMember = clinicMembersByAuthorId.get(note.authorId) || clinicMembersByAuthorId.get(note.userId);
+        const author = note.author || note.createdBy || note.user || note.clinician?.user || matchedMember?.user || note.clinician || matchedMember;
         const firstName = author?.firstName || '';
         const lastName = author?.lastName || '';
         const authorName = [firstName, lastName].filter(Boolean).join(' ').trim();
-        const isCurrentUserNote = note.authorId === currentUser?.id || note.userId === currentUser?.id;
+        const isCurrentUserNote =
+            note.authorId === currentUser?.id ||
+            note.userId === currentUser?.id ||
+            matchedMember?.userId === currentUser?.id ||
+            matchedMember?.user?.id === currentUser?.id;
         const currentUserName = [currentUser?.firstName, currentUser?.lastName].filter(Boolean).join(' ').trim();
-        const name = authorName || (isCurrentUserNote ? currentUserName : '') || author?.email || 'Clinician';
-        const role = author?.role || (isCurrentUserNote ? currentUser?.role : '') || 'Clinician';
+        const authorEmail = author?.email || (isCurrentUserNote ? currentUser?.email : '');
+        const name = authorName || (isCurrentUserNote ? currentUserName : '') || authorEmail || 'Unknown author';
+        const role = matchedMember?.role || author?.role || (isCurrentUserNote ? currentUser?.role : '') || '';
 
         return {
             name,
             role,
-            fallback: name.split(' ').map((part: string) => part[0]).join('').slice(0, 2).toUpperCase() || 'CN',
+            fallback: name === 'Unknown author'
+                ? '?'
+                : name.split(' ').map((part: string) => part[0]).join('').slice(0, 2).toUpperCase() || '?',
         };
     };
 
@@ -138,6 +160,9 @@ export function ClientNotesPage() {
 
                 {notes.map((note) => {
                     const author = getNoteAuthor(note);
+                    const createdAt = new Date(note.createdAt);
+                    const formattedDate = createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    const formattedTime = createdAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
                     return (
                     <div key={note.id} className="flex gap-0 sm:gap-4 group">
@@ -155,13 +180,15 @@ export function ClientNotesPage() {
                                         <Avatar fallback={author.fallback} className="h-8 w-8 text-xs" />
                                         <div>
                                             <p className="font-semibold text-sm">{author.name}</p>
-                                            <p className="text-xs text-muted-foreground capitalize">{author.role}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {author.role ? `${author.role} · ` : ''}{formattedTime}
+                                            </p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Badge variant="outline" className="font-normal text-muted-foreground">
                                             <Calendar className="h-3 w-3 mr-1" />
-                                            {new Date(note.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            {formattedDate}
                                         </Badge>
                                         <Badge variant="secondary">Clinical</Badge>
                                     </div>
