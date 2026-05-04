@@ -1,9 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, type CSSProperties } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MapPin, Phone, Mail, Globe, ArrowRight, Star, Shield, Clock, Users } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { useGetPublicClinicQuery } from '../../redux/api/clientsApi';
-import { brandGradient, brandBg } from '../../lib/branding';
+import { brandGradient, brandBg, hexToHslToken } from '../../lib/branding';
 
 const DEFAULT_DAY_SLOTS = ['09:00 AM', '10:30 AM', '12:00 PM', '02:00 PM', '03:30 PM'];
 
@@ -48,6 +48,7 @@ export function PublicClinicPage() {
   };
 
   const color = clinic?.color || branding.color || '#0066FF';
+  const brandStyle = { '--primary': hexToHslToken(color) } as CSSProperties;
   const clinicName = clinic?.name || 'Clinic';
   const clinicLogo = resolveImageUrl(clinic?.logo) || branding.logo;
   const clinicPhone = `${clinic?.countryCode || ''}${clinic?.phoneNumber || ''}`.trim() || '-';
@@ -112,7 +113,7 @@ export function PublicClinicPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100" style={brandStyle}>
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/80 border-b border-slate-200/60 shadow-sm">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">

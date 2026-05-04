@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -15,7 +15,7 @@ import {
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent } from '../../components/ui/Card';
 import { useData } from '../../context/DataContext';
-import { brandBg, brandGradient } from '../../lib/branding';
+import { brandBg, brandGradient, hexToHslToken } from '../../lib/branding';
 import {
   useGetAssessmentByTokenQuery,
   useSubmitAssessmentByTokenMutation,
@@ -78,7 +78,8 @@ export function PublicAssessmentPage() {
     if (value.startsWith('/uploads/')) return `${apiOrigin}/public${value}`;
     return `${apiOrigin}${value}`;
   };
-  const color = '#779362';
+  const color = clinic?.color || branding.color || '#0066FF';
+  const brandStyle = { '--primary': hexToHslToken(color) } as CSSProperties;
   const clinicName = clinic?.name || 'InDesk Partner Clinic';
   const clinicLogo = resolveImageUrl(clinic?.logo) || branding.logo;
   const clinicPhone = `${clinic?.countryCode || ''}${clinic?.phoneNumber || clinic?.phone || ''}`.trim() || 'Not provided';
@@ -154,7 +155,7 @@ export function PublicAssessmentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb]">
+    <div className="min-h-screen bg-[#f7f9fb]" style={brandStyle}>
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/80 border-b border-slate-200/60 shadow-sm">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
@@ -242,8 +243,14 @@ export function PublicAssessmentPage() {
               {currentStep === -1 ? (
                 <div className="max-w-3xl mx-auto p-6 sm:p-20 text-center space-y-10">
                   <div className="space-y-6">
-                    <div className="mx-auto h-20 w-auto flex items-center justify-center mb-8">
-                      <img src="/images/inkind logo-04.png" alt="InKind Logo" className="h-16 sm:h-20 w-auto object-contain scale-[1.2]" />
+                    <div className="mx-auto mb-8 flex h-20 items-center justify-center">
+                      {clinicLogo ? (
+                        <img src={clinicLogo} alt={`${clinicName} logo`} className="h-16 w-auto max-w-[220px] object-contain sm:h-20" />
+                      ) : (
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl text-2xl font-black text-white shadow-md" style={{ background: brandGradient(color) }}>
+                          {clinicName[0]}
+                        </div>
+                      )}
                     </div>
                     <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight leading-tight">{template.title}</h2>
                     <p className="text-muted-foreground text-base sm:text-lg font-medium max-w-xl mx-auto leading-relaxed">

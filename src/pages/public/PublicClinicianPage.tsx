@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, Mail, Phone, Clock, Calendar, Shield, Layers } from 'lucide-react';
 import { BookAppointmentModal } from '@/components/modals/BookAppointmentModal';
 import { useData } from '../../context/DataContext';
 import { useGetPublicClinicQuery, useGetSessionsByClinicianTokenQuery } from '../../redux/api/clientsApi';
-import { brandGradient, brandBg } from '../../lib/branding';
+import { brandGradient, brandBg, hexToHslToken } from '../../lib/branding';
 
 const DEFAULT_DAY_SLOTS = ['09:00 AM', '10:30 AM', '12:00 PM', '02:00 PM', '03:30 PM'];
 
@@ -36,6 +36,7 @@ export function PublicClinicianPage() {
   };
 
   const color = clinic?.color || branding.color || '#0066FF';
+  const brandStyle = { '--primary': hexToHslToken(color) } as CSSProperties;
   const clinicName = clinic?.name || 'Clinic';
   const clinicLogo = resolveImageUrl(clinic?.logo) || branding.logo;
   const clinicPhone = `${clinic?.countryCode || ''}${clinic?.phoneNumber || ''}`.trim() || '-';
@@ -164,7 +165,7 @@ export function PublicClinicianPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100" style={brandStyle}>
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/80 border-b border-slate-200/60 shadow-sm">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">

@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react';
 import { ArrowRight, Check, Mail, MapPin, Phone, Shield } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { useData } from '../../context/DataContext';
-import { brandBg, brandGradient } from '../../lib/branding';
+import { brandBg, brandGradient, hexToHslToken } from '../../lib/branding';
 import { useGetPublicClientByTokenQuery, useUpdatePublicClientByTokenMutation } from '../../redux/api/clientsApi';
 
 type FormState = Record<string, string | string[] | boolean>;
@@ -26,12 +26,24 @@ const livingSituationOptions = ['Living alone', 'Living with partner', 'Caring f
 const mentalHealthServiceOptions = ['GP', 'Psychologist', 'Psychiatrist', 'Counsellor / Therapist', 'Hospital inpatient', 'Other (e.g. religious / community)'];
 const hearAboutUsOptions = ['Google / online search', 'Psychology Today', 'Counselling Directory', 'Word of mouth / recommendation', 'Social media', 'GP referral', 'Other website'];
 
+const normalizeAddress = (address: any) => {
+  if (!address) return {};
+  if (typeof address === 'string') {
+    try {
+      return JSON.parse(address);
+    } catch {
+      return {};
+    }
+  }
+  if (typeof address === 'object') return address;
+  return {};
+};
+
 export function PublicClientIntakePage() {
   const { branding } = useData();
   const [form, setForm] = useState<FormState>(initialForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const brandColor = branding.color || '#779362';
   const searchParams = useMemo(() => new URLSearchParams(window.location.search), []);
   const publicToken = searchParams.get('publicToken') || '';
   const { data: publicClientResponse, isLoading, isError } = useGetPublicClientByTokenQuery(publicToken, {
@@ -39,6 +51,38 @@ export function PublicClientIntakePage() {
   });
   const [updatePublicClientByToken, { isLoading: isSubmitting }] = useUpdatePublicClientByTokenMutation();
   const clientData = publicClientResponse?.response?.data;
+  const clinic = (clientData as any)?.clinic || (clientData as any)?.clinicDetails || null;
+  const apiOrigin = useMemo(() => {
+    try {
+      return new URL(import.meta.env.VITE_CLIENTS_API_BASE_URL).origin;
+    } catch {
+      return '';
+    }
+  }, []);
+  const resolveImageUrl = (value?: string | null) => {
+    if (!value) return null;
+    if (value.startsWith('http')) return value;
+    if (!apiOrigin) return value;
+    if (value.startsWith('/uploads/')) return `${apiOrigin}/public${value}`;
+    return `${apiOrigin}${value}`;
+  };
+  const brandColor = clinic?.color || branding.color || '#0066FF';
+  const brandStyle = { '--primary': hexToHslToken(brandColor) } as CSSProperties;
+  const clinicName = clinic?.name || 'InDesk Partner Practice';
+  const clinicLogo = resolveImageUrl(clinic?.logo) || branding.logo;
+  const clinicPhone = `${clinic?.countryCode || ''}${clinic?.phoneNumber || clinic?.phone || ''}`.trim() || '';
+  const clinicEmail = clinic?.email || 'support@myindesk.com';
+  const clinicAddressObject = normalizeAddress(clinic?.address);
+  const clinicAddress = [
+    clinicAddressObject.street,
+    clinicAddressObject.city,
+    clinicAddressObject.state,
+    clinicAddressObject.zip,
+    clinicAddressObject.country,
+  ]
+    .map((part: string) => (part || '').trim())
+    .filter(Boolean)
+    .join(', ') || 'Clinic address available on request';
   const clientName = [clientData?.firstName, clientData?.lastName].filter(Boolean).join(' ').trim();
 
   useEffect(() => {
@@ -157,17 +201,23 @@ export function PublicClientIntakePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100" style={brandStyle}>
       <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/85 backdrop-blur-xl shadow-sm">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl text-lg font-black text-white shadow-md" style={{ background: brandGradient(brandColor) }}>I</div>
+            {clinicLogo ? (
+              <img src={clinicLogo} alt={`${clinicName} logo`} className="h-11 w-11 rounded-2xl object-cover shadow-md" />
+            ) : (
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl text-lg font-black text-white shadow-md" style={{ background: brandGradient(brandColor) }}>
+                {clinicName[0]}
+              </div>
+            )}
             <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-slate-900">InDesk Partner Practice</p>
+              <p className="truncate text-sm font-bold text-slate-900">{clinicName}</p>
               <p className="text-[10px] font-medium uppercase tracking-[0.24em] text-slate-500">Public Client Intake Form</p>
             </div>
           </div>
-          <a href="tel:+44" className="hidden items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 sm:flex" style={{ background: brandColor }}>
+          <a href={clinicPhone ? `tel:${clinicPhone}` : undefined} className="hidden items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 sm:flex" style={{ background: brandColor }}>
             <Phone className="h-3.5 w-3.5" />
             Contact
           </a>
@@ -199,10 +249,10 @@ export function PublicClientIntakePage() {
 
       <section className="relative z-10 mx-auto -mt-10 max-w-6xl px-6">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {[
-            { icon: Phone, label: 'Phone', value: '+44' },
-            { icon: Mail, label: 'Email', value: 'support@myindesk.com' },
-            { icon: MapPin, label: 'Address', value: 'Clinic address available on request' },
+          {[ 
+            { icon: Phone, label: 'Phone', value: clinicPhone || 'Not provided' },
+            { icon: Mail, label: 'Email', value: clinicEmail },
+            { icon: MapPin, label: 'Address', value: clinicAddress },
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-lg shadow-slate-200/60">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: brandBg(brandColor, 0.1), color: brandColor }}>
