@@ -13,7 +13,8 @@ import {
     Activity,
     ClipboardCheck,
     ClipboardList,
-    Download
+    Download,
+    UserCheck
 } from 'lucide-react';
 import { ClientHistoryModal } from '../../components/modals/ClientHistoryModal';
 import { CreateAppointmentModal } from '../../components/modals/CreateAppointmentModal';
@@ -39,6 +40,11 @@ export function ClientLayout() {
     skip: !id,
   });
   const { data: invoicesResponse } = useGetInvoicesQuery({ page: 1, limit: 100 });
+  const [clientStatusOverride, setClientStatusOverride] = useState<'Active' | 'Waiting List' | 'Inactive' | null>(() => {
+    if (!id) return null;
+    const saved = localStorage.getItem(`client_status_override_${id}`);
+    return saved === 'Active' || saved === 'Waiting List' || saved === 'Inactive' ? saved : null;
+  });
 
   const client = useMemo(() => {
     const data = clientResponse?.response?.data;
@@ -64,11 +70,11 @@ export function ClientLayout() {
       name: `${data.firstName} ${data.lastName}`.trim(),
       email: data.email,
       phone,
-      status: statusMap[data.status] || 'Active',
+      status: clientStatusOverride || statusMap[data.status] || 'Active',
       clinician: clinicianName,
       rawClient: data
     };
-  }, [clientResponse]);
+  }, [clientResponse, clientStatusOverride]);
 
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     const [isBookingOpen, setIsBookingOpen] = useState(false);
@@ -100,6 +106,7 @@ export function ClientLayout() {
         { id: 'assessments', label: 'Assessments', icon: ClipboardCheck, path: `/clients/${id}/assessments` },
         { id: 'measures', label: 'Outcome Measures', icon: Activity, path: `/clients/${id}/measures` },
         { id: 'intake', label: 'Intake Form', icon: ClipboardList, path: `/clients/${id}/intake` },
+        { id: 'status', label: 'Status', icon: UserCheck, path: `/clients/${id}/status` },
     ];
 
     const activeTab = location.pathname.split('/').pop() || 'details';
@@ -227,7 +234,7 @@ export function ClientLayout() {
 
             {/* Main Content Area */}
             <div className={cn(isLetterPage ? "pt-0" : "pt-2")}>
-                <Outlet context={{ client, clientRaw: client.rawClient }} />
+                <Outlet context={{ client, clientRaw: client.rawClient, setClientStatusOverride }} />
             </div>
 
             <ClientHistoryModal
