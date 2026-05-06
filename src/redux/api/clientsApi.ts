@@ -881,6 +881,20 @@ export interface UpdateClientRequest {
   surgeryPostcode?: string | null;
 }
 
+export interface UpdateClientStatusRequest {
+  clientId: string;
+  status: 'active' | 'waiting_list' | 'inactive';
+}
+
+export interface UpdateClientStatusResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response?: {
+    data?: ClientItem;
+  };
+}
+
 interface CreateClientResponse {
   success: boolean;
   status: number;
@@ -1352,6 +1366,51 @@ export const clientsApi = createApi({
       invalidatesTags: (_result, _error, { publicToken }) => [{ type: 'Clients', id: publicToken }, 'Clients'],
     }),
 
+    updateClientStatus: builder.mutation<UpdateClientStatusResponse, UpdateClientStatusRequest>({
+      query: ({ clientId, status }) => ({
+        url: `/client/${clientId}/status`,
+        method: 'PATCH',
+        body: { status },
+      }),
+      async onQueryStarted({ clientId, status }, { dispatch, queryFulfilled }) {
+        const patchClientById = dispatch(
+          clientsApi.util.updateQueryData('getClientById', clientId, (draft) => {
+            if (draft?.response?.data) {
+              draft.response.data.status = status;
+            }
+          })
+        );
+
+        const patchClientsList = dispatch(
+          clientsApi.util.updateQueryData('getClients', { page: 1, limit: 10 }, (draft) => {
+            const docs = draft?.response?.data?.docs;
+            const client = docs?.find((item) => item.id === clientId);
+            if (client) {
+              client.status = status;
+            }
+          })
+        );
+
+        try {
+          const { data } = await queryFulfilled;
+          const returnedStatus = data?.response?.data?.status;
+          if (returnedStatus) {
+            dispatch(
+              clientsApi.util.updateQueryData('getClientById', clientId, (draft) => {
+                if (draft?.response?.data) {
+                  draft.response.data.status = returnedStatus;
+                }
+              })
+            );
+          }
+        } catch {
+          patchClientById.undo();
+          patchClientsList.undo();
+        }
+      },
+      invalidatesTags: (_result, _error, { clientId }) => [{ type: 'Clients', id: clientId }, 'Clients'],
+    }),
+
     getClientAppointments: builder.query<GetClientAppointmentsResponse, string>({
       query: (clientId) => `/appointment/client/${clientId}`,
       providesTags: (_result, _error, clientId) => [{ type: 'Clients', id: clientId }],
@@ -1660,6 +1719,7 @@ export const {
   useSendClientIntakeLinkMutation,
   useGetPublicClientByTokenQuery,
   useUpdatePublicClientByTokenMutation,
+  useUpdateClientStatusMutation,
   useGetClientAppointmentsQuery,
   useGetCalendarAppointmentsQuery,
   useGetSessionsQuery,

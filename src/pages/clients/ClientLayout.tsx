@@ -28,6 +28,17 @@ import { Badge } from '../../components/ui/Badge';
 import { useGetClientAppointmentsQuery, useGetClientByIdQuery, useGetInvoicesQuery } from '../../redux/api/clientsApi';
 import { cn } from '../../lib/utils';
 
+type ClientStatus = 'Active' | 'Waiting List' | 'Inactive';
+
+const mapClientStatusToLabel = (status?: string): ClientStatus => {
+  const normalized = String(status || '').trim().toLowerCase().replace(/[_-]+/g, ' ');
+  if (normalized === 'inactive') return 'Inactive';
+  if (normalized === 'waiting list' || normalized === 'waiting' || normalized === 'waitlist' || normalized === 'pending') {
+    return 'Waiting List';
+  }
+  return 'Active';
+};
+
 export function ClientLayout() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -40,11 +51,7 @@ export function ClientLayout() {
     skip: !id,
   });
   const { data: invoicesResponse } = useGetInvoicesQuery({ page: 1, limit: 100 });
-  const [clientStatusOverride, setClientStatusOverride] = useState<'Active' | 'Waiting List' | 'Inactive' | null>(() => {
-    if (!id) return null;
-    const saved = localStorage.getItem(`client_status_override_${id}`);
-    return saved === 'Active' || saved === 'Waiting List' || saved === 'Inactive' ? saved : null;
-  });
+  const [clientStatusOverride, setClientStatusOverride] = useState<ClientStatus | null>(null);
 
   const client = useMemo(() => {
     const data = clientResponse?.response?.data;
@@ -55,12 +62,6 @@ export function ClientLayout() {
       ? `Dr. ${clinicianUser.firstName} ${clinicianUser.lastName}`.trim()
       : 'Not assigned';
 
-    const statusMap: Record<string, 'Active' | 'Waiting List' | 'Inactive'> = {
-      active: 'Active',
-      waiting: 'Waiting List',
-      inactive: 'Inactive'
-    };
-
     const phone = data.phoneNumber
       ? `${data.countryCode || ''} ${data.phoneNumber}`.trim()
       : '-';
@@ -70,7 +71,7 @@ export function ClientLayout() {
       name: `${data.firstName} ${data.lastName}`.trim(),
       email: data.email,
       phone,
-      status: clientStatusOverride || statusMap[data.status] || 'Active',
+      status: clientStatusOverride || mapClientStatusToLabel(data.status),
       clinician: clinicianName,
       rawClient: data
     };

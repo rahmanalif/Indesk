@@ -22,6 +22,72 @@ interface QuestionnaireBuilderModalProps {
   onSwitchToAi?: () => void;
 }
 
+type StarterAssessmentTemplate = {
+  id: string;
+  title: string;
+  category: string;
+  description: string;
+  questions: Array<{
+    type: Question['type'];
+    text: string;
+    options?: string[];
+  }>;
+};
+
+const LIKERT_OPTIONS = ['Not at all', 'Several days', 'More than half the days', 'Nearly every day'];
+
+const STARTER_TEMPLATES: StarterAssessmentTemplate[] = [
+  {
+    id: 'gad-7',
+    title: 'GAD-7',
+    category: 'Mental Health',
+    description: 'Generalised anxiety screening questionnaire with seven standard symptom items.',
+    questions: [
+      'Feeling nervous, anxious, or on edge',
+      'Not being able to stop or control worrying',
+      'Worrying too much about different things',
+      'Trouble relaxing',
+      'Being so restless that it is hard to sit still',
+      'Becoming easily annoyed or irritable',
+      'Feeling afraid as if something awful might happen',
+    ].map((text) => ({ type: 'multiple-choice' as const, text, options: LIKERT_OPTIONS })),
+  },
+  {
+    id: 'phq-9',
+    title: 'PHQ-9',
+    category: 'Mental Health',
+    description: 'Depression severity questionnaire using the standard nine PHQ prompts.',
+    questions: [
+      'Little interest or pleasure in doing things',
+      'Feeling down, depressed, or hopeless',
+      'Trouble falling or staying asleep, or sleeping too much',
+      'Feeling tired or having little energy',
+      'Poor appetite or overeating',
+      'Feeling bad about yourself — or that you are a failure or have let yourself or your family down',
+      'Trouble concentrating on things, such as reading the newspaper or watching television',
+      'Moving or speaking so slowly that other people could have noticed, or the opposite — being so fidgety or restless that you have been moving around a lot more than usual',
+      'Thoughts that you would be better off dead, or of hurting yourself in some way',
+    ].map((text) => ({ type: 'multiple-choice' as const, text, options: LIKERT_OPTIONS })),
+  },
+  {
+    id: 'wsas',
+    title: 'WSAS',
+    category: 'General Clinical',
+    description: 'Work and Social Adjustment Scale style starter template focused on functional impact.',
+    questions: [
+      'Because of my problem, my ability to work is impaired.',
+      'Because of my problem, my home management is impaired.',
+      'Because of my problem, my social leisure activities are impaired.',
+      'Because of my problem, my private leisure activities are impaired.',
+      'Because of my problem, my ability to form and maintain close relationships is impaired.',
+    ].map((text) => ({
+      type: 'multiple-choice' as const,
+      text,
+      options: ['Not at all', 'Slightly', 'Definitely', 'Markedly', 'Very severely'],
+    })),
+  },
+];
+
 export function QuestionnaireBuilderModal({
   isOpen,
   onClose,
@@ -46,6 +112,7 @@ export function QuestionnaireBuilderModal({
   const [newOptionValue, setNewOptionValue] = useState<{ [key: number]: string }>({});
   const [showAiTopicInput, setShowAiTopicInput] = useState(false);
   const [aiTopic, setAiTopic] = useState('');
+  const [selectedStarterTemplateId, setSelectedStarterTemplateId] = useState<string | null>(null);
   const hasVisibleQuestions = questions.some((q) => q.text.trim() !== '' || q.type !== 'text' || (q.options && q.options.length > 0));
 
   const mapCategoryToApi = (value: string) => {
@@ -74,8 +141,24 @@ export function QuestionnaireBuilderModal({
       setNewOptionValue({});
       setShowAiTopicInput(mode === 'ai');
       setAiTopic('');
+      setSelectedStarterTemplateId(null);
     }
   }, [isOpen, mode]);
+
+  const applyStarterTemplate = (template: StarterAssessmentTemplate) => {
+    setSelectedStarterTemplateId(template.id);
+    setTitle(template.title);
+    setCategory(template.category);
+    setDescription(template.description);
+    setQuestions(
+      template.questions.map((question, index) => ({
+        id: Date.now() + index,
+        type: question.type,
+        text: question.text,
+        options: question.options,
+      }))
+    );
+  };
 
   const addQuestion = () => {
     setQuestions([...questions, {
@@ -283,6 +366,43 @@ export function QuestionnaireBuilderModal({
 
               {mode !== 'ai' && (
                 <>
+                  <div className="mb-8 rounded-[24px] border border-primary/12 bg-white p-4 shadow-[0_18px_50px_-30px_rgba(119,147,98,0.25)] sm:p-5">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary/70">Starter Templates</p>
+                        <p className="mt-1 text-lg font-semibold text-foreground">Start from a common clinical assessment</p>
+                      </div>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-3">
+                      {STARTER_TEMPLATES.map((template) => {
+                        const isSelected = selectedStarterTemplateId === template.id;
+                        return (
+                          <button
+                            key={template.id}
+                            type="button"
+                            onClick={() => applyStarterTemplate(template)}
+                            className={`rounded-2xl border p-4 text-left transition-all ${
+                              isSelected
+                                ? 'border-primary/30 bg-primary/5'
+                                : 'border-border/60 bg-white hover:border-primary/20 hover:bg-primary/5'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="font-bold text-foreground">{template.title}</p>
+                              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                {template.questions.length} Qs
+                              </span>
+                            </div>
+                            <p className="mt-2 text-xs font-medium text-primary/80 uppercase tracking-[0.15em]">
+                              {template.category}
+                            </p>
+                            <p className="mt-2 text-sm text-muted-foreground">{template.description}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   {/* Form Info Section */}
                   <div className="mb-6 grid grid-cols-1 gap-x-6 gap-y-5 md:grid-cols-2 md:gap-y-6">
                     <div className="space-y-2">

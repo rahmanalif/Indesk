@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Download, Mail, Search } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Plus, Download, Mail, Search, Webhook } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -8,7 +8,9 @@ import { Select } from '../components/ui/Select';
 import { InvoicePreviewModal } from '../components/modals/InvoicePreviewModal';
 import { Pagination } from '../components/ui/Pagination';
 import { DatePicker } from '../components/ui/DatePicker';
-import { useGetInvoiceStatsQuery, useGetInvoicesQuery } from '../redux/api/invoiceApi';
+import { notify } from '../components/ui/ToastHost';
+import { useGetIntegrationsQuery } from '../redux/api/integrationApi';
+import { useExportInvoiceToXeroMutation, useGetInvoiceStatsQuery, useGetInvoicesQuery } from '../redux/api/invoiceApi';
 
 export function InvoicesPage() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -20,6 +22,7 @@ export function InvoicesPage() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [exportingInvoiceId, setExportingInvoiceId] = useState<string | null>(null);
 
   const itemsPerPage = 10;
   const { data: invoicesResponse, isLoading, isError, refetch } = useGetInvoicesQuery({
@@ -27,6 +30,8 @@ export function InvoicesPage() {
     limit: itemsPerPage,
   });
   const { data: statsResponse } = useGetInvoiceStatsQuery();
+  const { data: integrationsResponse } = useGetIntegrationsQuery();
+  const [exportInvoiceToXero] = useExportInvoiceToXeroMutation();
   const apiInvoices = invoicesResponse?.response?.data?.docs || [];
   const stats = statsResponse?.response?.data;
   const monthlySalesAmount = Number(stats?.monthlySales?.amount ?? 0);
@@ -38,6 +43,19 @@ export function InvoicesPage() {
 
   const normalizeStatus = (status?: string) =>
     status ? status.charAt(0).toUpperCase() + status.slice(1).toLowerCase() : 'Pending';
+
+  const xeroConnected = useMemo(() => {
+    const integrationsRaw = integrationsResponse?.response?.data;
+    const integrations = Array.isArray(integrationsRaw) ? integrationsRaw : integrationsRaw?.docs || [];
+
+    return integrations.some((integration: any) => {
+      const normalizedType = String(integration?.type || integration?.name || '')
+        .toLowerCase()
+        .replace(/[\s-]+/g, '_');
+      const normalizedStatus = String(integration?.status || '').toLowerCase();
+      return normalizedType === 'xero' && (normalizedStatus === 'connected' || integration?.isConnected === true);
+    });
+  }, [integrationsResponse]);
 
   const invoices = apiInvoices.map(inv => {
     const clientName = inv.client ? `${inv.client.firstName} ${inv.client.lastName}` : 'Unknown';
@@ -83,6 +101,24 @@ export function InvoicesPage() {
     setIsPreviewOpen(false);
     setSelectedInvoice(null);
     refetch();
+  };
+
+  const handleExportToXero = async (invoiceId: string) => {
+    if (!xeroConnected) {
+      notify.warning('Please connect Xero from the Integrations section before exporting invoices to Xero.');
+      return;
+    }
+
+    try {
+      setExportingInvoiceId(invoiceId);
+      const response = await exportInvoiceToXero({ id: invoiceId }).unwrap();
+      notify.success(response.message || 'Invoice exported to Xero successfully.');
+      refetch();
+    } catch (error: any) {
+      notify.error(error?.data?.message || error?.message || 'Failed to export invoice to Xero.');
+    } finally {
+      setExportingInvoiceId(null);
+    }
   };
 
   return <div className="space-y-6">
@@ -266,10 +302,20 @@ export function InvoicesPage() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="text-[#2E7D32] hover:text-[#2E7D32] hover:bg-[#2E7D32]/10"
+                          title={xeroConnected ? 'Export to Xero' : 'Connect Xero from Integrations'}
+                          onClick={() => handleExportToXero(invoice.id)}
+                          isLoading={exportingInvoiceId === invoice.id}
+                        >
+                          {exportingInvoiceId !== invoice.id ? <Webhook className="h-4 w-4" /> : null}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           className="text-primary hover:text-primary hover:bg-primary/10"
                           title="Send via Email"
                           onClick={() => {
-                            alert(`Invoice ${invoice.id} has been sent to ${invoice.clientEmail}`);
+                            notify.success(`Invoice ${invoice.id} has been sent to ${invoice.clientEmail}`);
                           }}
                         >
                           <Mail className="h-4 w-4" />
@@ -320,7 +366,17 @@ export function InvoicesPage() {
                 <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => handleView(invoice)}>
                   <Download className="h-3 w-3 mr-2" /> View
                 </Button>
-                <Button variant="outline" size="sm" className="h-8 text-xs text-primary border-primary/20 bg-primary/5" onClick={() => alert(`Sent to ${invoice.clientEmail}`)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs text-[#2E7D32] border-[#2E7D32]/20 bg-[#2E7D32]/5"
+                  onClick={() => handleExportToXero(invoice.id)}
+                  isLoading={exportingInvoiceId === invoice.id}
+                >
+                  {exportingInvoiceId !== invoice.id ? <Webhook className="h-3 w-3 mr-2" /> : null}
+                  Xero
+                </Button>
+                <Button variant="outline" size="sm" className="h-8 text-xs text-primary border-primary/20 bg-primary/5" onClick={() => notify.success(`Sent to ${invoice.clientEmail}`)}>
                   <Mail className="h-3 w-3 mr-2" /> Email
                 </Button>
               </div>

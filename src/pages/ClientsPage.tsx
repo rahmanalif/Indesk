@@ -224,7 +224,7 @@ export function ClientsPage() {
     statusFilter === 'All'
       ? undefined
       : statusFilter === 'Waiting List'
-        ? 'pending'
+        ? 'waiting_list'
         : statusFilter.toLowerCase();
 
   const { data: clientsData, isLoading, isError, error, refetch } = useGetClientsQuery({
@@ -269,6 +269,7 @@ export function ClientsPage() {
 
       const statusMap: Record<string, 'Active' | 'Waiting List' | 'Inactive'> = {
         active: 'Active',
+        waiting_list: 'Waiting List',
         pending: 'Waiting List',
         inactive: 'Inactive'
       };

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, FileText, Search, Share2, Trash2, Sparkles } from 'lucide-react';
+import { Plus, FileText, Search, Share2, Trash2, Sparkles, LayoutTemplate } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Select } from '../components/ui/Select';
@@ -8,6 +8,7 @@ import { Input } from '../components/ui/Input';
 import { CreateNewFormModal, GenerateQuestionsModal } from '../components/modals/QuestionnaireBuilderModal';
 import { EditFormModal } from '../components/modals/EditFormModal';
 import { ShareDocumentModal } from '../components/modals/ShareDocumentModal';
+import { AdminQuestionnairesWorkspace } from '../components/forms/AdminQuestionnairesWorkspace';
 import { useDeleteAssessmentTemplateMutation, useGetAssessmentTemplatesQuery } from '../redux/api/assessmentApi';
 
 const CATEGORY_TO_API: Record<string, string> = {
@@ -54,6 +55,7 @@ const getFriendlyDeleteErrorMessage = (formName: string, error: any) => {
 
 export function FormsPage() {
   const navigate = useNavigate();
+  const [activeWorkspace, setActiveWorkspace] = useState<'clinical' | 'admin'>('clinical');
   const [isCreateFormModalOpen, setIsCreateFormModalOpen] = useState(false);
   const [isGenerateQuestionsModalOpen, setIsGenerateQuestionsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -173,26 +175,73 @@ export function FormsPage() {
             Forms & Questionnaires
           </h1>
           <p className="text-muted-foreground mt-1">
-            Manage clinical assessments and documentation.
+            Manage clinical assessments and reusable admin documentation.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setIsGenerateQuestionsModalOpen(true)}
-          >
-            <Sparkles className="mr-2 h-4 w-4" />
-            Let Sigmund Source it
-          </Button>
-          <Button
-            onClick={() => setIsCreateFormModalOpen(true)}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Create New Form
-          </Button>
+          {activeWorkspace === 'clinical' ? (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => setIsGenerateQuestionsModalOpen(true)}
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                Let Sigmund Source it
+              </Button>
+              <Button onClick={() => setIsCreateFormModalOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Create New Form
+              </Button>
+            </>
+          ) : null}
         </div>
       </div>
 
+      <div className="rounded-3xl border border-primary/10 bg-white p-2 shadow-sm">
+        <div className="grid gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => setActiveWorkspace('clinical')}
+            className={`rounded-2xl px-4 py-4 text-left transition-all ${
+              activeWorkspace === 'clinical'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'bg-transparent text-foreground hover:bg-primary/5'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Sparkles className="h-5 w-5" />
+              <div>
+                <p className="font-semibold">Clinical Assessments</p>
+                <p className={`text-sm ${activeWorkspace === 'clinical' ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                  Assessment templates, questionnaires, and Sigmund-assisted forms.
+                </p>
+              </div>
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveWorkspace('admin')}
+            className={`rounded-2xl px-4 py-4 text-left transition-all ${
+              activeWorkspace === 'admin'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'bg-transparent text-foreground hover:bg-primary/5'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <LayoutTemplate className="h-5 w-5" />
+              <div>
+                <p className="font-semibold">Admin Questionnaires</p>
+                <p className={`text-sm ${activeWorkspace === 'admin' ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                  Lightweight reusable templates for agreements, consent, onboarding, and letters.
+                </p>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {activeWorkspace === 'clinical' ? (
+        <>
       {/* Search and Filters Section */}
       <div className="bg-white p-6 rounded-3xl shadow-sm border border-primary/10 space-y-6 animate-in slide-in-from-top-4 duration-500">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
@@ -402,6 +451,10 @@ export function FormsPage() {
           </div>
         </div>
       </Card>
+        </>
+      ) : (
+        <AdminQuestionnairesWorkspace />
+      )}
 
       <GenerateQuestionsModal isOpen={isGenerateQuestionsModalOpen} onClose={() => setIsGenerateQuestionsModalOpen(false)} />
       <CreateNewFormModal

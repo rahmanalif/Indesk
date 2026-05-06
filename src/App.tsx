@@ -39,6 +39,7 @@ import { LegalDocumentPage } from './pages/public/LegalDocumentPage';
 import { RootState } from './store';
 import { SmartRedirect } from './components/SmartRedirect';
 import { NoPermissionsPage } from './pages/NoPermissionsPage';
+import { ToastHost } from './components/ui/ToastHost';
 
 function HomeRedirect() {
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
@@ -53,6 +54,7 @@ function HomeRedirect() {
 export function App() {
   return (
     <DataProvider>
+      <ToastHost />
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           {/* Public Routes */}

@@ -205,6 +205,20 @@ export interface AppointmentParams {
   endDate?: string;
 }
 
+export interface ExportInvoiceToXeroRequest {
+  id: string;
+  forceReExport?: boolean;
+}
+
+export interface ExportInvoiceToXeroResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response?: {
+    data?: Record<string, unknown>;
+  };
+}
+
 export const invoiceApi = createApi({
   reducerPath: 'invoiceApi',
   baseQuery: fetchBaseQuery({
@@ -311,6 +325,14 @@ export const invoiceApi = createApi({
         body: { email },
       }),
     }),
+    exportInvoiceToXero: builder.mutation<ExportInvoiceToXeroResponse, ExportInvoiceToXeroRequest>({
+      query: ({ id, forceReExport }) => ({
+        url: `invoice/${id}/export/xero`,
+        method: 'POST',
+        ...(typeof forceReExport === 'boolean' ? { body: { forceReExport } } : {}),
+      }),
+      invalidatesTags: ['Invoice'],
+    }),
   }),
 });
 
@@ -324,4 +346,5 @@ export const {
   useGetInvoiceStatsQuery,
   useDeleteInvoiceMutation,
   useSendInvoiceMutation,
+  useExportInvoiceToXeroMutation,
 } = invoiceApi;

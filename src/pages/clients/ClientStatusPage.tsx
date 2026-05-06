@@ -1,11 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { CheckCircle2, Clock, PauseCircle, Save } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { notify } from '../../components/ui/ToastHost';
 import { cn } from '../../lib/utils';
+import { useUpdateClientStatusMutation } from '../../redux/api/clientsApi';
 
 type ClientStatus = 'Active' | 'Waiting List' | 'Inactive';
+type ClientStatusApiValue = 'active' | 'waiting_list' | 'inactive';
 
 type ClientOutletContext = {
   client: {
@@ -18,6 +21,7 @@ type ClientOutletContext = {
 
 const statusOptions: Array<{
   value: ClientStatus;
+  apiValue: ClientStatusApiValue;
   label: string;
   description: string;
   icon: typeof CheckCircle2;
@@ -25,6 +29,7 @@ const statusOptions: Array<{
 }> = [
   {
     value: 'Active',
+    apiValue: 'active',
     label: 'Active',
     description: 'Client is currently receiving care or can be booked for sessions.',
     icon: CheckCircle2,
@@ -32,6 +37,7 @@ const statusOptions: Array<{
   },
   {
     value: 'Waiting List',
+    apiValue: 'waiting_list',
     label: 'Waiting List',
     description: 'Client is waiting for assignment, availability, or next steps.',
     icon: Clock,
@@ -39,6 +45,7 @@ const statusOptions: Array<{
   },
   {
     value: 'Inactive',
+    apiValue: 'inactive',
     label: 'Inactive',
     description: 'Client is not currently active, but their record remains available.',
     icon: PauseCircle,
@@ -48,28 +55,44 @@ const statusOptions: Array<{
 
 export function ClientStatusPage() {
   const { client, setClientStatusOverride } = useOutletContext<ClientOutletContext>();
+  const [updateClientStatus, { isLoading: isSaving }] = useUpdateClientStatusMutation();
   const [selectedStatus, setSelectedStatus] = useState<ClientStatus>(client.status || 'Active');
-  const [isSaved, setIsSaved] = useState(false);
+  const [savedStatus, setSavedStatus] = useState<ClientStatus>(client.status || 'Active');
 
-  const handleSave = () => {
-    localStorage.setItem(`client_status_override_${client.id}`, selectedStatus);
-    setClientStatusOverride?.(selectedStatus);
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 2000);
+  useEffect(() => {
+    setSelectedStatus(client.status || 'Active');
+    setSavedStatus(client.status || 'Active');
+  }, [client.id, client.status]);
+
+  const handleSave = async () => {
+    const nextStatus = statusOptions.find((option) => option.value === selectedStatus);
+    if (!nextStatus) return;
+
+    try {
+      await updateClientStatus({
+        clientId: client.id,
+        status: nextStatus.apiValue,
+      }).unwrap();
+      setClientStatusOverride?.(selectedStatus);
+      setSavedStatus(selectedStatus);
+      notify.success(`Client status updated to ${selectedStatus}.`);
+    } catch (error: any) {
+      notify.error(error?.data?.message || error?.message || 'Failed to update client status.');
+    }
   };
 
   return (
     <div className="animate-in slide-in-from-bottom-4 duration-500">
       <Card className="max-w-4xl">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-primary" />
-            Client Status
-          </CardTitle>
-          <CardDescription>
-            Change this client&apos;s status for frontend workflow tracking. Backend sync will be added later.
-          </CardDescription>
-        </CardHeader>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-primary" />
+              Client Status
+            </CardTitle>
+            <CardDescription>
+            Update this client&apos;s status and sync it directly with the clinic records.
+            </CardDescription>
+          </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid gap-3 md:grid-cols-3">
             {statusOptions.map((option) => {
@@ -102,9 +125,15 @@ export function ClientStatusPage() {
               <p className="text-sm font-semibold text-foreground">Current selection</p>
               <p className="text-sm text-muted-foreground">{client.name} will show as {selectedStatus}.</p>
             </div>
-            <Button type="button" onClick={handleSave} className="h-11 rounded-xl px-6">
+            <Button
+              type="button"
+              onClick={handleSave}
+              className="h-11 rounded-xl px-6"
+              isLoading={isSaving}
+              disabled={isSaving || selectedStatus === savedStatus}
+            >
               <Save className="mr-2 h-4 w-4" />
-              {isSaved ? 'Saved' : 'Save Status'}
+              Save Status
             </Button>
           </div>
         </CardContent>
