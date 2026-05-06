@@ -762,10 +762,33 @@ interface CreateAppointmentResponse {
 export interface GetCalendarAppointmentsParams {
   startDate?: string;
   endDate?: string;
-  clinicianId?: string;
+  clinicianId?: string | string[];
   status?: 'pending' | 'completed' | 'cancelled' | 'scheduled';
   view?: 'month' | 'week' | 'day';
 }
+
+const buildCalendarAppointmentsQuery = (params: GetCalendarAppointmentsParams) => {
+  const searchParams = new URLSearchParams();
+
+  if (params.startDate) searchParams.set('startDate', params.startDate);
+  if (params.endDate) searchParams.set('endDate', params.endDate);
+  if (params.status) searchParams.set('status', params.status);
+  if (params.view) searchParams.set('view', params.view);
+
+  if (Array.isArray(params.clinicianId)) {
+    params.clinicianId
+      .map((value) => value?.trim())
+      .filter(Boolean)
+      .forEach((value) => {
+        searchParams.append('clinicianId', value);
+      });
+  } else if (params.clinicianId?.trim()) {
+    searchParams.set('clinicianId', params.clinicianId.trim());
+  }
+
+  const queryString = searchParams.toString();
+  return queryString ? `/appointment/calendar/clinic?${queryString}` : '/appointment/calendar/clinic';
+};
 
 export interface CreateClinicMemberRequest {
   email: string;
@@ -816,7 +839,7 @@ interface ClinicMemberMutationResponse {
 export interface CreateClientRequest {
   firstName: string;
   lastName: string;
-  email: string;
+  email?: string | null;
   dateOfBirth?: string | null;
   gender?: string | null;
   phoneNumber?: string;
@@ -1335,10 +1358,7 @@ export const clientsApi = createApi({
     }),
 
     getCalendarAppointments: builder.query<GetCalendarAppointmentsResponse, GetCalendarAppointmentsParams>({
-      query: (params) => ({
-        url: '/appointment/calendar/clinic',
-        params,
-      }),
+      query: (params) => buildCalendarAppointmentsQuery(params),
       providesTags: ['Clients'],
     }),
 

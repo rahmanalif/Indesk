@@ -100,7 +100,7 @@ export function DashboardPage() {
   } = useGetCalendarAppointmentsQuery({
     ...calendarRange,
     view: calendarQueryView,
-    clinicianId: selectedClinicianIds.length === 1 ? selectedClinicianIds[0] : undefined,
+    clinicianId: selectedClinicianIds.length > 0 ? selectedClinicianIds : undefined,
   });
 
   const {

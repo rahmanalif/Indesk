@@ -136,6 +136,13 @@ export function CreateClientModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    const firstName = formData.firstName.trim();
+    const lastName = formData.lastName.trim();
+
+    if (!firstName || !lastName) {
+      return;
+    }
+
     if (!formData.clinicId) {
       return;
     }
@@ -155,9 +162,9 @@ export function CreateClientModal({
 
     // Format the data for API
     const apiData: CreateClientRequest = {
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      email: formData.email,
+      firstName,
+      lastName,
+      email: formData.email.trim() || undefined,
       dateOfBirth: formData.dateOfBirth || null,
       gender: formData.gender || null,
       phoneNumber: formData.phoneNumber,
@@ -268,7 +275,6 @@ export function CreateClientModal({
                 label="Email"
                 type="email"
                 placeholder="jane@example.com"
-                required
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
@@ -460,9 +466,8 @@ export function CreateClientModal({
             disabled={
               isLoading ||
               isClinicLoading ||
-              !formData.firstName ||
-              !formData.lastName ||
-              !formData.email ||
+              !formData.firstName.trim() ||
+              !formData.lastName.trim() ||
               !formData.clinicId
             }
           >
