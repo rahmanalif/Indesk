@@ -6,9 +6,19 @@ import { useData } from '../../context/DataContext';
 import { useGetPublicClinicQuery, useGetSessionsByClinicianTokenQuery } from '../../redux/api/clientsApi';
 import { brandGradient, brandBg, hexToHslToken } from '../../lib/branding';
 
-const DEFAULT_DAY_SLOTS = ['09:00 AM', '10:30 AM', '12:00 PM', '02:00 PM', '03:30 PM'];
-
 const toTitleCase = (value: string) => value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+const formatTime = (value?: string | null) => {
+  if (!value || !value.includes(':')) return '-';
+
+  const [hoursText, minutesText] = value.split(':');
+  const hours = Number(hoursText);
+  const minutes = Number(minutesText);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return value;
+
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const displayHours = hours % 12 || 12;
+  return `${String(displayHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${period}`;
+};
 
 export function PublicClinicianPage() {
   const { linkId, id } = useParams();
@@ -52,7 +62,14 @@ export function PublicClinicianPage() {
         const firstName = member?.user?.firstName || '';
         const lastName = member?.user?.lastName || '';
         const fullName = [firstName, lastName].filter(Boolean).join(' ') || 'Clinician';
-        const availabilityDays = Array.isArray(member?.availability) ? member.availability : [];
+        const rawAvailabilitySchedule = Array.isArray(member?.availabilitySchedule) ? member.availabilitySchedule : [];
+        const availabilityMap = new Map<string, any>();
+        rawAvailabilitySchedule.forEach((item: any) => {
+          const dayValue = typeof item?.day === 'string' ? item.day.toLowerCase() : '';
+          if (!dayValue || availabilityMap.has(dayValue)) return;
+          availabilityMap.set(dayValue, item);
+        });
+        const availabilityDays = Array.from(availabilityMap.values());
         const specialization = Array.isArray(member?.specialization) ? member.specialization : [];
 
         return {
@@ -65,9 +82,12 @@ export function PublicClinicianPage() {
           email: member?.user?.email || clinic?.email || '-',
           phone: `${member?.user?.countryCode || ''}${member?.user?.phoneNumber || ''}`.trim() || clinicPhone,
           status: availabilityDays.length > 0 ? 'Available' : 'Offline',
-          availability: availabilityDays.map((day: string) => ({
-            day: toTitleCase(day),
-            slots: DEFAULT_DAY_SLOTS,
+          availability: availabilityDays.map((item: any) => ({
+            day: toTitleCase(item.day),
+            startTime: item?.startTime || '',
+            endTime: item?.endTime || '',
+            breakTime: item?.breakTime || null,
+            slots: item?.startTime ? [formatTime(item.startTime)] : [],
           })),
         };
       });
@@ -152,6 +172,8 @@ export function PublicClinicianPage() {
     setPreselectedSlot({ date: getDayIsoDate(day), time: defaultTime });
     setIsBookingOpen(true);
   };
+
+  const selectedAvailability = availability.find((item: any) => item.day === selectedDay);
 
   const statusBadgeStyle = (status: string) => {
     if (status === 'Available') return 'text-green-700 bg-green-50 border-green-200';
@@ -284,6 +306,22 @@ export function PublicClinicianPage() {
                   <p className="text-xs text-slate-400 uppercase tracking-widest font-bold mb-4 flex items-center gap-2">
                     <Layers className="h-3.5 w-3.5" /> Available sessions - {getDayDate(selectedDay)}
                   </p>
+                  {selectedAvailability && (
+                    <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                      <div className="flex flex-wrap items-center gap-4">
+                        <span>
+                          <strong className="text-slate-900">Working hours:</strong>{' '}
+                          {formatTime(selectedAvailability.startTime)} - {formatTime(selectedAvailability.endTime)}
+                        </span>
+                        {selectedAvailability.breakTime?.startTime && selectedAvailability.breakTime?.endTime && (
+                          <span>
+                            <strong className="text-slate-900">Break:</strong>{' '}
+                            {formatTime(selectedAvailability.breakTime.startTime)} - {formatTime(selectedAvailability.breakTime.endTime)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   {isSessionsLoading && <p className="text-xs text-slate-400 mb-3">Loading sessions...</p>}
                   {sessionOptions.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

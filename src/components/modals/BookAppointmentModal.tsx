@@ -19,6 +19,18 @@ export interface BookAppointmentModalProps {
 
 type Step = 1 | 2 | 3 | 4;
 
+const formatTime = (value?: string | null) => {
+    if (!value || !value.includes(':')) return '-';
+
+    const [hoursText, minutesText] = value.split(':');
+    const hours = Number(hoursText);
+    const minutes = Number(minutesText);
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return value;
+
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    return `${String(displayHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${period}`;
+};
 
 
 // --- Invoice number generator -------------------------------------------------
@@ -479,7 +491,7 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                             <p className="text-slate-500 text-sm mb-4">Choose a day and time slot that works for you.</p>
                             <div className="flex flex-wrap gap-2 mb-4">
                                 {availability.map((avail: any) => (
-                                    <button key={avail.day} onClick={() => { setSelectedDay(avail.day); setSelectedSlot(avail?.slots?.[0] || null); setErrors({}); }}
+                                    <button key={avail.day} onClick={() => { setSelectedDay(avail.day); setSelectedSlot(avail?.slots?.[0] || formatTime(avail?.startTime)); setErrors({}); }}
                                         className="px-3 py-2 rounded-xl text-xs font-bold border transition-all"
                                         style={selectedDay === avail.day
                                             ? { backgroundColor: color, color: '#fff', borderColor: color }
@@ -488,6 +500,27 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                                     </button>
                                 ))}
                             </div>
+                            {selectedDay && (() => {
+                                const selectedAvailability = availability.find((avail: any) => avail.day === selectedDay);
+                                if (!selectedAvailability) return null;
+
+                                return (
+                                    <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                                        <div className="flex flex-col gap-1">
+                                            <p>
+                                                <strong className="text-slate-900">Working hours:</strong>{' '}
+                                                {formatTime(selectedAvailability.startTime)} - {formatTime(selectedAvailability.endTime)}
+                                            </p>
+                                            {selectedAvailability.breakTime?.startTime && selectedAvailability.breakTime?.endTime && (
+                                                <p>
+                                                    <strong className="text-slate-900">Break:</strong>{' '}
+                                                    {formatTime(selectedAvailability.breakTime.startTime)} - {formatTime(selectedAvailability.breakTime.endTime)}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                             {!selectedDay && (
                                 <div className="text-center py-8">
                                     <Calendar className="h-10 w-10 mx-auto mb-2 opacity-30" style={{ color }} />

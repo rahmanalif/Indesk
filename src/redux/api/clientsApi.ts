@@ -1675,7 +1675,7 @@ export const clientsApi = createApi({
 
     updateClinicMember: builder.mutation<ClinicMemberMutationResponse, UpdateClinicMemberRequest>({
       query: ({ memberId, ...body }) => ({
-        url: `/clinic-members/${memberId}`,
+        url: `/clinic-member/${memberId}`,
         method: 'PATCH',
         body,
       }),
@@ -1684,7 +1684,7 @@ export const clientsApi = createApi({
 
     updateClinicMemberRole: builder.mutation<ClinicMemberMutationResponse, UpdateClinicMemberRoleRequest>({
       query: ({ memberId, role }) => ({
-        url: `/clinic-members/${memberId}/role`,
+        url: `/clinic-member/${memberId}/role`,
         method: 'PATCH',
         body: { role },
       }),

@@ -26,7 +26,31 @@ export const DEFAULT_AVAILABILITY_DAY: Omit<AvailabilityDaySchedule, 'day'> = {
   breakStartTime: '',
 };
 
-export const normalizeDay = (day: string) => day.toLowerCase();
+const DAY_ALIASES: Record<string, string> = {
+  mon: 'monday',
+  monday: 'monday',
+  tue: 'tuesday',
+  tues: 'tuesday',
+  tuesday: 'tuesday',
+  wed: 'wednesday',
+  weds: 'wednesday',
+  wednesday: 'wednesday',
+  thu: 'thursday',
+  thur: 'thursday',
+  thurs: 'thursday',
+  thursday: 'thursday',
+  fri: 'friday',
+  friday: 'friday',
+  sat: 'saturday',
+  saturday: 'saturday',
+  sun: 'sunday',
+  sunday: 'sunday',
+};
+
+export const normalizeDay = (day: string) => {
+  const normalized = day.trim().toLowerCase();
+  return DAY_ALIASES[normalized] || normalized;
+};
 
 const sortSlots = (slots: AvailabilitySlot[]) => (
   [...slots].sort((left, right) => left.startTime.localeCompare(right.startTime))
