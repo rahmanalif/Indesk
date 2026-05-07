@@ -3,9 +3,16 @@ export type AvailabilitySlot = {
   endTime: string;
 };
 
+export type AvailabilityBreakTime = {
+  startTime: string;
+  endTime: string;
+};
+
 export type AvailabilityDaySchedule = {
   day: string;
-  slots: AvailabilitySlot[];
+  startTime: string;
+  endTime: string;
+  breakStartTime?: string;
 };
 
 export const DEFAULT_AVAILABILITY_SLOT: AvailabilitySlot = {
@@ -13,7 +20,77 @@ export const DEFAULT_AVAILABILITY_SLOT: AvailabilitySlot = {
   endTime: '17:00',
 };
 
+export const DEFAULT_AVAILABILITY_DAY: Omit<AvailabilityDaySchedule, 'day'> = {
+  startTime: DEFAULT_AVAILABILITY_SLOT.startTime,
+  endTime: DEFAULT_AVAILABILITY_SLOT.endTime,
+  breakStartTime: '',
+};
+
 export const normalizeDay = (day: string) => day.toLowerCase();
+
+const sortSlots = (slots: AvailabilitySlot[]) => (
+  [...slots].sort((left, right) => left.startTime.localeCompare(right.startTime))
+);
+
+const addHour = (time: string) => {
+  if (!time || !time.includes(':')) return '';
+
+  const [hoursText, minutesText] = time.split(':');
+  const hours = Number(hoursText);
+  const minutes = Number(minutesText);
+
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return '';
+
+  const totalMinutes = hours * 60 + minutes + 60;
+  const nextHours = Math.floor(totalMinutes / 60) % 24;
+  const nextMinutes = totalMinutes % 60;
+
+  return `${String(nextHours).padStart(2, '0')}:${String(nextMinutes).padStart(2, '0')}`;
+};
+
+const inferScheduleFromSlots = (slots: AvailabilitySlot[]): Omit<AvailabilityDaySchedule, 'day'> => {
+  const sortedSlots = sortSlots(slots).filter((slot) => slot.startTime && slot.endTime);
+
+  if (sortedSlots.length === 0) {
+    return { ...DEFAULT_AVAILABILITY_DAY };
+  }
+
+  if (sortedSlots.length === 1) {
+    return {
+      startTime: sortedSlots[0].startTime,
+      endTime: sortedSlots[0].endTime,
+      breakStartTime: '',
+    };
+  }
+
+  const firstSlot = sortedSlots[0];
+  const lastSlot = sortedSlots[sortedSlots.length - 1];
+  const inferredBreakStart = firstSlot.endTime;
+  const inferredBreakEnd = addHour(inferredBreakStart);
+  const supportsSingleBreak =
+    sortedSlots.length === 2 &&
+    inferredBreakStart < inferredBreakEnd &&
+    sortedSlots[1].startTime === inferredBreakEnd;
+
+  return {
+    startTime: firstSlot.startTime,
+    endTime: lastSlot.endTime,
+    breakStartTime: supportsSingleBreak ? inferredBreakStart : '',
+  };
+};
+
+const isValidBreakWindow = (
+  startTime: string,
+  endTime: string,
+  breakStartTime?: string
+) => {
+  if (!breakStartTime) return false;
+
+  const breakEndTime = addHour(breakStartTime);
+  if (!breakEndTime) return false;
+
+  return startTime < breakStartTime && breakStartTime < breakEndTime && breakEndTime < endTime;
+};
 
 export const ensureScheduleForDays = (
   selectedDays: string[],
@@ -25,7 +102,9 @@ export const ensureScheduleForDays = (
 
     return {
       day: normalizedDay,
-      slots: existing?.slots?.length ? existing.slots : [{ ...DEFAULT_AVAILABILITY_SLOT }],
+      startTime: existing?.startTime || DEFAULT_AVAILABILITY_DAY.startTime,
+      endTime: existing?.endTime || DEFAULT_AVAILABILITY_DAY.endTime,
+      breakStartTime: existing?.breakStartTime || '',
     };
   })
 );
@@ -41,6 +120,19 @@ export const normalizeAvailabilitySchedule = (
   const schedule = rawSchedule
     .map((item: any) => {
       const day = typeof item?.day === 'string' ? normalizeDay(item.day) : '';
+      if (!day) return null;
+
+      if (typeof item?.startTime === 'string' && typeof item?.endTime === 'string') {
+        return {
+          day,
+          startTime: item.startTime,
+          endTime: item.endTime,
+          breakStartTime: typeof item?.breakTime?.startTime === 'string'
+            ? item.breakTime.startTime
+            : (typeof item?.breakStartTime === 'string' ? item.breakStartTime : ''),
+        };
+      }
+
       const slots = Array.isArray(item?.slots)
         ? item.slots
             .map((slot: any) => ({
@@ -50,11 +142,9 @@ export const normalizeAvailabilitySchedule = (
             .filter((slot) => slot.startTime && slot.endTime)
         : [];
 
-      if (!day) return null;
-
       return {
         day,
-        slots: slots.length ? slots : [{ ...DEFAULT_AVAILABILITY_SLOT }],
+        ...inferScheduleFromSlots(slots),
       };
     })
     .filter((item): item is AvailabilityDaySchedule => Boolean(item));
@@ -65,14 +155,21 @@ export const normalizeAvailabilitySchedule = (
 export const buildAvailabilitySchedulePayload = (
   selectedDays: string[],
   schedule: AvailabilityDaySchedule[]
-): AvailabilityDaySchedule[] => (
-  ensureScheduleForDays(selectedDays, schedule).map((item) => ({
-    day: normalizeDay(item.day),
-    slots: item.slots
-      .filter((slot) => slot.startTime && slot.endTime)
-      .map((slot) => ({
-        startTime: slot.startTime,
-        endTime: slot.endTime,
-      })),
-  }))
+) => (
+  ensureScheduleForDays(selectedDays, schedule).map((item) => {
+    const hasBreak = isValidBreakWindow(item.startTime, item.endTime, item.breakStartTime);
+    const breakTime: AvailabilityBreakTime | undefined = hasBreak
+      ? {
+          startTime: item.breakStartTime!,
+          endTime: addHour(item.breakStartTime!),
+        }
+      : undefined;
+
+    return {
+      day: normalizeDay(item.day),
+      startTime: item.startTime,
+      endTime: item.endTime,
+      ...(breakTime ? { breakTime } : {}),
+    };
+  })
 );

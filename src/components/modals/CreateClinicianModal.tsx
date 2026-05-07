@@ -87,7 +87,6 @@ export function CreateClinicianModal({
       countryCode: countryCode.trim() || undefined,
       bio: bio.trim() || undefined,
       specialization: specialization.length > 0 ? specialization : undefined,
-      availability,
       availabilitySchedule: buildAvailabilitySchedulePayload(availability, availabilitySchedule),
     })
       .unwrap()

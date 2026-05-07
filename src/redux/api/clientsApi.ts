@@ -209,7 +209,12 @@ export interface ClinicMember {
   availability?: string[] | null;
   availabilitySchedule?: Array<{
     day: string;
-    slots: Array<{ startTime: string; endTime: string }>;
+    startTime: string;
+    endTime: string;
+    breakTime?: {
+      startTime: string;
+      endTime: string;
+    };
   }> | null;
   specialization?: string[] | null;
   createdAt: string;
@@ -263,7 +268,12 @@ export interface ClinicMemberItem {
   availability?: string[] | null;
   availabilitySchedule?: Array<{
     day: string;
-    slots: Array<{ startTime: string; endTime: string }>;
+    startTime: string;
+    endTime: string;
+    breakTime?: {
+      startTime: string;
+      endTime: string;
+    };
   }> | null;
   specialization?: string[] | null;
   createdAt: string;
@@ -801,19 +811,27 @@ export interface CreateClinicMemberRequest {
   countryCode?: string;
   bio?: string;
   specialization?: string[];
-  availability?: string[];
   availabilitySchedule?: Array<{
     day: string;
-    slots: Array<{ startTime: string; endTime: string }>;
+    startTime: string;
+    endTime: string;
+    breakTime?: {
+      startTime: string;
+      endTime: string;
+    };
   }>;
 }
 
 export interface UpdateClinicMemberRequest {
   memberId: string;
-  availability?: string[];
   availabilitySchedule?: Array<{
     day: string;
-    slots: Array<{ startTime: string; endTime: string }>;
+    startTime: string;
+    endTime: string;
+    breakTime?: {
+      startTime: string;
+      endTime: string;
+    };
   }>;
   specialization?: string[];
 }

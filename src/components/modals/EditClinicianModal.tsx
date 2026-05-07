@@ -68,7 +68,6 @@ export function EditClinicianModal({ isOpen, onClose, clinician }: EditClinician
 
         updateClinicMember({
             memberId: formData.id,
-            availability: Array.isArray(formData.availability) ? formData.availability : [],
             availabilitySchedule: buildAvailabilitySchedulePayload(
                 Array.isArray(formData.availability) ? formData.availability : [],
                 Array.isArray(formData.availabilitySchedule) ? formData.availabilitySchedule : []

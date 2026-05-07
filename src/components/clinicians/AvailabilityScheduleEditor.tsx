@@ -1,8 +1,7 @@
 import { Clock } from 'lucide-react';
-import { Button } from '../ui/Button';
 import { Checkbox } from '../ui/Checkbox';
 import {
-  DEFAULT_AVAILABILITY_SLOT,
+  DEFAULT_AVAILABILITY_DAY,
   ensureScheduleForDays,
   normalizeDay,
   type AvailabilityDaySchedule,
@@ -36,52 +35,15 @@ export function AvailabilityScheduleEditor({
     updateSchedule(nextDays, schedule);
   };
 
-  const updateSlot = (
+  const updateDay = (
     day: string,
-    slotIndex: number,
-    field: 'startTime' | 'endTime',
+    field: 'startTime' | 'endTime' | 'breakStartTime',
     value: string
   ) => {
     const dayValue = normalizeDay(day);
-    const nextSchedule = ensureScheduleForDays(selectedDays, schedule).map((item) => {
-      if (item.day !== dayValue) return item;
-
-      return {
-        ...item,
-        slots: item.slots.map((slot, index) => (
-          index === slotIndex ? { ...slot, [field]: value } : slot
-        )),
-      };
-    });
-
-    updateSchedule(selectedDays, nextSchedule);
-  };
-
-  const addSlot = (day: string) => {
-    const dayValue = normalizeDay(day);
-    const nextSchedule = ensureScheduleForDays(selectedDays, schedule).map((item) => {
-      if (item.day !== dayValue) return item;
-
-      return {
-        ...item,
-        slots: [...item.slots, { ...DEFAULT_AVAILABILITY_SLOT }],
-      };
-    });
-
-    updateSchedule(selectedDays, nextSchedule);
-  };
-
-  const removeSlot = (day: string, slotIndex: number) => {
-    const dayValue = normalizeDay(day);
-    const nextSchedule = ensureScheduleForDays(selectedDays, schedule).map((item) => {
-      if (item.day !== dayValue) return item;
-
-      const nextSlots = item.slots.filter((_, index) => index !== slotIndex);
-      return {
-        ...item,
-        slots: nextSlots.length ? nextSlots : [{ ...DEFAULT_AVAILABILITY_SLOT }],
-      };
-    });
+    const nextSchedule = ensureScheduleForDays(selectedDays, schedule).map((item) => (
+      item.day === dayValue ? { ...item, [field]: value } : item
+    ));
 
     updateSchedule(selectedDays, nextSchedule);
   };
@@ -101,7 +63,10 @@ export function AvailabilityScheduleEditor({
         {days.map((day) => {
           const dayValue = normalizeDay(day);
           const isSelected = selectedDays.includes(dayValue);
-          const daySchedule = normalizedSchedule.find((item) => item.day === dayValue);
+          const daySchedule = normalizedSchedule.find((item) => item.day === dayValue) || {
+            day: dayValue,
+            ...DEFAULT_AVAILABILITY_DAY,
+          };
 
           return (
             <div key={day} className="rounded-xl border border-border/60 bg-white/70 p-3">
@@ -112,56 +77,52 @@ export function AvailabilityScheduleEditor({
                   onCheckedChange={(checked) => toggleDay(day, checked)}
                 />
                 {isSelected && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2 text-xs text-primary"
-                    onClick={() => addSlot(day)}
-                  >
-                    Add time
-                  </Button>
+                  <span className="text-xs font-medium text-muted-foreground">
+                    One optional 1-hour break
+                  </span>
                 )}
               </div>
 
               {isSelected && (
-                <div className="mt-3 space-y-2">
-                  {(daySchedule?.slots || [DEFAULT_AVAILABILITY_SLOT]).map((slot, index) => (
-                    <div key={`${day}-${index}`} className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
-                      <div>
-                        <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-                          Start
-                        </label>
-                        <input
-                          type="time"
-                          value={slot.startTime}
-                          onChange={(event) => updateSlot(day, index, 'startTime', event.target.value)}
-                          className={inputClassName}
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-                          End
-                        </label>
-                        <input
-                          type="time"
-                          value={slot.endTime}
-                          onChange={(event) => updateSlot(day, index, 'endTime', event.target.value)}
-                          className={inputClassName}
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-10 px-2 text-xs text-muted-foreground hover:text-red-600"
-                        onClick={() => removeSlot(day, index)}
-                        disabled={(daySchedule?.slots?.length || 1) <= 1}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  ))}
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <div>
+                    <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                      Start
+                    </label>
+                    <input
+                      type="time"
+                      value={daySchedule.startTime}
+                      onChange={(event) => updateDay(day, 'startTime', event.target.value)}
+                      className={inputClassName}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                      End
+                    </label>
+                    <input
+                      type="time"
+                      value={daySchedule.endTime}
+                      onChange={(event) => updateDay(day, 'endTime', event.target.value)}
+                      className={inputClassName}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                      Break Start
+                    </label>
+                    <input
+                      type="time"
+                      value={daySchedule.breakStartTime || ''}
+                      onChange={(event) => updateDay(day, 'breakStartTime', event.target.value)}
+                      className={inputClassName}
+                    />
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      Leave empty for no break.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
