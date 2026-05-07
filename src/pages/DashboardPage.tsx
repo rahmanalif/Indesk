@@ -121,7 +121,7 @@ export function DashboardPage() {
 
       return {
         id: String(member.id),
-        userId: member.userId,
+        userId: String(member.userId || member.user?.id || ''),
         name: fullName || member.user?.email || 'Unknown clinician',
         role: member.role || member.user?.role || '',
         status: isOnline ? 'Available' : 'Offline',
@@ -130,6 +130,20 @@ export function DashboardPage() {
     });
   }, [clinicMembers, currentUserId]);
 
+  const clinicianMemberIdByAnyId = useMemo(() => {
+    const lookup = new Map<string, string>();
+
+    clinicMembers.forEach((member: any) => {
+      const memberId = String(member.id || '');
+      const userId = String(member.userId || member.user?.id || '');
+
+      if (memberId) lookup.set(memberId, memberId);
+      if (userId) lookup.set(userId, memberId);
+    });
+
+    return lookup;
+  }, [clinicMembers]);
+
   const currentUserClinician = useMemo(
     () => clinicians.find((clinician: any) => clinician.userId === currentUserId),
     [clinicians, currentUserId]
@@ -137,6 +151,7 @@ export function DashboardPage() {
 
   const selectedClinicianSet = useMemo(() => new Set(selectedClinicianIds), [selectedClinicianIds]);
   const hasClinicianFilter = selectedClinicianIds.length > 0;
+  const preferredAppointmentClinicianId = selectedClinicianIds.length === 1 ? selectedClinicianIds[0] : undefined;
   const isMyCalendarSelected = currentUserClinician ? selectedClinicianSet.has(String(currentUserClinician.id)) : false;
 
   const toggleClinician = (clinicianId?: string) => {
@@ -172,11 +187,14 @@ export function DashboardPage() {
         const time = getLocalTimeString(startValue);
         if (!date || !time) return null;
 
+        const rawClinicianId = String(apt.clinicianId || apt.clinician?.id || clinicianUser?.id || '');
+        const normalizedClinicianId = clinicianMemberIdByAnyId.get(rawClinicianId) || rawClinicianId;
+
         return {
           id: apt.id,
           clientName: client,
           clinician: clinicianName,
-          clinicianId: String(apt.clinicianId || apt.clinician?.id || clinicianUser?.id || ''),
+          clinicianId: normalizedClinicianId,
           startDateTime: startValue,
           endDateTime: endValue,
           date,
@@ -191,7 +209,7 @@ export function DashboardPage() {
       })
       .filter(Boolean)
       .filter((appointment: any) => selectedIds.length === 0 || selectedIds.includes(String(appointment.clinicianId)));
-  }, [appointmentsResponse, selectedClinicianIds]);
+  }, [appointmentsResponse, selectedClinicianIds, clinicianMemberIdByAnyId]);
   const showAppointmentsLoading = appointmentsLoading;
   const showAppointmentsError = appointmentsError;
 
@@ -388,6 +406,8 @@ export function DashboardPage() {
         ) : (
           <Calendar
             filteredAppointments={apiAppointments}
+            preferredClinicianId={preferredAppointmentClinicianId}
+            onAppointmentCreated={() => refetchAppointments()}
             onRangeChange={({ currentDate, view }) => {
               setCalendarDate(currentDate);
               setCalendarView(view);

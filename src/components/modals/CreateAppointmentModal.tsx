@@ -34,9 +34,11 @@ interface CreateAppointmentModalProps {
   initialDate?: Date;
   initialTime?: string;
   onSave?: (data: any) => void;
+  onAppointmentCreated?: () => void | Promise<unknown>;
   existingData?: any;
   viewSource?: 'day' | 'week' | 'month'; // from Calendar
   fixedClient?: { id: string | number, name: string }; // New Prop for Client Page
+  preferredClinicianId?: string;
 }
 
 export function CreateAppointmentModal({
@@ -45,9 +47,11 @@ export function CreateAppointmentModal({
   initialDate,
   initialTime,
   onSave,
+  onAppointmentCreated,
   existingData,
   viewSource,
-  fixedClient
+  fixedClient,
+  preferredClinicianId,
 }: CreateAppointmentModalProps) {
   const navigate = useNavigate();
   const { addAppointment, updateAppointment } = useData();
@@ -102,8 +106,8 @@ export function CreateAppointmentModal({
     const members = clinicMembersResponse?.response?.data?.docs || [];
     return members
       .filter((m) => APPOINTMENT_CLINICIAN_ROLES.has(String(m.role || '').toLowerCase()) && m.user)
-      .map((m, idx) => ({
-        value: m.id,
+      .map((m) => ({
+        value: String(m.id),
         label: `${m.user?.firstName || ''} ${m.user?.lastName || ''}`.trim() || m.user?.email || 'Clinician',
       }));
   }, [clinicMembersResponse]);
@@ -157,13 +161,13 @@ export function CreateAppointmentModal({
         setTime(initialTime || '');
         setNotes('');
         setSessionType(defaultSessionId);
-        setClinicianId('');
+        setClinicianId(String(preferredClinicianId || ''));
         setMeetingType('in_person');
       } else {
         setClientNameInput('');
         setSelectedClientId(undefined);
         setSessionType(defaultSessionId);
-        setClinicianId('');
+        setClinicianId(String(preferredClinicianId || ''));
         setMeetingType('in_person');
         setNotes('');
 
@@ -182,16 +186,27 @@ export function CreateAppointmentModal({
         }
       }
     }
-  }, [isOpen, initialDate, initialTime, existingData, viewSource, fixedClient, sessionTypes]);
+  }, [isOpen, initialDate, initialTime, existingData, viewSource, fixedClient, preferredClinicianId, sessionTypes]);
 
   useEffect(() => {
     if (!isOpen) return;
     if (clinicianOptions.length === 0) return;
-    const assignedClinicianId = clientDetails?.response?.data?.assignedClinicianId;
-    const preferredId = assignedClinicianId || clinicianId;
-    const match = clinicianOptions.find(o => o.value === preferredId) || clinicianOptions[0];
-    setClinicianId(match.value);
-  }, [isOpen, clinicianOptions, clientDetails, clinicianId]);
+
+    if (clinicianId && clinicianOptions.some((option) => option.value === String(clinicianId))) {
+      return;
+    }
+
+    const preferredMatch = preferredClinicianId
+      ? clinicianOptions.find((option) => option.value === String(preferredClinicianId))
+      : null;
+
+    setClinicianId(preferredMatch?.value || clinicianOptions[0].value);
+  }, [
+    isOpen,
+    clinicianOptions,
+    preferredClinicianId,
+    clinicianId,
+  ]);
 
   // Filter clients for autocomplete
   const filteredClients = useMemo(() => {
@@ -237,9 +252,7 @@ export function CreateAppointmentModal({
     const dateIso = new Date(`${dateStr}T00:00:00.000Z`).toISOString();
     const timeIso = new Date(`${dateStr}T${timeStr}:00.000Z`).toISOString();
 
-    const clinicianIdToSend = isGuid(clinicianId)
-      ? clinicianId
-      : clientDetails?.response?.data?.assignedClinicianId || null;
+    const clinicianIdToSend = String(clinicianId || '').trim() || null;
 
     if (!clinicianIdToSend) {
       alert('Clinician is missing. Please select a valid client or clinician.');
@@ -281,7 +294,8 @@ export function CreateAppointmentModal({
       meetingType,
     })
       .unwrap()
-      .then(() => {
+      .then(async () => {
+        await onAppointmentCreated?.();
         if (onSave) {
           onSave(appointmentData);
         } else {

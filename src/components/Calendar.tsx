@@ -12,9 +12,13 @@ export type ViewMode = 'day' | 'week' | 'month';
 export function Calendar({
   filteredAppointments,
   onRangeChange,
+  preferredClinicianId,
+  onAppointmentCreated,
 }: {
   filteredAppointments?: any[];
   onRangeChange?: (range: { currentDate: Date; view: ViewMode }) => void;
+  preferredClinicianId?: string;
+  onAppointmentCreated?: () => void | Promise<unknown>;
 }) {
   const [view, setView] = useState<ViewMode>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -224,8 +228,10 @@ export function Calendar({
       initialDate={createModalData.date}
       initialTime={createModalData.time}
       onSave={handleSaveAppointment}
+      onAppointmentCreated={onAppointmentCreated}
       existingData={createModalData.existingAppointment}
       viewSource={createModalData.source}
+      preferredClinicianId={preferredClinicianId}
     />
   </div>;
 }
