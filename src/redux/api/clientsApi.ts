@@ -776,12 +776,14 @@ const buildCalendarAppointmentsQuery = (params: GetCalendarAppointmentsParams) =
   if (params.view) searchParams.set('view', params.view);
 
   if (Array.isArray(params.clinicianId)) {
-    params.clinicianId
+    const clinicianIds = params.clinicianId
       .map((value) => value?.trim())
       .filter(Boolean)
-      .forEach((value) => {
-        searchParams.append('clinicianId', value);
-      });
+      .join(',');
+
+    if (clinicianIds) {
+      searchParams.set('clinicianId', clinicianIds);
+    }
   } else if (params.clinicianId?.trim()) {
     searchParams.set('clinicianId', params.clinicianId.trim());
   }

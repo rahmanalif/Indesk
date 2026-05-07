@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { setCredentials, logout, clearError, setError, setLoading } from '../redux/slices/authSlice';
 import { authApi, useLoginMutation, useLogoutMutation, useRegisterMutation, useVerifyAccountMutation } from '../redux/api/authApi';
 import { RootState } from '../store';
+import { getFriendlyErrorMessage } from '../lib/utils';
 
 export const useAuth = () => {
   const dispatch = useDispatch();
@@ -38,7 +39,7 @@ export const useAuth = () => {
         throw new Error(response.message || 'Login failed');
       }
     } catch (error: any) {
-      const errorMessage = error?.data?.message || error?.message || 'Invalid credentials. Please try again.';
+      const errorMessage = getFriendlyErrorMessage(error, 'Unable to sign in. Please check your credentials and try again.');
       dispatch(setError(errorMessage));
       return { success: false, error: errorMessage };
     }
@@ -60,7 +61,7 @@ export const useAuth = () => {
       dispatch(setLoading(false));
       return { success: true, data: response };
     } catch (error: any) {
-      const errorMessage = error?.data?.message || error?.message || 'Registration failed. Please try again.';
+      const errorMessage = getFriendlyErrorMessage(error, 'Registration failed. Please try again.');
       dispatch(setError(errorMessage));
       return { success: false, error: errorMessage };
     }
@@ -85,11 +86,12 @@ export const useAuth = () => {
 
       throw new Error(response.message || 'Account verification failed');
     } catch (error: any) {
-      const errorMessage = error?.data?.message || error?.message || 'Verification failed. Please try again.';
+      const errorMessage = getFriendlyErrorMessage(error, 'Verification failed. Please try again.');
       dispatch(setError(errorMessage));
       return { success: false, error: errorMessage };
     }
   };
+
 
   const logoutUser = async () => {
     try {

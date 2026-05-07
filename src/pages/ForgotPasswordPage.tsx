@@ -4,6 +4,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { ArrowLeft, Mail, KeyRound, CheckCircle2, ArrowRight, AlertCircle } from 'lucide-react';
 import { useForgotPasswordMutation, useResetPasswordMutation } from '../redux/api/authApi';
+import { getFriendlyErrorMessage } from '../lib/utils';
 
 export function ForgotPasswordPage() {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ export function ForgotPasswordPage() {
       setSuccess(response.message || 'A verification code has been sent to your email.');
       setStep(2);
     } catch (err: any) {
-      setError(err?.data?.message || err?.message || 'Failed to send reset code. Please try again.');
+      setError(getFriendlyErrorMessage(err, 'Failed to send reset code. Please try again.'));
     }
   };
 
@@ -73,7 +74,7 @@ export function ForgotPasswordPage() {
       setSuccess(response.message || 'Your password has been successfully reset.');
       setStep(4);
     } catch (err: any) {
-      setError(err?.data?.message || err?.message || 'Failed to reset password. Please try again.');
+      setError(getFriendlyErrorMessage(err, 'Failed to reset password. Please try again.'));
     }
   };
 
@@ -95,7 +96,7 @@ export function ForgotPasswordPage() {
       const response = await forgotPassword({ email: email.trim() }).unwrap();
       setSuccess(response.message || 'A new verification code has been sent.');
     } catch (err: any) {
-      setError(err?.data?.message || err?.message || 'Failed to resend code. Please try again.');
+      setError(getFriendlyErrorMessage(err, 'Failed to resend code. Please try again.'));
     }
   };
 

@@ -5,6 +5,7 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Eye, EyeOff, ArrowRight, AlertCircle, Mail, KeyRound } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { getFriendlyErrorMessage } from '../lib/utils';
 import {
   COUNTRY_PHONE_OPTIONS,
   getCountryPhoneError,
@@ -362,7 +363,7 @@ export function LoginPage() {
       setSignupErrors((prev) => ({ ...prev, code: '' }));
       setSignupSuccess(response.message || 'We sent a verification code to your email address.');
     } catch (error: any) {
-      setSignupError(error?.data?.message || error?.message || 'Failed to start onboarding. Please try again.');
+      setSignupError(getFriendlyErrorMessage(error, 'Failed to start onboarding. Please try again.'));
     }
   };
 
@@ -395,7 +396,7 @@ export function LoginPage() {
       setSignupStep(3);
       setSignupSuccess(verifyResponse.message || 'Email verified successfully. Continue to checkout.');
     } catch (error: any) {
-      setSignupError(error?.data?.message || error?.message || 'Failed to verify your email. Please try again.');
+      setSignupError(getFriendlyErrorMessage(error, 'Failed to verify your email. Please try again.'));
     }
   };
 
@@ -426,7 +427,7 @@ export function LoginPage() {
       const finalUrl = checkoutUrl.startsWith('/') ? `${window.location.origin}${checkoutUrl}` : checkoutUrl;
       window.location.assign(finalUrl);
     } catch (error: any) {
-      setSignupError(error?.data?.message || error?.message || 'Failed to create checkout. Please try again.');
+      setSignupError(getFriendlyErrorMessage(error, 'Failed to create checkout. Please try again.'));
       setSignupSuccess('Your email is already verified. You can retry checkout below.');
     }
   };

@@ -21,6 +21,7 @@ import { CliniciansPage } from './pages/clinic/CliniciansPage';
 import { InvoicesPage } from './pages/InvoicesPage';
 import { SessionsPage } from './pages/SessionsPage';
 import { FormsPage } from './pages/FormsPage';
+import { AdminQuestionnairesPage } from './pages/AdminQuestionnairesPage';
 import { FormDetailsPage } from './pages/FormDetailsPage';
 import { MoneyMattersPage } from './pages/MoneyMattersPage';
 import { SubscriptionPage } from './pages/SubscriptionPage';
@@ -125,6 +126,12 @@ export function App() {
             <Route path="forms" element={
               <ProtectedRoute permission="clinician_forms">
                 <FormsPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="admin-questionnaires" element={
+              <ProtectedRoute permission="clinician_forms">
+                <AdminQuestionnairesPage />
               </ProtectedRoute>
             } />
 

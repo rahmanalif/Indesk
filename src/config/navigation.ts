@@ -7,6 +7,7 @@ import {
     Receipt,
     CalendarCheck,
     ClipboardList,
+    LayoutTemplate,
     DollarSign,
     CreditCard,
     Plug,
@@ -68,6 +69,12 @@ export const navItems: NavItem[] = [
         icon: ClipboardList,
         label: 'Forms',
         path: '/forms',
+        permission: 'clinician_forms'
+    },
+    {
+        icon: LayoutTemplate,
+        label: 'Admin Questionnaires',
+        path: '/admin-questionnaires',
         permission: 'clinician_forms'
     },
     {

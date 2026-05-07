@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { User, FileText, CreditCard, LayoutDashboard } from 'lucide-react';
+import { User, FileText, CreditCard, LayoutDashboard, LayoutTemplate } from 'lucide-react';
 import { usePermissions } from '../hooks/usePermissions';
 
 interface SearchDropdownProps {
@@ -16,6 +16,7 @@ export function SearchDropdown({ query, onSelect }: SearchDropdownProps) {
     { path: '/money', label: 'Financial Reports', sub: 'View Money Matters', icon: CreditCard, color: 'text-green-600', bg: 'bg-green-100', permission: 'clinician_money' },
     { path: '/invoices', label: 'Invoices', sub: 'View All Invoices', icon: FileText, color: 'text-orange-600', bg: 'bg-orange-100', permission: 'clinician_invoices' },
     { path: '/dashboard', label: 'Dashboard', sub: 'Overview', icon: LayoutDashboard, color: 'text-purple-600', bg: 'bg-purple-100', permission: 'clinician_dashboard' },
+    { path: '/admin-questionnaires', label: 'Admin Questionnaires', sub: 'Reusable admin documents', icon: LayoutTemplate, color: 'text-amber-700', bg: 'bg-amber-100', permission: 'clinician_forms' },
   ];
 
   const filtered = allLinks.filter((l) => {
