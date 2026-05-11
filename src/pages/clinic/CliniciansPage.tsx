@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { CreditCard, Plus, Search, Mail, MoreHorizontal, UserCheck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Avatar } from '../../components/ui/Avatar';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
-import { useDeleteClinicMemberMutation, useGetClinicMembersQuery, useGetCurrentSubscriptionQuery } from '../../redux/api/clientsApi';
+import { useDeleteClinicMemberMutation, useGetAvailablePlansQuery, useGetClinicMembersQuery, useGetCurrentSubscriptionQuery } from '../../redux/api/clientsApi';
 import { CreateClinicianModal } from '../../components/modals/CreateClinicianModal';
 import { ClinicianProfileModal } from '../../components/modals/ClinicianProfileModal';
 import { EditClinicianModal } from '../../components/modals/EditClinicianModal';
@@ -17,6 +18,7 @@ import { RootState } from '../../store';
 export function CliniciansPage() {
 	    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 	    const [isSeatWarningOpen, setIsSeatWarningOpen] = useState(false);
+	    const [pendingSeatType, setPendingSeatType] = useState<'clinician' | 'admin'>('clinician');
 	    const [searchTerm, setSearchTerm] = useState('');
     const [selectedClinician, setSelectedClinician] = useState<any>(null);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -26,8 +28,10 @@ export function CliniciansPage() {
     // Custom Dropdown State
 	    const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 	    const dropdownRef = useRef<HTMLDivElement>(null);
+	    const navigate = useNavigate();
 	    const { data: clinicMembersResponse, isLoading: clinicLoading, isError: clinicError } = useGetClinicMembersQuery({ page: 1, limit: 50 });
 	    const { data: subscriptionResponse } = useGetCurrentSubscriptionQuery();
+	    const { data: plansResponse } = useGetAvailablePlansQuery();
 	    const [deleteClinicMember, { isLoading: isDeletingClinicMember }] = useDeleteClinicMemberMutation();
 	    const currentUserId = useSelector((state: RootState) => state.auth.user?.id);
 	    const clinicMembers = clinicMembersResponse?.response?.data?.docs || [];
@@ -41,15 +45,119 @@ export function CliniciansPage() {
 	    const clinicianLimit = subscriptionUsage?.clinicians?.limit;
 	    const adminUserLimit = subscriptionUsage?.adminUsers?.limit;
 	    const extraCliniciansAllowed = subscriptionUsage?.plan?.seatPolicy?.extraCliniciansAllowed;
+	    const extraClinicianPrice = subscriptionUsage?.plan?.seatPolicy?.extraClinicianPrice;
+	    const extraClinicianCurrency = subscriptionUsage?.plan?.seatPolicy?.extraClinicianPriceCurrency || 'GBP';
+	    const extraClinicianTierLabels = subscriptionUsage?.plan?.seatPolicy?.extraClinicianTierLabels || [];
+	    const extraClinicianSummary = subscriptionUsage?.plan?.seatPolicy?.extraClinicianSummary;
 	    const shouldWarnForExtraClinician = typeof includedClinicians === 'number' && clinicianCount >= includedClinicians;
+	    const shouldWarnForExtraAdmin = typeof includedAdminUsers === 'number' && adminUserCount >= includedAdminUsers;
+	    const shouldWarnForSeatChange = shouldWarnForExtraClinician || shouldWarnForExtraAdmin;
+	    const clinicianHardLimitReached = typeof clinicianLimit === 'number' && clinicianLimit > 0 && clinicianCount >= clinicianLimit;
+	    const cannotAddExtraClinician = shouldWarnForExtraClinician && (!extraCliniciansAllowed || clinicianHardLimitReached);
 	    const formattedPlanPrice = typeof planPrice === 'number'
 	        ? `£${planPrice.toFixed(Number.isInteger(planPrice) ? 0 : 2)}/month`
 	        : null;
-	    const clinicianSeatWarningMessage = shouldWarnForExtraClinician && typeof includedClinicians === 'number'
-	        ? extraCliniciansAllowed
-	            ? `Adding another clinician will exceed the ${includedClinicians} clinician${includedClinicians === 1 ? '' : 's'} included in ${planName}. Any extra seat charge will be applied according to this plan.`
-	            : `Adding another clinician will exceed the ${includedClinicians} clinician${includedClinicians === 1 ? '' : 's'} included in ${planName}. You may need to upgrade your plan before this team member can be added.`
-	        : '';
+	    const formatBillingAmount = (value?: number | null, currency = 'GBP') => {
+	        if (typeof value !== 'number') {
+	            return null;
+	        }
+	        const symbol = currency.toUpperCase() === 'GBP' ? '£' : `${currency.toUpperCase()} `;
+	        return `${symbol}${value.toFixed(Number.isInteger(value) ? 0 : 2)}`;
+	    };
+	    const normalizedTierLabels = extraClinicianTierLabels.map((label) =>
+	        label
+	            .replace(/^Tiered pricing:\s*/i, '')
+	            .replace(/^GBP\s*/i, '£')
+	            .replace(/Â£|Ã‚Â£/g, '£')
+	    );
+	    const formattedExtraClinicianPrice = formatBillingAmount(extraClinicianPrice, extraClinicianCurrency);
+	    const extraClinicianBillingLabel = normalizedTierLabels.length > 0
+	        ? normalizedTierLabels
+	        : extraClinicianSummary
+	            ? [extraClinicianSummary.replace(/^Each additional clinician costs\s+/i, 'Additional clinician: ').replace(/Â£|Ã‚Â£/g, '£')]
+	            : formattedExtraClinicianPrice
+	                ? [`Additional clinician: ${formattedExtraClinicianPrice}/month`]
+	                : [];
+	    const currentSubscription = subscriptionResponse?.response?.data?.subscription;
+	    const availablePlans = plansResponse?.response?.data || [];
+	    const currentPlanFromAvailable = availablePlans.find((plan) =>
+	        plan.id === currentSubscription?.planId ||
+	        plan.id === currentSubscription?.plan?.id ||
+	        plan.name?.toLowerCase() === planName.toLowerCase()
+	    );
+	    const displayPlan = currentPlanFromAvailable || currentSubscription?.plan || subscriptionUsage?.plan;
+	    const displaySeatPolicy = displayPlan?.seatPolicy || subscriptionUsage?.plan?.seatPolicy;
+	    const displayPlanName = displayPlan?.name || planName;
+	    const displayPlanPrice = typeof displayPlan?.price === 'number'
+	        ? `£${displayPlan.price.toFixed(Number.isInteger(displayPlan.price) ? 0 : 2)}/month`
+	        : formattedPlanPrice?.replace(/Â£|Ã‚Â£|Ãƒâ€šÃ‚Â£/g, '£');
+	    const displayIncludedClinicians = displaySeatPolicy?.includedClinicians ?? subscriptionUsage?.clinicians?.included ?? includedClinicians;
+	    const displayIncludedAdmins = displaySeatPolicy?.includedAdminUsers ?? subscriptionUsage?.adminUsers?.included ?? includedAdminUsers;
+	    const displayClinicianCount = subscriptionUsage?.clinicians?.currentCount ?? clinicianCount;
+	    const displayAdminCount = subscriptionUsage?.adminUsers?.currentCount ?? subscriptionUsage?.adminUsers?.billableCount ?? adminUserCount;
+	    const displayClinicianLimit = subscriptionUsage?.clinicians?.limit ?? displayPlan?.clinicianLimit ?? clinicianLimit;
+	    const displayAdminLimit = subscriptionUsage?.adminUsers?.limit ?? displayPlan?.adminUserLimit ?? adminUserLimit;
+	    const displayClinicianRemaining = subscriptionUsage?.clinicians?.remaining ?? (
+	        typeof displayClinicianLimit === 'number' && displayClinicianLimit > 0
+	            ? Math.max(displayClinicianLimit - displayClinicianCount, 0)
+	            : undefined
+	    );
+	    const displayAdminRemaining = subscriptionUsage?.adminUsers?.remaining ?? (
+	        typeof displayAdminLimit === 'number' && displayAdminLimit > 0
+	            ? Math.max(displayAdminLimit - displayAdminCount, 0)
+	            : undefined
+	    );
+	    const displayExtraCliniciansAllowed = Boolean(
+	        subscriptionUsage?.clinicians?.canAddClinician ||
+	        displaySeatPolicy?.extraCliniciansAllowed ||
+	        displaySeatPolicy?.canAddExtraClinicians
+	    );
+	    const displayCanAddAdmin = subscriptionUsage?.adminUsers?.canAddAdminUser ?? (
+	        typeof displayAdminLimit === 'number' && displayAdminLimit > 0 ? displayAdminCount < displayAdminLimit : true
+	    );
+	    const displayTierLabels = (displaySeatPolicy?.extraClinicianTierLabels || []).map((label) =>
+	        label.replace(/^Tiered pricing:\s*/i, '').replace(/Â£|Ã‚Â£|Ãƒâ€šÃ‚Â£/g, 'GBP ')
+	    );
+	    const displayClinicianSummary = displaySeatPolicy?.extraClinicianSummary?.replace(/Â£|Ã‚Â£|Ãƒâ€šÃ‚Â£/g, 'GBP ');
+	    const displayClinicianPricing = displayTierLabels.length > 0
+	        ? displayTierLabels
+	        : displayClinicianSummary
+	            ? [displayClinicianSummary]
+	            : extraClinicianBillingLabel.map((item) => item.replace(/Â£|Ã‚Â£|Ãƒâ€šÃ‚Â£/g, 'GBP '));
+	    const addingClinician = pendingSeatType === 'clinician';
+	    const addingAdmin = pendingSeatType === 'admin';
+	    const clinicianWithinIncluded = typeof displayIncludedClinicians === 'number'
+	        ? displayClinicianCount < displayIncludedClinicians
+	        : true;
+	    const clinicianAtLimit = typeof displayClinicianLimit === 'number' && displayClinicianLimit > 0 && displayClinicianCount >= displayClinicianLimit;
+	    const clinicianBlockedByPlan = addingClinician && clinicianAtLimit && !displayExtraCliniciansAllowed;
+	    const clinicianBillable = addingClinician && !clinicianWithinIncluded && displayExtraCliniciansAllowed;
+	    const adminBlockedByPlan = addingAdmin && !displayCanAddAdmin;
+	    const isSelfPlan = displayPlanName.toLowerCase() === 'self';
+	    const selectedSeatBlocked = clinicianBlockedByPlan || adminBlockedByPlan;
+	    const selectedSeatBillable = clinicianBillable;
+	    const modalSummaryTitle = addingClinician
+	        ? clinicianBlockedByPlan
+	            ? `You cannot add another clinician on ${displayPlanName}.`
+	            : clinicianBillable
+	                ? 'Adding another clinician will increase your subscription cost.'
+	                : 'This clinician is included in your current plan.'
+	        : adminBlockedByPlan
+	            ? isSelfPlan
+	                ? `You cannot add an admin on ${displayPlanName}.`
+	                : `You have reached the admin limit on ${displayPlanName}.`
+	            : 'This admin is included in your current plan.';
+	    const modalSummaryDescription = addingClinician
+	        ? clinicianBlockedByPlan
+	            ? `${displayPlanName} includes ${displayIncludedClinicians ?? 'limited'} clinician${displayIncludedClinicians === 1 ? '' : 's'} and does not support extra clinician billing. Upgrade your plan to add another clinician.`
+	            : clinicianBillable
+	                ? 'Extra clinician billing is enabled for this plan. Review the pricing before continuing.'
+	                : 'No extra clinician charge is expected for this team member.'
+	        : adminBlockedByPlan
+	            ? isSelfPlan
+	                ? `${displayPlanName} includes ${displayIncludedAdmins ?? 0} admin users. Upgrade your plan to add admin access.`
+	                : `${displayPlanName} includes ${displayIncludedAdmins ?? 'limited'} admin user${displayIncludedAdmins === 1 ? '' : 's'}. To add more admins, a plan change may be required.`
+	            : 'No admin overage pricing is returned by backend billing data.';
 	    const apiOrigin = (() => {
         try {
             return new URL(import.meta.env.VITE_CLIENTS_API_BASE_URL).origin;
@@ -107,11 +215,8 @@ export function CliniciansPage() {
 	    };
 
 	    const openCreateClinicianFlow = () => {
-	        if (shouldWarnForExtraClinician) {
-	            setIsSeatWarningOpen(true);
-	            return;
-	        }
-	        setIsCreateModalOpen(true);
+	        setPendingSeatType('clinician');
+	        setIsSeatWarningOpen(true);
 	    };
 
     const formattedMembers = clinicMembers.map((member: any) => {
@@ -268,50 +373,159 @@ export function CliniciansPage() {
 	                description="Adding a clinician or admin can affect your subscription billing."
 	            >
 	                <div className="space-y-5">
-	                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+	                    <div className="grid grid-cols-2 gap-2 rounded-xl bg-muted p-1">
+	                        <button
+	                            type="button"
+	                            onClick={() => setPendingSeatType('clinician')}
+	                            className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${addingClinician ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+	                        >
+	                            Clinician
+	                        </button>
+	                        <button
+	                            type="button"
+	                            onClick={() => setPendingSeatType('admin')}
+	                            className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${addingAdmin ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+	                        >
+	                            Admin
+	                        </button>
+	                    </div>
+
+	                    <div className={`rounded-xl border px-4 py-3 text-sm ${
+	                        selectedSeatBlocked
+	                            ? 'border-red-200 bg-red-50 text-red-900'
+	                            : selectedSeatBillable
+	                                ? 'border-amber-200 bg-amber-50 text-amber-950'
+	                                : 'border-emerald-200 bg-emerald-50 text-emerald-900'
+	                    }`}>
 	                        <div className="flex gap-3">
 	                            <CreditCard className="mt-0.5 h-4 w-4 shrink-0" />
-	                            <div className="space-y-2">
-	                                <p className="font-semibold">{clinicianSeatWarningMessage}</p>
-	                                <p>
-	                                    Current plan: <span className="font-semibold">{planName}</span>
-	                                    {formattedPlanPrice ? <span> ({formattedPlanPrice})</span> : null}
-	                                </p>
-	                                <div className="grid gap-1 text-xs sm:grid-cols-2">
-	                                    <p>
-	                                        Clinicians: <span className="font-semibold">{clinicianCount}</span>
-	                                        {typeof includedClinicians === 'number' ? <span> / {includedClinicians} included</span> : null}
-	                                        {typeof clinicianLimit === 'number' && clinicianLimit > 0 ? <span> ({clinicianLimit} max)</span> : null}
-	                                    </p>
-	                                    <p>
-	                                        Admins: <span className="font-semibold">{adminUserCount}</span>
-	                                        {typeof includedAdminUsers === 'number' ? <span> / {includedAdminUsers} included</span> : null}
-	                                        {typeof adminUserLimit === 'number' && adminUserLimit > 0 ? <span> ({adminUserLimit} max)</span> : null}
-	                                    </p>
-	                                </div>
-	                                <p className="text-xs">
-	                                    Exact prorated charges are handled by your subscription billing settings and may appear on your next invoice.
+	                            <div className="space-y-1">
+	                                <p className="font-semibold">{modalSummaryTitle}</p>
+	                                <p className={`text-xs ${selectedSeatBlocked ? 'text-red-800' : selectedSeatBillable ? 'text-amber-900' : 'text-emerald-800'}`}>
+	                                    {modalSummaryDescription}
 	                                </p>
 	                            </div>
 	                        </div>
 	                    </div>
+
+	                    <div className="grid gap-3 sm:grid-cols-2">
+	                        <div className="rounded-xl border border-border/70 bg-white px-4 py-3">
+	                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Current Plan</p>
+	                            <p className="mt-1 text-base font-semibold text-foreground">{displayPlanName}</p>
+	                            <p className="text-sm text-muted-foreground">{displayPlanPrice || 'Plan price unavailable'}</p>
+	                        </div>
+	                        <div className="rounded-xl border border-border/70 bg-white px-4 py-3">
+	                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Billing Timing</p>
+	                            <p className="mt-1 text-sm text-foreground">
+	                                {displayExtraCliniciansAllowed
+	                                    ? 'Any extra seat cost may be prorated and may appear on your next invoice.'
+	                                    : 'This plan does not support extra clinician add-on billing.'}
+	                            </p>
+	                        </div>
+	                    </div>
+
+	                    <div className="grid gap-3 sm:grid-cols-2">
+	                        <div className={`rounded-xl border px-4 py-3 ${
+	                            addingClinician && selectedSeatBlocked
+	                                ? 'border-red-200 bg-red-50'
+	                                : addingClinician
+	                                    ? 'border-amber-200 bg-amber-50'
+	                                    : 'border-border/70 bg-white'
+	                        }`}>
+	                            <div className="flex items-start justify-between gap-3">
+	                                <div>
+	                                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Clinicians</p>
+	                                    <p className="mt-1 text-sm text-foreground">
+	                                        <span className="font-semibold">{displayClinicianCount}</span> current
+	                                        {typeof displayIncludedClinicians === 'number' ? <span> / {displayIncludedClinicians} included</span> : null}
+	                                    </p>
+	                                    {typeof displayClinicianRemaining === 'number' ? (
+	                                        <p className="mt-1 text-xs text-muted-foreground">{displayClinicianRemaining} remaining</p>
+	                                    ) : null}
+	                                </div>
+	                                {typeof displayClinicianLimit === 'number' && displayClinicianLimit > 0 ? (
+	                                    <span className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">{displayClinicianLimit} max</span>
+	                                ) : null}
+	                            </div>
+	                            <div className="mt-3 border-t border-border/60 pt-3 text-xs text-muted-foreground">
+	                                {addingClinician && !clinicianBillable && !clinicianBlockedByPlan ? (
+	                                    <p className="font-medium text-emerald-700">
+	                                        This clinician is included in your current plan. Extra clinicians are {displayExtraCliniciansAllowed ? 'allowed when included seats are used.' : 'not available on this plan.'}
+	                                    </p>
+	                                ) : clinicianBlockedByPlan ? (
+	                                    <p className="font-medium text-red-700">
+	                                        {displayPlanName} does not support extra clinician billing. Upgrade your plan to add another clinician.
+	                                    </p>
+	                                ) : displayClinicianPricing.length > 0 ? (
+	                                    <div className="space-y-1">
+	                                        {displayClinicianPricing.map((item) => (
+	                                            <p key={item}>{item}</p>
+	                                        ))}
+	                                    </div>
+	                                ) : displayExtraCliniciansAllowed ? (
+	                                    <p>Extra clinicians are allowed, but no exact price was returned for this plan.</p>
+	                                ) : (
+	                                    <p>Extra clinicians are not included on this plan. You may need to upgrade first.</p>
+	                                )}
+	                            </div>
+	                        </div>
+
+	                        <div className={`rounded-xl border px-4 py-3 ${addingAdmin ? (adminBlockedByPlan ? 'border-red-200 bg-red-50' : 'border-emerald-200 bg-emerald-50') : 'border-border/70 bg-white'}`}>
+	                            <div className="flex items-start justify-between gap-3">
+	                                <div>
+	                                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Admins</p>
+	                                    <p className="mt-1 text-sm text-foreground">
+	                                        <span className="font-semibold">{displayAdminCount}</span> current
+	                                        {typeof displayIncludedAdmins === 'number' ? <span> / {displayIncludedAdmins} included</span> : null}
+	                                    </p>
+	                                    {typeof displayAdminRemaining === 'number' ? (
+	                                        <p className="mt-1 text-xs text-muted-foreground">{displayAdminRemaining} remaining</p>
+	                                    ) : null}
+	                                </div>
+	                                {typeof displayAdminLimit === 'number' && displayAdminLimit > 0 ? (
+	                                    <span className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">{displayAdminLimit} max</span>
+	                                ) : null}
+	                            </div>
+	                            <p className="mt-3 border-t border-border/60 pt-3 text-xs text-muted-foreground">
+	                                {adminBlockedByPlan
+	                                    ? `${displayPlanName} has reached its admin limit. To add more admins, a plan change may be required.`
+	                                    : 'This admin is included if admin seats are still available. Backend does not provide admin overage pricing.'}
+	                            </p>
+	                        </div>
+	                    </div>
 	                    <div className="flex justify-end gap-3 border-t border-border/50 pt-4">
 	                        <Button type="button" variant="outline" onClick={() => setIsSeatWarningOpen(false)}>
-	                            Cancel
+	                            Close
 	                        </Button>
-	                        <Button
-	                            type="button"
-	                            onClick={() => {
-	                                setIsSeatWarningOpen(false);
-	                                setIsCreateModalOpen(true);
-	                            }}
-	                        >
-	                            Continue
-	                        </Button>
+	                        {selectedSeatBlocked ? (
+	                            <Button
+	                                type="button"
+	                                onClick={() => {
+	                                    setIsSeatWarningOpen(false);
+	                                    navigate('/subscription');
+	                                }}
+	                            >
+	                                Upgrade Plan
+	                            </Button>
+	                        ) : (
+	                            <Button
+	                                type="button"
+	                                onClick={() => {
+	                                    setIsSeatWarningOpen(false);
+	                                    setIsCreateModalOpen(true);
+	                                }}
+	                            >
+	                                Continue
+	                            </Button>
+	                        )}
 	                    </div>
 	                </div>
 	            </Modal>
-	            <CreateClinicianModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+	            <CreateClinicianModal
+	                isOpen={isCreateModalOpen}
+	                onClose={() => setIsCreateModalOpen(false)}
+	                initialRole={pendingSeatType}
+	            />
             <ClinicianProfileModal
                 isOpen={isProfileOpen}
                 onClose={() => setIsProfileOpen(false)}

@@ -395,6 +395,27 @@ export interface SubscriptionSeatPolicy {
   includedClinicians?: number;
   includedAdminUsers?: number;
   extraCliniciansAllowed?: boolean;
+  canAddExtraClinicians?: boolean;
+  extraClinicianPrice?: number | null;
+  extraClinicianPriceCurrency?: string | null;
+  extraClinicianTierLabels?: string[];
+  maxAdditionalClinicians?: number | null;
+  includedCliniciansLabel?: string | null;
+  includedAdminUsersLabel?: string | null;
+  extraClinicianSummary?: string | null;
+  summary?: string | null;
+  extraClinician?: {
+    priceId?: string;
+    currency?: string | null;
+    billingScheme?: string | null;
+    recurringInterval?: string | null;
+    unitAmount?: number | null;
+    tiers?: Array<{
+      upTo?: number | 'inf';
+      unitAmount?: number | null;
+    }>;
+    maxAdditionalClinicians?: number | null;
+  } | null;
 }
 
 export interface SubscriptionPlan {
@@ -403,8 +424,14 @@ export interface SubscriptionPlan {
   type: string;
   description?: string | null;
   price: number;
+  trial?: number | null;
   clientLimit?: number | null;
   clinicianLimit?: number | null;
+  adminUserLimit?: number | null;
+  stripeProductId?: string | null;
+  stripePriceId?: string | null;
+  stripeExtraClinicianPriceId?: string | null;
+  discount?: number | null;
   features?: SubscriptionPlanFeatures;
   seatPolicy?: SubscriptionSeatPolicy;
   isPopular?: boolean;

@@ -1,197 +1,322 @@
-import React from 'react';
-import { Check } from 'lucide-react';
+import { CheckCircle2, Stethoscope, UserCog, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useInView } from '../../hooks/landing/useInView';
 import { useGetAvailablePlansQuery } from '../../redux/api/clientsApi';
 
+/**
+ * Represents a row in the tiered pricing table (e.g., "1-9 extra clinicians: £12/each")
+ */
+type TierRow = {
+  label: string;
+  value: string;
+};
+
+/**
+ * The internal structure used to render a pricing card
+ */
 type PricingPlan = {
   id: string;
   name: string;
   price: number;
   description: string;
   isPopular: boolean;
-  type: string;
-  features: string[];
+  featureItems: string[];
+  includedCliniciansLabel: string;
+  includedAdminUsersLabel: string;
+  extraSummary: string;
+  tierRows: TierRow[];
 };
 
-const pluralize = (count: number, singular: string, plural = `${singular}s`) =>
-  `${count} ${count === 1 ? singular : plural}`;
-
+/**
+ * Converts snake_case feature keys (e.g. "online_booking") to Title Case ("Online Booking")
+ */
 const formatFeatureLabel = (key: string) =>
   key
     .split('_')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ');
 
+/**
+ * Formats numbers for display, removing decimal points for whole numbers
+ */
+const formatPrice = (price: number) =>
+  Number.isInteger(price) ? `${price}` : price.toFixed(2);
+
+const POUND_SYMBOL = '\u00A3';
+
+/**
+ * Normalizes various representations of the British Pound symbol to a single consistent character
+ */
+const normalizePound = (value: string) =>
+  value
+    .replace(/^GBP\s*/i, POUND_SYMBOL)
+    .replace(/^Ãƒâ€šÃ‚Â£/i, POUND_SYMBOL)
+    .replace(/^Ã‚Â£/i, POUND_SYMBOL)
+    .replace(/^Â£/i, POUND_SYMBOL);
+
+/**
+ * Parses a tier label string into a structured TierRow object
+ * Expected format: "Tiered pricing: 1-9 extra clinicians: £12"
+ */
+const parseTierRow = (label: string): TierRow | null => {
+  const normalized = label.replace(/^Tiered pricing:\s*/i, '').trim();
+  const parts = normalized.split(':');
+
+  if (parts.length < 2) {
+    return null;
+  }
+
+  return {
+    label: parts.slice(0, -1).join(':').trim(),
+    value: normalizePound(parts[parts.length - 1].trim()),
+  };
+};
+
+/**
+ * Default features shown if the API returns no feature list
+ */
+const defaultFeatures = [
+  'Notes',
+  'Clients',
+  'Scheduling',
+  'Assessments',
+  'Appointments',
+  'Integrations',
+  'Online Booking',
+  'Custom Branding',
+  'Sigmund AI Assistant',
+];
+
+/**
+ * Static fallback plans used when the API call fails or is empty
+ */
 const fallbackPlans: PricingPlan[] = [
   {
-    id: 'fallback-free',
-    name: 'Free Plan',
-    price: 0,
-    description: 'Basic features for small practices',
+    id: 'fallback-self',
+    name: 'Self',
+    price: 13,
+    description: 'Self Plan - solo clinician',
     isPopular: false,
-    type: 'free',
-    features: ['10 clients', 'Notes', 'Clients', 'Assessments', 'Appointments'],
+    includedCliniciansLabel: '1 Clinician',
+    includedAdminUsersLabel: '0 Admin Users',
+    extraSummary: 'Extra clinicians are not available on this plan.',
+    tierRows: [],
+    featureItems: defaultFeatures,
   },
   {
-    id: 'fallback-professional',
-    name: 'Professional Plan',
-    price: 29.99,
-    description: 'Advanced features for growing practices',
+    id: 'fallback-collective',
+    name: 'Collective',
+    price: 23,
+    description: 'Collective Plan - growing practices',
     isPopular: true,
-    type: 'professional',
-    features: [
-      'One Clinician included in the price – pay to add maximum 5 more',
-      '100 clients',
-      'Clinical Notes',
-      'Assessments & Questionnaires',
-      'Calendar & Appointments',
-      'Integrations',
-      'Advanced Reporting'
+    includedCliniciansLabel: '1 Clinician Included',
+    includedAdminUsersLabel: '1 Admin User',
+    extraSummary: 'Extra Clinician Tiers:',
+    tierRows: [
+      { label: '1-9 extra clinicians:', value: `${POUND_SYMBOL}12/each` },
+      { label: '10-24 extra clinicians:', value: `${POUND_SYMBOL}10/each` },
+      { label: '25+ extra clinicians:', value: `${POUND_SYMBOL}8/each` },
     ],
+    featureItems: defaultFeatures,
   },
   {
-    id: 'fallback-enterprise',
-    name: 'Enterprise Plan',
-    price: 99.99,
-    description: 'Full features for large practices',
+    id: 'fallback-institute',
+    name: 'Institute',
+    price: 79,
+    description: 'Institute Plan - larger organisations',
     isPopular: false,
-    type: 'enterprise',
-    features: ['Unlimited clients', 'Unlimited clinicians', 'Notes', 'Clients', 'Assessments', 'Appointments', 'Integrations', 'Custom Branding', 'Priority Support', 'Advanced Reporting'],
+    includedCliniciansLabel: '10 Clinicians Included',
+    includedAdminUsersLabel: '1 Admin User',
+    extraSummary: 'Extra Clinician Tiers:',
+    tierRows: [
+      { label: '1-15 extra clinicians:', value: `${POUND_SYMBOL}10/each` },
+      { label: '16+ extra clinicians:', value: `${POUND_SYMBOL}8/each` },
+    ],
+    featureItems: defaultFeatures,
   },
 ];
 
+/**
+ * The main Pricing section for the landing page.
+ * It fetches live plans from the API, processes them for display,
+ * and falls back to static defaults if necessary.
+ */
 export function PricingSection() {
-  const { ref, isInView } = useInView({ threshold: 0.1 });
+  // Hook for intersection observer animation
+  const { ref, isInView } = useInView({ threshold: 0.1, rootMargin: '0px' });
+  
+  // RTK Query hook to fetch available subscription plans
   const { data, isLoading, isError } = useGetAvailablePlansQuery();
 
-  const apiPlans = (data?.response?.data || [])
-    .filter((plan) => plan.isActive !== false)
+  /**
+   * Process API data into our internal PricingPlan format
+   */
+  const apiPlans: PricingPlan[] = (data?.response?.data || [])
+    .filter((plan) => plan.isActive !== false) // Only show active plans
     .map((plan) => {
-    const featureItems = Object.entries(plan.features || {})
-      .filter(([, enabled]) => Boolean(enabled))
-      .map(([key]) => formatFeatureLabel(key));
+      // Map the boolean feature flags to a list of strings
+      const featureItems = Object.entries(plan.features || {})
+        .filter(([, enabled]) => Boolean(enabled))
+        .map(([key]) => formatFeatureLabel(key));
 
-    const limits: string[] = [];
-    const seatPolicyItems: string[] = [];
+      // Parse tiered pricing labels if they exist
+      const tierRows = Array.isArray(plan.seatPolicy?.extraClinicianTierLabels)
+        ? plan.seatPolicy.extraClinicianTierLabels
+            .map(parseTierRow)
+            .filter((row): row is TierRow => Boolean(row))
+        : [];
 
-    const isProfessional = plan.type?.toLowerCase().includes('professional') || plan.name?.toLowerCase().includes('professional');
-    const included = plan.seatPolicy?.includedClinicians ?? (isProfessional ? 1 : 0);
-    const totalLimit = plan.clinicianLimit ?? (isProfessional ? 6 : 0);
-    const extraAllowed = totalLimit > included ? totalLimit - included : 5;
+      // Construct clinicians inclusion label
+      const includedCliniciansLabel =
+        plan.seatPolicy?.includedCliniciansLabel?.replace(/^Includes\s+/i, '').replace(/\.$/, '') ||
+        `${plan.seatPolicy?.includedClinicians ?? 0} Clinician${plan.seatPolicy?.includedClinicians === 1 ? '' : 's'}${(plan.seatPolicy?.includedClinicians ?? 0) > 1 ? ' Included' : ''}`;
 
-    if (isProfessional || (included === 1 && totalLimit === 6)) {
-      seatPolicyItems.push(`One Clinician included in the price – pay to add maximum ${extraAllowed} more`);
-    } else if (typeof plan.seatPolicy?.includedClinicians === 'number') {
-      if (plan.seatPolicy.extraCliniciansAllowed) {
-        if (totalLimit > included) {
-          seatPolicyItems.push(`${included === 1 ? 'One' : included} Clinician included in the price – pay to add maximum ${totalLimit - included} more`);
-        } else if (totalLimit === 0) {
-          seatPolicyItems.push(`${included} ${included === 1 ? 'clinician' : 'clinicians'} included + add more`);
-        } else {
-          seatPolicyItems.push(`${pluralize(included, 'clinician')} included`);
-        }
-      } else {
-        seatPolicyItems.push(`${pluralize(included, 'clinician')} included`);
-      }
-    }
+      // Construct admin users inclusion label
+      const includedAdminUsersLabel =
+        plan.seatPolicy?.includedAdminUsersLabel?.replace(/^Includes\s+/i, '').replace(/\.$/, '') ||
+        `${plan.seatPolicy?.includedAdminUsers ?? 0} Admin User${plan.seatPolicy?.includedAdminUsers === 1 ? '' : 's'}`;
 
-    if (typeof plan.seatPolicy?.includedAdminUsers === 'number') {
-      seatPolicyItems.push(`${pluralize(plan.seatPolicy.includedAdminUsers, 'admin user')} included`);
-    }
+      // Construct extra clinician cost summary
+      const extraSummary = tierRows.length > 0
+        ? 'Extra Clinician Tiers:'
+        : normalizePound(
+            (plan.seatPolicy?.extraClinicianSummary || 'Extra clinicians are not available on this plan.')
+              .replace(/^Each additional clinician costs\s+/i, 'Additional clinicians: '),
+          );
 
-    if (typeof plan.clientLimit === 'number') {
-      limits.push(plan.clientLimit === 0 ? 'Unlimited clients' : `${plan.clientLimit} clients`);
-    }
-    
-    // Only add basic clinician limit if we didn't already add a complex seat policy line
-    if (
-      seatPolicyItems.length === 0 &&
-      typeof plan.clinicianLimit === 'number'
-    ) {
-      limits.push(
-        plan.clinicianLimit === 0
-          ? 'Unlimited clinicians'
-          : `${plan.clinicianLimit} clinician${plan.clinicianLimit === 1 ? '' : 's'}`
-      );
-    }
+      return {
+        id: plan.id,
+        name: plan.name,
+        price: Number(plan.price) || 0,
+        description: plan.description || '',
+        isPopular: Boolean(plan.isPopular),
+        featureItems,
+        includedCliniciansLabel,
+        includedAdminUsersLabel,
+        extraSummary,
+        tierRows,
+      };
+    });
 
-    return {
-      id: plan.id,
-      name: plan.name,
-      price: Number(plan.price) || 0,
-      description: plan.description || '',
-      isPopular: Boolean(plan.isPopular),
-      type: plan.type || '',
-      features: [...seatPolicyItems, ...limits, ...featureItems],
-    };
-  });
-
+  /**
+   * Final list of plans: use API plans if available, otherwise fall back to static data.
+   */
   const plans = apiPlans.length > 0 ? apiPlans : fallbackPlans;
 
   return (
-    <section id="pricing" className="py-24 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-serif text-charcoal mb-4">Simple, Transparent Pricing</h2>
-          <p className="text-lg text-warm-gray">Start free, upgrade when you are ready. No hidden fees, no surprises.</p>
-          {isLoading && <p className="text-sm text-warm-gray mt-3">Loading plans...</p>}
-          {isError && <p className="text-sm text-warm-gray mt-3">Unable to load live plans, showing default pricing.</p>}
+    <section id="pricing" className="bg-[#faf9f6] px-4 py-12 sm:px-5 sm:py-14 lg:px-8 lg:py-16">
+      <div className="mx-auto w-full max-w-[1440px]">
+        {/* Header Section */}
+        <div className="mx-auto mb-9 max-w-[900px] text-center lg:mb-10">
+          <h2 className="m-0 font-serif text-[34px] font-bold leading-[1.12] tracking-normal text-[#151817] sm:text-[42px] lg:text-[52px]">
+            Transparent pricing for <br />
+            <span className="text-[#4f6b3b]">every stage of your practice.</span>
+          </h2>
+          <p className="mx-auto mt-4 max-w-[720px] text-[16px] leading-[1.5] text-[#4d514b] lg:text-[18px]">
+            Simple, predictable pricing. No hidden fees or surprise charges. Designed for clinicians, by clinicians.
+          </p>
+          {isLoading && <p className="mt-4 text-sm text-[#4d514b]">Loading plans...</p>}
+          {isError && <p className="mt-4 text-sm text-[#4d514b]">Unable to load live plans, showing default pricing.</p>}
         </div>
 
-        <div ref={ref} className={`grid grid-cols-1 ${plans.length >= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-8`}>
-          {plans.map((plan, index) => {
-            const highlight = plan.isPopular;
-            const cta = plan.type === 'enterprise' ? 'Contact Sales' : 'Choose Plan';
-            const priceLabel = Number.isInteger(plan.price) ? `${plan.price}` : plan.price.toFixed(2);
+        {/* Pricing Cards Grid */}
+        <div ref={ref} className="mx-auto grid max-w-[560px] grid-cols-1 items-stretch gap-7 lg:max-w-none lg:grid-cols-3">
+          {plans.map((plan) => {
+            const isPopularPlan = plan.isPopular;
 
             return (
-              <div
+              <article
                 key={plan.id}
-                className={`relative rounded-2xl p-8 transition-all duration-500 flex flex-col h-full ${
-                  highlight
-                    ? 'bg-white border-2 border-terracotta shadow-xl z-10 transform md:-translate-y-4'
-                    : 'bg-warm-white border border-warm-gray/10 shadow-sm hover:shadow-md'
-                } ${isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
-                style={{ transitionDelay: `${index * 150}ms` }}
+                className={`group relative flex h-full min-h-0 flex-col rounded-[14px] border border-[#c9cfbf] bg-white px-6 pb-7 pt-8 transition-[opacity,transform,box-shadow,border-color] duration-500 hover:z-10 hover:scale-[1.025] hover:border-[#54733c] hover:shadow-[0_28px_54px_rgba(75,94,57,0.11)] sm:px-8 lg:px-8 lg:pb-8 lg:pt-9 ${
+                  isInView ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+                }`}
               >
-                {highlight && (
-                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-terracotta text-white px-4 py-1 rounded-full text-sm font-medium tracking-wide uppercase shadow-sm">
-                    Most Popular
-                  </div>
-                )}
-
-                <div className="text-center mb-8">
-                  <h3 className="text-2xl font-serif font-bold text-charcoal mb-2">{plan.name}</h3>
-                  <div className="flex items-baseline justify-center mb-2">
-                    <span className="text-4xl font-bold text-charcoal">£{priceLabel}</span>
-                    <span className="text-warm-gray ml-1">/mo</span>
-                  </div>
-                  <p className="text-sm text-warm-gray">{plan.description}</p>
+                {/* Popular Badge */}
+                <div className="absolute -top-[15px] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#54733c] px-[18px] py-1.5 text-[11px] font-medium uppercase leading-none tracking-[0.04em] text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                  {isPopularPlan ? 'Most Popular' : 'Selected Plan'}
                 </div>
 
-                <ul className="space-y-4 mb-8 flex-grow">
-                  {plan.features.map((feature, idx) => (
-                    <li key={`${plan.id}-${idx}`} className="flex items-start">
-                      <Check size={18} className="text-terracotta mt-0.5 mr-3 flex-shrink-0" />
-                      <span className={`text-charcoal/80 text-sm ${feature.includes('Clinician included') ? 'font-bold text-charcoal' : ''}`}>
-                        {feature}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                {/* Plan Name & Description */}
+                <div>
+                  <h3 className="m-0 font-serif text-[32px] font-semibold leading-[1.12] tracking-normal text-[#171918] lg:text-[34px]">
+                    {plan.name}
+                  </h3>
+                  <p className="mt-4 text-[15px] leading-[1.45] text-[#555a52]">
+                    {plan.description}
+                  </p>
+                </div>
 
+                {/* Pricing Display */}
+                <div className="mb-7 mt-7 flex items-end">
+                  <span className="font-serif text-[50px] font-medium leading-[0.95] tracking-normal text-[#151817] lg:text-[54px]">
+                    {POUND_SYMBOL}{formatPrice(plan.price)}
+                  </span>
+                  <small className="mb-[7px] ml-2 text-[15px] leading-none text-[#3e433e]">/mo</small>
+                </div>
+
+                {/* Call to Action */}
                 <Link
                   to={`/login?mode=signup&planId=${encodeURIComponent(plan.id)}&focus=plan`}
-                  className={`w-full py-3 rounded-full font-semibold transition-all duration-300 ${
-                    highlight
-                      ? 'bg-[#7D9663] text-white hover:bg-[#6f8658] shadow-md hover:shadow-lg'
-                      : 'bg-[#7D9663] text-white hover:bg-[#6f8658] shadow-sm hover:shadow-md'
-                  } block text-center mt-auto`}
+                  className="relative block w-full overflow-hidden rounded-lg border border-[#54733c] bg-white px-[18px] py-3 text-center text-[15px] font-semibold leading-tight text-[#4f6b3b] transition-all duration-300 before:absolute before:inset-y-0 before:-left-1/3 before:w-1/3 before:-skew-x-12 before:bg-white/30 before:opacity-0 before:transition-all before:duration-500 hover:-translate-y-0.5 hover:bg-[#486632] hover:text-white hover:shadow-[0_12px_24px_rgba(84,115,60,0.24)] hover:before:left-[115%] hover:before:opacity-100 group-hover:bg-[#54733c] group-hover:text-white"
                 >
-                  {cta}
+                  <span className="relative z-10">Choose Plan</span>
                 </Link>
-              </div>
+
+                {/* Seat Policies (Clinicians & Admins) */}
+                <div className="mt-6 rounded-lg border border-transparent bg-[#f3f3f0] px-5 py-4 transition-colors duration-300 group-hover:border-[#c5ccb5] group-hover:bg-[#e0e6d2]">
+                  <div className="flex items-center gap-[9px] text-[16px] leading-[1.35] text-[#171918] [&_svg]:h-[15px] [&_svg]:w-[15px] [&_svg]:text-[#54733c]">
+                    {isPopularPlan ? (
+                      <Users aria-hidden="true" />
+                    ) : (
+                      <Stethoscope aria-hidden="true" />
+                    )}
+                    <strong>{plan.includedCliniciansLabel}</strong>
+                  </div>
+
+                  <div className="mt-2 flex items-center gap-[9px] text-[15px] leading-[1.35] text-[#555a52] [&_svg]:h-[15px] [&_svg]:w-[15px] [&_svg]:text-[#71766d]">
+                    <UserCog aria-hidden="true" />
+                    <span>{plan.includedAdminUsersLabel}</span>
+                  </div>
+
+                  {/* Tiered Cost Information */}
+                  {plan.tierRows.length > 0 ? (
+                    <div className="mt-4 border-t border-[#cbd0c1] pt-4">
+                      <p className="mb-2 text-[15px] leading-[1.45] text-[#454a43]">{plan.extraSummary}</p>
+                      <div >
+                        {plan.tierRows.map((tier) => (
+                          <div
+                            key={`${plan.id}-${tier.label}`}
+                            className="flex justify-between gap-[18px] text-[14px] leading-[1.55] text-[#4b5148]"
+                          >
+                            <span>{tier.label}</span>
+                            <strong className="flex-none font-medium text-[#171918]">{tier.value}</strong>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="mb-0 mt-4 border-t border-[#cbd0c1] pt-4 text-[14px] leading-[1.45] text-[#454a43]">
+                      {plan.extraSummary}
+                    </p>
+                  )}
+                </div>
+
+                {/* Features List */}
+                <div className="pt-7">
+                  <p className="mb-4 text-[16px] font-semibold leading-[1.35] text-[#151817]">Included Features</p>
+                  <ul className="grid gap-x-5 gap-y-2 lg:grid-cols-2">
+                    {plan.featureItems.map((feature) => (
+                      <li key={`${plan.id}-${feature}`} className="flex items-start gap-2.5 text-[14px] leading-[1.45] text-[#454a43]">
+                        <CheckCircle2
+                          aria-hidden="true"
+                          className="mt-0.5 h-4 w-4 flex-none fill-[#54733c] text-[#54733c] stroke-white [stroke-width:3]"
+                        />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </article>
             );
           })}
         </div>

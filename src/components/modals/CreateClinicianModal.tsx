@@ -20,6 +20,7 @@ import {
 interface CreateClinicianModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialRole?: 'clinician' | 'admin';
 }
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
@@ -28,7 +29,8 @@ const modalLabelClassName = 'text-[10px] font-bold text-primary uppercase tracki
 
 export function CreateClinicianModal({
   isOpen,
-  onClose
+  onClose,
+  initialRole = 'clinician',
 }: CreateClinicianModalProps) {
   const [createClinicMember] = useCreateClinicMemberMutation();
   const [isLoading, setIsLoading] = useState(false);
@@ -37,7 +39,7 @@ export function CreateClinicianModal({
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState('clinician');
+  const [role, setRole] = useState(initialRole);
   const [countryCode, setCountryCode] = useState('+44');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [availability, setAvailability] = useState<string[]>(['monday', 'tuesday', 'wednesday', 'thursday', 'friday']);
@@ -56,12 +58,18 @@ export function CreateClinicianModal({
     setCountryCode('+44');
     setPhoneError('');
     setSubmitError('');
-    setRole('clinician');
+    setRole(initialRole);
     setAvailability(['monday', 'tuesday', 'wednesday', 'thursday', 'friday']);
     setAvailabilitySchedule(ensureScheduleForDays(['monday', 'tuesday', 'wednesday', 'thursday', 'friday'], []));
     setBio('');
     setSpecializationText('');
   };
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setRole(initialRole);
+    }
+  }, [initialRole, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
