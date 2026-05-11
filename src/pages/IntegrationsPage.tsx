@@ -53,6 +53,7 @@ const SUPPORTED_OAUTH_TYPES = new Set([
   'mailchimp',
   'zoom',
   'twilio',
+  'xero',
 ]);
 
 const ICON_KEY_BY_TYPE: Record<string, string> = {

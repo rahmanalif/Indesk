@@ -1,5 +1,6 @@
 import { Clock } from 'lucide-react';
 import { Checkbox } from '../ui/Checkbox';
+import { TimePicker } from '../ui/TimePicker';
 import {
   DEFAULT_AVAILABILITY_DAY,
   ensureScheduleForDays,
@@ -13,8 +14,6 @@ type AvailabilityScheduleEditorProps = {
   schedule: AvailabilityDaySchedule[];
   onChange: (selectedDays: string[], schedule: AvailabilityDaySchedule[]) => void;
 };
-
-const inputClassName = 'h-10 w-full rounded-xl border border-primary/10 bg-secondary/30 px-3 py-2 text-sm font-semibold shadow-inner transition-all hover:bg-secondary/50 focus:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20';
 
 export function AvailabilityScheduleEditor({
   days,
@@ -54,7 +53,7 @@ export function AvailabilityScheduleEditor({
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <Clock className="h-4 w-4 text-primary" />
-        <label className="text-[10px] font-bold text-primary uppercase tracking-[0.15em]">
+        <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-primary">
           Availability
         </label>
       </div>
@@ -76,52 +75,42 @@ export function AvailabilityScheduleEditor({
                   checked={isSelected}
                   onCheckedChange={(checked) => toggleDay(day, checked)}
                 />
-                {isSelected && (
-                  <span className="text-xs font-medium text-muted-foreground">
-                    One optional 1-hour break
-                  </span>
-                )}
+                {isSelected && <span className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Live</span>}
               </div>
 
               {isSelected && (
-                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <div>
-                    <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-                      Start
-                    </label>
-                    <input
-                      type="time"
-                      value={daySchedule.startTime}
-                      onChange={(event) => updateDay(day, 'startTime', event.target.value)}
-                      className={inputClassName}
+                    <TimePicker
+                      label="Start"
+                      time={daySchedule.startTime}
+                      setTime={(value) => updateDay(day, 'startTime', value)}
                     />
                   </div>
 
                   <div>
-                    <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-                      End
-                    </label>
-                    <input
-                      type="time"
-                      value={daySchedule.endTime}
-                      onChange={(event) => updateDay(day, 'endTime', event.target.value)}
-                      className={inputClassName}
+                    <TimePicker
+                      label="End"
+                      time={daySchedule.endTime}
+                      setTime={(value) => updateDay(day, 'endTime', value)}
                     />
                   </div>
 
-                  <div>
-                    <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
-                      Break Start
-                    </label>
-                    <input
-                      type="time"
-                      value={daySchedule.breakStartTime || ''}
-                      onChange={(event) => updateDay(day, 'breakStartTime', event.target.value)}
-                      className={inputClassName}
+                  <div className="space-y-2">
+                    <TimePicker
+                      label="Break"
+                      time={daySchedule.breakStartTime || ''}
+                      setTime={(value) => updateDay(day, 'breakStartTime', value)}
                     />
-                    <p className="mt-1 text-[11px] text-muted-foreground">
-                      Leave empty for no break.
-                    </p>
+                    {daySchedule.breakStartTime && (
+                      <button
+                        type="button"
+                        onClick={() => updateDay(day, 'breakStartTime', '')}
+                        className="text-[11px] font-medium text-muted-foreground transition-colors hover:text-primary"
+                      >
+                        Clear break
+                      </button>
+                    )}
                   </div>
                 </div>
               )}

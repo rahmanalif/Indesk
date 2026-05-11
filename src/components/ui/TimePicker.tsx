@@ -85,11 +85,13 @@ export function TimePicker({
         onClick={() => setIsOpen(!isOpen)}
       >
         <Clock className="h-4 w-4 text-primary shrink-0" />
-        <span className={cn("truncate flex-1 flex items-center gap-1", !time && "text-muted-foreground/50 font-medium")}>
+        <span className={cn("flex min-w-0 flex-1 items-center gap-1.5", !time && "text-muted-foreground/50 font-medium")}>
           {time ? (
             <>
-              <span className="tabular-nums">{current.h}:{current.m}</span>
-              <span className="text-[10px] font-black text-primary bg-primary/10 px-1.5 py-0.5 rounded-md ml-1">{current.p}</span>
+              <span className="truncate tabular-nums">{current.h}:{current.m}</span>
+              <span className="inline-flex min-w-[2.75rem] shrink-0 items-center justify-center rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-black leading-none text-primary">
+                {current.p}
+              </span>
             </>
           ) : "Select Time"}
         </span>
