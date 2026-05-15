@@ -1,5 +1,5 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import type { RootState } from '../../store';
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import type { RootState } from "../../store";
 
 export interface FinancialOverviewMonth {
   month: string;
@@ -114,53 +114,62 @@ export interface ExpensesResponse {
 }
 
 export const analyticsApi = createApi({
-  reducerPath: 'analyticsApi',
+  reducerPath: "analyticsApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_AUTH_API_BASE_URL,
+    baseUrl: import.meta.env.VITE_API_BASE_URL,
     prepareHeaders: (headers, { getState }) => {
       const state = getState() as RootState;
       const expiresAt = state.auth.tokens?.access?.expiresAt;
-      const isReduxTokenValid = expiresAt ? new Date(expiresAt) > new Date() : true;
+      const isReduxTokenValid = expiresAt
+        ? new Date(expiresAt) > new Date()
+        : true;
       let token = isReduxTokenValid ? state.auth.tokens?.access?.token : null;
 
       if (!token) {
-        const localExpiry = localStorage.getItem('accessTokenExpiry');
-        const isLocalValid = localExpiry ? new Date(localExpiry) > new Date() : false;
-        token = isLocalValid ? localStorage.getItem('accessToken') : null;
+        const localExpiry = localStorage.getItem("accessTokenExpiry");
+        const isLocalValid = localExpiry
+          ? new Date(localExpiry) > new Date()
+          : false;
+        token = isLocalValid ? localStorage.getItem("accessToken") : null;
       }
 
       if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
+        headers.set("Authorization", `Bearer ${token}`);
       }
-      headers.set('Content-Type', 'application/json');
+      headers.set("Content-Type", "application/json");
       return headers;
     },
   }),
-  tagTypes: ['FinancialOverview', 'SessionDistribution', 'ClientGrowth', 'Expenses'],
+  tagTypes: [
+    "FinancialOverview",
+    "SessionDistribution",
+    "ClientGrowth",
+    "Expenses",
+  ],
   endpoints: (builder) => ({
     getFinancialOverview: builder.query<FinancialOverviewResponse, void>({
       query: () => ({
-        url: 'analytics/financial-overview',
+        url: "analytics/financial-overview",
       }),
-      providesTags: ['FinancialOverview'],
+      providesTags: ["FinancialOverview"],
     }),
     getSessionDistribution: builder.query<SessionDistributionResponse, void>({
       query: () => ({
-        url: 'analytics/session-distribution',
+        url: "analytics/session-distribution",
       }),
-      providesTags: ['SessionDistribution'],
+      providesTags: ["SessionDistribution"],
     }),
     getClientGrowth: builder.query<ClientGrowthResponse, void>({
       query: () => ({
-        url: 'analytics/client-growth',
+        url: "analytics/client-growth",
       }),
-      providesTags: ['ClientGrowth'],
+      providesTags: ["ClientGrowth"],
     }),
     getExpenses: builder.query<ExpensesResponse, void>({
       query: () => ({
-        url: 'analytics/expenses',
+        url: "analytics/expenses",
       }),
-      providesTags: ['Expenses'],
+      providesTags: ["Expenses"],
     }),
   }),
 });
@@ -169,5 +178,5 @@ export const {
   useGetFinancialOverviewQuery,
   useGetSessionDistributionQuery,
   useGetClientGrowthQuery,
-  useGetExpensesQuery
+  useGetExpensesQuery,
 } = analyticsApi;

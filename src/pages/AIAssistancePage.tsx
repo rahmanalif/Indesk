@@ -157,7 +157,7 @@ export function AIAssistancePage() {
   const requestErrorMessage = getErrorMessage(requestError);
   const apiOrigin = useMemo(() => {
     try {
-      return new URL(import.meta.env.VITE_CLIENTS_API_BASE_URL).origin;
+      return new URL(import.meta.env.VITE_API_BASE_URL).origin;
     } catch {
       return '';
     }

@@ -56,7 +56,7 @@ export function Header({
   const displaySubtitle = effectiveUser?.email || effectiveUser?.role || 'User';
   const apiOrigin = (() => {
     try {
-      return new URL(import.meta.env.VITE_CLIENTS_API_BASE_URL).origin;
+      return new URL(import.meta.env.VITE_API_BASE_URL).origin;
     } catch {
       return '';
     }

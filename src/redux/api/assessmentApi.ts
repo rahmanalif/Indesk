@@ -1,7 +1,7 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import type { RootState } from '../../store';
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import type { RootState } from "../../store";
 
-export type AssessmentQuestionType = 'text' | 'multiple_choice' | 'yes_no';
+export type AssessmentQuestionType = "text" | "multiple_choice" | "yes_no";
 
 export interface AssessmentQuestionPayload {
   question: string;
@@ -225,7 +225,7 @@ export interface AssessmentProgressPayload {
   totalAssessments?: number;
   longitudinalTrend?: {
     percentageChange?: number;
-    direction?: 'increase' | 'decrease' | 'stable' | string;
+    direction?: "increase" | "decrease" | "stable" | string;
   };
   clinicalStabilization?: {
     averageSeverityScore?: number;
@@ -311,40 +311,47 @@ export interface GetAssessmentInstancesParams {
 }
 
 export const assessmentApi = createApi({
-  reducerPath: 'assessmentApi',
+  reducerPath: "assessmentApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_AUTH_API_BASE_URL,
+    baseUrl: import.meta.env.VITE_API_BASE_URL,
     prepareHeaders: (headers, { getState, arg }) => {
       const state = getState() as RootState;
       const expiresAt = state.auth.tokens?.access?.expiresAt;
-      const isReduxTokenValid = expiresAt ? new Date(expiresAt) > new Date() : true;
+      const isReduxTokenValid = expiresAt
+        ? new Date(expiresAt) > new Date()
+        : true;
       let token = isReduxTokenValid ? state.auth.tokens?.access?.token : null;
 
       if (!token) {
-        const localExpiry = localStorage.getItem('accessTokenExpiry');
-        const isLocalValid = localExpiry ? new Date(localExpiry) > new Date() : false;
-        token = isLocalValid ? localStorage.getItem('accessToken') : null;
+        const localExpiry = localStorage.getItem("accessTokenExpiry");
+        const isLocalValid = localExpiry
+          ? new Date(localExpiry) > new Date()
+          : false;
+        token = isLocalValid ? localStorage.getItem("accessToken") : null;
       }
 
       if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
+        headers.set("Authorization", `Bearer ${token}`);
       }
       const isFormData =
-        typeof arg === 'object' &&
+        typeof arg === "object" &&
         arg !== null &&
-        'body' in arg &&
+        "body" in arg &&
         arg.body instanceof FormData;
-      if (!isFormData && !headers.has('Content-Type')) {
-        headers.set('Content-Type', 'application/json');
+      if (!isFormData && !headers.has("Content-Type")) {
+        headers.set("Content-Type", "application/json");
       }
       return headers;
     },
   }),
-  tagTypes: ['AssessmentTemplate'],
+  tagTypes: ["AssessmentTemplate"],
   endpoints: (builder) => ({
-    getAssessmentTemplates: builder.query<GetAssessmentTemplatesResponse, GetAssessmentTemplatesParams>({
+    getAssessmentTemplates: builder.query<
+      GetAssessmentTemplatesResponse,
+      GetAssessmentTemplatesParams
+    >({
       query: (params) => ({
-        url: 'assessment/template',
+        url: "assessment/template",
         params: {
           category: params.category,
           limit: params.limit,
@@ -356,61 +363,79 @@ export const assessmentApi = createApi({
         result?.response?.data?.docs
           ? [
               ...result.response.data.docs.map((doc) => ({
-                type: 'AssessmentTemplate' as const,
+                type: "AssessmentTemplate" as const,
                 id: doc.id,
               })),
-              { type: 'AssessmentTemplate', id: 'LIST' },
+              { type: "AssessmentTemplate", id: "LIST" },
             ]
-          : [{ type: 'AssessmentTemplate', id: 'LIST' }],
+          : [{ type: "AssessmentTemplate", id: "LIST" }],
     }),
-    getAssessmentTemplateById: builder.query<GetAssessmentTemplateByIdResponse, string>({
+    getAssessmentTemplateById: builder.query<
+      GetAssessmentTemplateByIdResponse,
+      string
+    >({
       query: (id) => `assessment/template/${id}`,
-      providesTags: (result, error, id) => [{ type: 'AssessmentTemplate', id }],
+      providesTags: (result, error, id) => [{ type: "AssessmentTemplate", id }],
     }),
-    createAssessmentTemplate: builder.mutation<CreateAssessmentTemplateResponse, CreateAssessmentTemplateRequest>({
+    createAssessmentTemplate: builder.mutation<
+      CreateAssessmentTemplateResponse,
+      CreateAssessmentTemplateRequest
+    >({
       query: (payload) => ({
-        url: 'assessment/template',
-        method: 'POST',
+        url: "assessment/template",
+        method: "POST",
         body: payload,
       }),
-      invalidatesTags: [{ type: 'AssessmentTemplate', id: 'LIST' }],
+      invalidatesTags: [{ type: "AssessmentTemplate", id: "LIST" }],
     }),
-    deleteAssessmentTemplate: builder.mutation<DeleteAssessmentTemplateResponse, string>({
+    deleteAssessmentTemplate: builder.mutation<
+      DeleteAssessmentTemplateResponse,
+      string
+    >({
       query: (templateId) => ({
         url: `assessment/template/${templateId}`,
-        method: 'DELETE',
+        method: "DELETE",
       }),
       invalidatesTags: (result, error, templateId) => [
-        { type: 'AssessmentTemplate', id: templateId },
-        { type: 'AssessmentTemplate', id: 'LIST' },
+        { type: "AssessmentTemplate", id: templateId },
+        { type: "AssessmentTemplate", id: "LIST" },
       ],
     }),
-    generateAssessmentWithAi: builder.mutation<GenerateAssessmentAiResponse, GenerateAssessmentAiRequest>({
+    generateAssessmentWithAi: builder.mutation<
+      GenerateAssessmentAiResponse,
+      GenerateAssessmentAiRequest
+    >({
       query: (payload) => ({
-        url: 'assessment/ai/generate',
-        method: 'POST',
+        url: "assessment/ai/generate",
+        method: "POST",
         body: payload,
       }),
     }),
-    createAssessmentInstance: builder.mutation<CreateAssessmentInstanceResponse, CreateAssessmentInstanceRequest>({
+    createAssessmentInstance: builder.mutation<
+      CreateAssessmentInstanceResponse,
+      CreateAssessmentInstanceRequest
+    >({
       query: ({ clientId, templateId, note, document }) => {
         const formData = new FormData();
-        formData.append('clientId', clientId);
-        formData.append('templateId', templateId);
+        formData.append("clientId", clientId);
+        formData.append("templateId", templateId);
         if (note) {
-          formData.append('note', note);
+          formData.append("note", note);
         }
         if (document) {
-          formData.append('document', document);
+          formData.append("document", document);
         }
         return {
-          url: 'assessment/instance',
-          method: 'POST',
+          url: "assessment/instance",
+          method: "POST",
           body: formData,
         };
       },
     }),
-    getAssessmentProgress: builder.query<GetAssessmentProgressResponse, GetAssessmentProgressParams>({
+    getAssessmentProgress: builder.query<
+      GetAssessmentProgressResponse,
+      GetAssessmentProgressParams
+    >({
       query: ({ clientId, startDate, endDate, frequency }) => ({
         url: `assessment/progress/${clientId}`,
         params: {
@@ -420,9 +445,18 @@ export const assessmentApi = createApi({
         },
       }),
     }),
-    getAssessmentInstances: builder.query<GetAssessmentInstancesResponse, GetAssessmentInstancesParams>({
-      query: ({ clientId, status, limit = 10, page = 1, sort = '-createdAt' }) => ({
-        url: 'assessment/instance',
+    getAssessmentInstances: builder.query<
+      GetAssessmentInstancesResponse,
+      GetAssessmentInstancesParams
+    >({
+      query: ({
+        clientId,
+        status,
+        limit = 10,
+        page = 1,
+        sort = "-createdAt",
+      }) => ({
+        url: "assessment/instance",
         params: {
           clientId,
           status,
@@ -432,16 +466,26 @@ export const assessmentApi = createApi({
         },
       }),
     }),
-    getAssessmentInstanceById: builder.query<GetAssessmentInstanceByIdResponse, string>({
+    getAssessmentInstanceById: builder.query<
+      GetAssessmentInstanceByIdResponse,
+      string
+    >({
       query: (instanceId) => `assessment/instance/${instanceId}`,
     }),
     getAssessmentByToken: builder.query<GetAssessmentByTokenResponse, string>({
       query: (assessmentToken) => `assessment/token/${assessmentToken}`,
     }),
-    submitAssessmentByToken: builder.mutation<SubmitAssessmentByTokenResponse, SubmitAssessmentByTokenRequest>({
-      query: ({ assessmentToken, responses, submittedByClinician = false }) => ({
+    submitAssessmentByToken: builder.mutation<
+      SubmitAssessmentByTokenResponse,
+      SubmitAssessmentByTokenRequest
+    >({
+      query: ({
+        assessmentToken,
+        responses,
+        submittedByClinician = false,
+      }) => ({
         url: `assessment/token/${assessmentToken}/submit`,
-        method: 'POST',
+        method: "POST",
         body: { responses, submittedByClinician },
       }),
     }),

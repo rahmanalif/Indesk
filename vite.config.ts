@@ -6,11 +6,7 @@ import react from "@vitejs/plugin-react";
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
 
-  const upstreamBase =
-    env.VITE_DEV_PROXY_TARGET ||
-    env.VITE_CLIENTS_API_BASE_URL ||
-    env.VITE_AUTH_API_BASE_URL ||
-    "";
+  const upstreamBase = env.VITE_DEV_PROXY_TARGET || env.VITE_API_BASE_URL || "";
 
   let proxyTarget = "";
   try {

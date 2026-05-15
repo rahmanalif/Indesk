@@ -1,4 +1,4 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 export interface ClientAddress {
   street?: string;
@@ -88,7 +88,7 @@ export interface Invoice {
   subtotal?: number;
   tax?: number;
   totalAmount: number;
-  status: 'paid' | 'pending' | 'overdue' | 'draft' | 'sent' | string;
+  status: "paid" | "pending" | "overdue" | "draft" | "sent" | string;
   issueDate: string;
   dueDate: string;
   publicToken: string;
@@ -220,118 +220,125 @@ export interface ExportInvoiceToXeroResponse {
 }
 
 export const invoiceApi = createApi({
-  reducerPath: 'invoiceApi',
+  reducerPath: "invoiceApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_AUTH_API_BASE_URL,
+    baseUrl: import.meta.env.VITE_API_BASE_URL,
     prepareHeaders: (headers) => {
-      const token = localStorage.getItem('accessToken');
+      const token = localStorage.getItem("accessToken");
       if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
+        headers.set("Authorization", `Bearer ${token}`);
       }
       return headers;
     },
   }),
-  tagTypes: ['Invoice'],
+  tagTypes: ["Invoice"],
   endpoints: (builder) => ({
     getInvoices: builder.query<InvoiceResponse, InvoiceParams>({
       query: (params) => {
         const queryParams = new URLSearchParams();
 
-        if (params.page) queryParams.append('page', params.page.toString());
-        if (params.limit) queryParams.append('limit', params.limit.toString());
-        if (params.search) queryParams.append('search', params.search);
-        if (params.status && params.status !== 'All') queryParams.append('status', params.status);
-        if (params.startDate) queryParams.append('startDate', params.startDate);
-        if (params.endDate) queryParams.append('endDate', params.endDate);
+        if (params.page) queryParams.append("page", params.page.toString());
+        if (params.limit) queryParams.append("limit", params.limit.toString());
+        if (params.search) queryParams.append("search", params.search);
+        if (params.status && params.status !== "All")
+          queryParams.append("status", params.status);
+        if (params.startDate) queryParams.append("startDate", params.startDate);
+        if (params.endDate) queryParams.append("endDate", params.endDate);
 
         return `invoice?${queryParams.toString()}`;
       },
-      providesTags: ['Invoice'],
+      providesTags: ["Invoice"],
     }),
 
     getInvoiceById: builder.query<Invoice, string>({
       query: (id) => `invoice/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Invoice', id }],
+      providesTags: (result, error, id) => [{ type: "Invoice", id }],
     }),
 
     getInvoiceStats: builder.query<InvoiceStatsResponse, void>({
-      query: () => 'invoice/stats',
-      providesTags: ['Invoice'],
+      query: () => "invoice/stats",
+      providesTags: ["Invoice"],
     }),
 
     getAppointments: builder.query<AppointmentsResponse, AppointmentParams>({
       query: (params) => {
         const queryParams = new URLSearchParams();
 
-        if (params.page) queryParams.append('page', params.page.toString());
-        if (params.limit) queryParams.append('limit', params.limit.toString());
-        if (params.search) queryParams.append('search', params.search);
-        if (params.status) queryParams.append('status', params.status);
-        if (params.clientId) queryParams.append('clientId', params.clientId);
-        if (params.startDate) queryParams.append('startDate', params.startDate);
-        if (params.endDate) queryParams.append('endDate', params.endDate);
+        if (params.page) queryParams.append("page", params.page.toString());
+        if (params.limit) queryParams.append("limit", params.limit.toString());
+        if (params.search) queryParams.append("search", params.search);
+        if (params.status) queryParams.append("status", params.status);
+        if (params.clientId) queryParams.append("clientId", params.clientId);
+        if (params.startDate) queryParams.append("startDate", params.startDate);
+        if (params.endDate) queryParams.append("endDate", params.endDate);
 
         return `appointment?${queryParams.toString()}`;
       },
-      providesTags: ['Invoice'],
+      providesTags: ["Invoice"],
     }),
 
     createInvoice: builder.mutation<Invoice, CreateInvoiceData>({
       query: (newInvoice) => ({
-        url: 'invoice',
-        method: 'POST',
+        url: "invoice",
+        method: "POST",
         body: newInvoice,
       }),
-      invalidatesTags: ['Invoice'],
+      invalidatesTags: ["Invoice"],
     }),
 
     getClients: builder.query<ClientsResponse, ClientParams>({
       query: (params) => {
         const queryParams = new URLSearchParams();
 
-        if (params.page) queryParams.append('page', params.page.toString());
-        if (params.limit) queryParams.append('limit', params.limit.toString());
-        if (params.search) queryParams.append('search', params.search);
-        if (params.status) queryParams.append('status', params.status);
+        if (params.page) queryParams.append("page", params.page.toString());
+        if (params.limit) queryParams.append("limit", params.limit.toString());
+        if (params.search) queryParams.append("search", params.search);
+        if (params.status) queryParams.append("status", params.status);
 
         return `client?${queryParams.toString()}`;
       },
-      providesTags: ['Invoice'],
+      providesTags: ["Invoice"],
     }),
 
-    updateInvoice: builder.mutation<Invoice, { id: string; data: Partial<Invoice> }>(
-      {
-        query: ({ id, data }) => ({
-          url: `invoice/${id}`,
-          method: 'PUT',
-          body: data,
-        }),
-        invalidatesTags: ['Invoice'],
-      }
-    ),
+    updateInvoice: builder.mutation<
+      Invoice,
+      { id: string; data: Partial<Invoice> }
+    >({
+      query: ({ id, data }) => ({
+        url: `invoice/${id}`,
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: ["Invoice"],
+    }),
 
     deleteInvoice: builder.mutation<void, string>({
       query: (id) => ({
         url: `invoice/${id}`,
-        method: 'DELETE',
+        method: "DELETE",
       }),
-      invalidatesTags: ['Invoice'],
+      invalidatesTags: ["Invoice"],
     }),
 
     sendInvoice: builder.mutation<void, { id: string; email: string }>({
       query: ({ id, email }) => ({
         url: `invoice/${id}/send`,
-        method: 'POST',
+        method: "POST",
         body: { email },
       }),
     }),
-    exportInvoiceToXero: builder.mutation<ExportInvoiceToXeroResponse, ExportInvoiceToXeroRequest>({
+    exportInvoiceToXero: builder.mutation<
+      ExportInvoiceToXeroResponse,
+      ExportInvoiceToXeroRequest
+    >({
       query: ({ id, forceReExport }) => ({
         url: `invoice/${id}/export/xero`,
-        method: 'POST',
-        ...(typeof forceReExport === 'boolean' ? { body: { forceReExport } } : {}),
+        method: "POST",
+        ...(typeof forceReExport === "boolean"
+          ? { body: { forceReExport } }
+          : {}),
       }),
-      invalidatesTags: ['Invoice'],
+      invalidatesTags: ["Invoice"],
     }),
   }),
 });

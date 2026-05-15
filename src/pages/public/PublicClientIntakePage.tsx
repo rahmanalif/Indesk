@@ -54,7 +54,7 @@ export function PublicClientIntakePage() {
   const clinic = (clientData as any)?.clinic || (clientData as any)?.clinicDetails || null;
   const apiOrigin = useMemo(() => {
     try {
-      return new URL(import.meta.env.VITE_CLIENTS_API_BASE_URL).origin;
+      return new URL(import.meta.env.VITE_API_BASE_URL).origin;
     } catch {
       return '';
     }

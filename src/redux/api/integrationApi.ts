@@ -1,5 +1,5 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import type { RootState } from '../../store';
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import type { RootState } from "../../store";
 
 export interface IntegrationItem {
   id?: string | number;
@@ -49,35 +49,38 @@ export interface IntegrationActionResponse {
 }
 
 export const integrationApi = createApi({
-  reducerPath: 'integrationApi',
+  reducerPath: "integrationApi",
   baseQuery: fetchBaseQuery({
     baseUrl:
-      import.meta.env.VITE_INTEGRATION_API_BASE_URL ||
-      import.meta.env.VITE_AUTH_API_BASE_URL,
+      import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_BASE_URL,
     prepareHeaders: (headers, { getState }) => {
       const state = getState() as RootState;
       const expiresAt = state.auth.tokens?.access?.expiresAt;
-      const isReduxTokenValid = expiresAt ? new Date(expiresAt) > new Date() : true;
+      const isReduxTokenValid = expiresAt
+        ? new Date(expiresAt) > new Date()
+        : true;
       let token = isReduxTokenValid ? state.auth.tokens?.access?.token : null;
 
       if (!token) {
-        const localExpiry = localStorage.getItem('accessTokenExpiry');
-        const isLocalValid = localExpiry ? new Date(localExpiry) > new Date() : false;
-        token = isLocalValid ? localStorage.getItem('accessToken') : null;
+        const localExpiry = localStorage.getItem("accessTokenExpiry");
+        const isLocalValid = localExpiry
+          ? new Date(localExpiry) > new Date()
+          : false;
+        token = isLocalValid ? localStorage.getItem("accessToken") : null;
       }
 
       if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
+        headers.set("Authorization", `Bearer ${token}`);
       }
-      headers.set('Content-Type', 'application/json');
+      headers.set("Content-Type", "application/json");
       return headers;
     },
   }),
-  tagTypes: ['Integrations'],
+  tagTypes: ["Integrations"],
   endpoints: (builder) => ({
     getIntegrations: builder.query<GetIntegrationsResponse, void>({
-      query: () => 'integration',
-      providesTags: ['Integrations'],
+      query: () => "integration",
+      providesTags: ["Integrations"],
     }),
     getIntegrationOAuthUrl: builder.query<GetIntegrationOAuthResponse, string>({
       query: (type) => `integration/oauth/${type}`,
@@ -85,9 +88,9 @@ export const integrationApi = createApi({
     disconnectIntegration: builder.mutation<IntegrationActionResponse, string>({
       query: (type) => ({
         url: `integration/${type}`,
-        method: 'DELETE',
+        method: "DELETE",
       }),
-      invalidatesTags: ['Integrations'],
+      invalidatesTags: ["Integrations"],
     }),
     checkIntegrationHealth: builder.query<IntegrationActionResponse, string>({
       query: (type) => `integration/${type}/health`,

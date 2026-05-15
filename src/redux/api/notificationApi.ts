@@ -1,5 +1,5 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import type { RootState } from '../../store';
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import type { RootState } from "../../store";
 
 export interface NotificationItem {
   id?: string;
@@ -53,53 +53,60 @@ export interface MarkAllReadResponse {
 }
 
 export const notificationApi = createApi({
-  reducerPath: 'notificationApi',
+  reducerPath: "notificationApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_CLIENTS_API_BASE_URL,
+    baseUrl: import.meta.env.VITE_API_BASE_URL,
     prepareHeaders: (headers, { getState }) => {
       const state = getState() as RootState;
       const expiresAt = state.auth.tokens?.access?.expiresAt;
-      const isReduxTokenValid = expiresAt ? new Date(expiresAt) > new Date() : true;
+      const isReduxTokenValid = expiresAt
+        ? new Date(expiresAt) > new Date()
+        : true;
       let token = isReduxTokenValid ? state.auth.tokens?.access?.token : null;
 
       if (!token) {
-        const localExpiry = localStorage.getItem('accessTokenExpiry');
-        const isLocalValid = localExpiry ? new Date(localExpiry) > new Date() : false;
-        token = isLocalValid ? localStorage.getItem('accessToken') : null;
+        const localExpiry = localStorage.getItem("accessTokenExpiry");
+        const isLocalValid = localExpiry
+          ? new Date(localExpiry) > new Date()
+          : false;
+        token = isLocalValid ? localStorage.getItem("accessToken") : null;
       }
 
       if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
+        headers.set("Authorization", `Bearer ${token}`);
       }
-      headers.set('Content-Type', 'application/json');
+      headers.set("Content-Type", "application/json");
       return headers;
     },
   }),
-  tagTypes: ['Notifications'],
+  tagTypes: ["Notifications"],
   endpoints: (builder) => ({
-    getNotifications: builder.query<GetNotificationsResponse, GetNotificationsParams>({
+    getNotifications: builder.query<
+      GetNotificationsResponse,
+      GetNotificationsParams
+    >({
       query: (params) => ({
-        url: '/notification',
+        url: "/notification",
         params: {
           page: params.page ?? 1,
           limit: params.limit ?? 10,
           isRead: params.isRead,
         },
       }),
-      providesTags: [{ type: 'Notifications', id: 'LIST' }],
+      providesTags: [{ type: "Notifications", id: "LIST" }],
     }),
     getUnreadCount: builder.query<GetUnreadCountResponse, void>({
-      query: () => '/notification/unread-count',
-      providesTags: [{ type: 'Notifications', id: 'UNREAD_COUNT' }],
+      query: () => "/notification/unread-count",
+      providesTags: [{ type: "Notifications", id: "UNREAD_COUNT" }],
     }),
     markAllAsRead: builder.mutation<MarkAllReadResponse, void>({
       query: () => ({
-        url: '/notification/read-all',
-        method: 'PATCH',
+        url: "/notification/read-all",
+        method: "PATCH",
       }),
       invalidatesTags: [
-        { type: 'Notifications', id: 'LIST' },
-        { type: 'Notifications', id: 'UNREAD_COUNT' },
+        { type: "Notifications", id: "LIST" },
+        { type: "Notifications", id: "UNREAD_COUNT" },
       ],
     }),
   }),

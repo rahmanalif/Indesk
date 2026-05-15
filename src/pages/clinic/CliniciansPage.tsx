@@ -160,7 +160,7 @@ export function CliniciansPage() {
 	            : 'No admin overage pricing is returned by backend billing data.';
 	    const apiOrigin = (() => {
         try {
-            return new URL(import.meta.env.VITE_CLIENTS_API_BASE_URL).origin;
+            return new URL(import.meta.env.VITE_API_BASE_URL).origin;
         } catch {
             return '';
         }

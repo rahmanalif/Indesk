@@ -1,7 +1,7 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import type { RootState } from '../../store';
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import type { RootState } from "../../store";
 
-export type AiAssistantRole = 'user' | 'assistant' | 'system';
+export type AiAssistantRole = "user" | "assistant" | "system";
 
 export interface AiAssistantMessage {
   role: AiAssistantRole;
@@ -48,7 +48,7 @@ export interface AiAssistantDraftEmailResponse {
 
 export interface EnhanceEmailRequest {
   content: string;
-  tone?: 'professional' | 'friendly' | 'formal';
+  tone?: "professional" | "friendly" | "formal";
   purpose?: string;
 }
 
@@ -79,56 +79,64 @@ export interface SendEmailResponse {
 }
 
 export const aiAssistantApi = createApi({
-  reducerPath: 'aiAssistantApi',
+  reducerPath: "aiAssistantApi",
   baseQuery: fetchBaseQuery({
     baseUrl:
-      import.meta.env.VITE_AI_ASSISTANT_API_BASE_URL ||
-      import.meta.env.VITE_AUTH_API_BASE_URL,
+      import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_BASE_URL,
     prepareHeaders: (headers, { getState }) => {
       const state = getState() as RootState;
       const expiresAt = state.auth.tokens?.access?.expiresAt;
-      const isReduxTokenValid = expiresAt ? new Date(expiresAt) > new Date() : true;
+      const isReduxTokenValid = expiresAt
+        ? new Date(expiresAt) > new Date()
+        : true;
       let token = isReduxTokenValid ? state.auth.tokens?.access?.token : null;
 
       if (!token) {
-        const localExpiry = localStorage.getItem('accessTokenExpiry');
-        const isLocalValid = localExpiry ? new Date(localExpiry) > new Date() : false;
-        token = isLocalValid ? localStorage.getItem('accessToken') : null;
+        const localExpiry = localStorage.getItem("accessTokenExpiry");
+        const isLocalValid = localExpiry
+          ? new Date(localExpiry) > new Date()
+          : false;
+        token = isLocalValid ? localStorage.getItem("accessToken") : null;
       }
 
       if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
+        headers.set("Authorization", `Bearer ${token}`);
       }
-      headers.set('Content-Type', 'application/json');
+      headers.set("Content-Type", "application/json");
       return headers;
     },
   }),
   endpoints: (builder) => ({
-    sendChat: builder.mutation<AiAssistantChatResponse, AiAssistantChatRequest>({
+    sendChat: builder.mutation<AiAssistantChatResponse, AiAssistantChatRequest>(
+      {
+        query: (body) => ({
+          url: "/ai-assistant/chat",
+          method: "POST",
+          body,
+        }),
+      },
+    ),
+    draftEmail: builder.mutation<
+      AiAssistantDraftEmailResponse,
+      AiAssistantDraftEmailRequest
+    >({
       query: (body) => ({
-        url: '/ai-assistant/chat',
-        method: 'POST',
-        body,
-      }),
-    }),
-    draftEmail: builder.mutation<AiAssistantDraftEmailResponse, AiAssistantDraftEmailRequest>({
-      query: (body) => ({
-        url: '/ai-assistant/draft-email',
-        method: 'POST',
+        url: "/ai-assistant/draft-email",
+        method: "POST",
         body,
       }),
     }),
     enhanceEmail: builder.mutation<EnhanceEmailResponse, EnhanceEmailRequest>({
       query: (body) => ({
-        url: '/ai-assistant/enhance-email',
-        method: 'POST',
+        url: "/ai-assistant/enhance-email",
+        method: "POST",
         body,
       }),
     }),
     sendEmail: builder.mutation<SendEmailResponse, SendEmailRequest>({
       query: (body) => ({
-        url: '/ai-assistant/send-email',
-        method: 'POST',
+        url: "/ai-assistant/send-email",
+        method: "POST",
         body,
       }),
     }),

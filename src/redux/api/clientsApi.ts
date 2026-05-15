@@ -1,6 +1,6 @@
 // src/services/clientsApi.ts
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import type { RootState } from '../../store';
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import type { RootState } from "../../store";
 
 interface ClientAddress {
   street: string;
@@ -121,7 +121,9 @@ export interface GetCalendarAppointmentsResponse {
   status: number;
   message: string;
   response?: {
-    data?: CalendarAppointment[] | { docs?: CalendarAppointment[]; events?: CalendarAppointment[] };
+    data?:
+      | CalendarAppointment[]
+      | { docs?: CalendarAppointment[]; events?: CalendarAppointment[] };
   };
 }
 
@@ -411,7 +413,7 @@ export interface SubscriptionSeatPolicy {
     recurringInterval?: string | null;
     unitAmount?: number | null;
     tiers?: Array<{
-      upTo?: number | 'inf';
+      upTo?: number | "inf";
       unitAmount?: number | null;
     }>;
     maxAdditionalClinicians?: number | null;
@@ -800,33 +802,37 @@ export interface GetCalendarAppointmentsParams {
   startDate?: string;
   endDate?: string;
   clinicianId?: string | string[];
-  status?: 'pending' | 'completed' | 'cancelled' | 'scheduled';
-  view?: 'month' | 'week' | 'day';
+  status?: "pending" | "completed" | "cancelled" | "scheduled";
+  view?: "month" | "week" | "day";
 }
 
-const buildCalendarAppointmentsQuery = (params: GetCalendarAppointmentsParams) => {
+const buildCalendarAppointmentsQuery = (
+  params: GetCalendarAppointmentsParams,
+) => {
   const searchParams = new URLSearchParams();
 
-  if (params.startDate) searchParams.set('startDate', params.startDate);
-  if (params.endDate) searchParams.set('endDate', params.endDate);
-  if (params.status) searchParams.set('status', params.status);
-  if (params.view) searchParams.set('view', params.view);
+  if (params.startDate) searchParams.set("startDate", params.startDate);
+  if (params.endDate) searchParams.set("endDate", params.endDate);
+  if (params.status) searchParams.set("status", params.status);
+  if (params.view) searchParams.set("view", params.view);
 
   if (Array.isArray(params.clinicianId)) {
     const clinicianIds = params.clinicianId
       .map((value) => value?.trim())
       .filter(Boolean)
-      .join(',');
+      .join(",");
 
     if (clinicianIds) {
-      searchParams.set('clinicianId', clinicianIds);
+      searchParams.set("clinicianId", clinicianIds);
     }
   } else if (params.clinicianId?.trim()) {
-    searchParams.set('clinicianId', params.clinicianId.trim());
+    searchParams.set("clinicianId", params.clinicianId.trim());
   }
 
   const queryString = searchParams.toString();
-  return queryString ? `/appointment/calendar/clinic?${queryString}` : '/appointment/calendar/clinic';
+  return queryString
+    ? `/appointment/calendar/clinic?${queryString}`
+    : "/appointment/calendar/clinic";
 };
 
 export interface CreateClinicMemberRequest {
@@ -891,7 +897,7 @@ export interface CreateClientRequest {
   gender?: string | null;
   phoneNumber?: string;
   countryCode?: string;
-  status?: 'active' | 'pending' | 'inactive';
+  status?: "active" | "pending" | "inactive";
   clinicId: string;
   assignedClinicianId?: string | null;
   address?: ClientAddress | null;
@@ -915,7 +921,7 @@ export interface UpdateClientRequest {
   gender?: string | null;
   phoneNumber?: string | null;
   countryCode?: string | null;
-  status?: 'active' | 'pending' | 'inactive';
+  status?: "active" | "pending" | "inactive";
   assignedClinicianId?: string | null;
   address?: ClientAddress | null;
   insuranceProvider?: string | null;
@@ -930,7 +936,7 @@ export interface UpdateClientRequest {
 
 export interface UpdateClientStatusRequest {
   clientId: string;
-  status: 'active' | 'waiting_list' | 'inactive';
+  status: "active" | "waiting_list" | "inactive";
 }
 
 export interface UpdateClientStatusResponse {
@@ -1183,7 +1189,7 @@ interface SendClientIntakeLinkResponse {
 const ISO_DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const ISO_DATE_TIME_REGEX = /^\d{4}-\d{2}-\d{2}T/;
 const SLASH_DOT_DASH_DATE_REGEX = /^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/;
-const BULK_IMPORT_FALLBACK_COUNTRY_CODE = '+44';
+const BULK_IMPORT_FALLBACK_COUNTRY_CODE = "+44";
 
 const toIsoDateOnly = (value: string): string => {
   const trimmedValue = value.trim();
@@ -1195,7 +1201,9 @@ const toIsoDateOnly = (value: string): string => {
 
   if (ISO_DATE_TIME_REGEX.test(trimmedValue)) {
     const date = new Date(trimmedValue);
-    return Number.isNaN(date.getTime()) ? trimmedValue : date.toISOString().slice(0, 10);
+    return Number.isNaN(date.getTime())
+      ? trimmedValue
+      : date.toISOString().slice(0, 10);
   }
 
   const slashDotDashDateMatch = trimmedValue.match(SLASH_DOT_DASH_DATE_REGEX);
@@ -1219,10 +1227,14 @@ const toIsoDateOnly = (value: string): string => {
   }
 
   const parsedDate = new Date(trimmedValue);
-  return Number.isNaN(parsedDate.getTime()) ? trimmedValue : parsedDate.toISOString().slice(0, 10);
+  return Number.isNaN(parsedDate.getTime())
+    ? trimmedValue
+    : parsedDate.toISOString().slice(0, 10);
 };
 
-const normalizeNullableDate = (value?: string | null): string | null | undefined => {
+const normalizeNullableDate = (
+  value?: string | null,
+): string | null | undefined => {
   if (value === undefined || value === null) return value;
   const normalized = toIsoDateOnly(value);
   return normalized || null;
@@ -1236,13 +1248,13 @@ const normalizeOptionalDate = (value?: string): string | undefined => {
 
 const normalizePhoneNumberValue = (value?: string): string | undefined => {
   if (!value) return undefined;
-  const digitsOnly = value.trim().replace(/\D/g, '');
+  const digitsOnly = value.trim().replace(/\D/g, "");
   return digitsOnly || undefined;
 };
 
 const normalizeCountryCodeValue = (value?: string): string | undefined => {
   if (!value) return undefined;
-  const digitsOnly = value.trim().replace(/\D/g, '');
+  const digitsOnly = value.trim().replace(/\D/g, "");
   return digitsOnly ? `+${digitsOnly}` : undefined;
 };
 
@@ -1254,22 +1266,34 @@ const toNonFutureIsoDate = (value?: string): string | undefined => {
   return normalizedDate <= todayIsoDate ? normalizedDate : undefined;
 };
 
-const normalizeClientStatusValue = (value?: string): BulkImportClientItem['status'] | undefined => {
-  const normalized = String(value || '').trim().toLowerCase().replace(/[_-]+/g, ' ');
+const normalizeClientStatusValue = (
+  value?: string,
+): BulkImportClientItem["status"] | undefined => {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, " ");
   if (!normalized) return undefined;
-  if (normalized === 'active') return 'active';
-  if (normalized === 'inactive') return 'inactive';
-  if (normalized === 'pending' || normalized === 'waiting' || normalized === 'waiting list' || normalized === 'waitlist') {
-    return 'pending';
+  if (normalized === "active") return "active";
+  if (normalized === "inactive") return "inactive";
+  if (
+    normalized === "pending" ||
+    normalized === "waiting" ||
+    normalized === "waiting list" ||
+    normalized === "waitlist"
+  ) {
+    return "pending";
   }
   return undefined;
 };
 
-const sanitizeBulkImportClient = (client: BulkImportClientItem): BulkImportClientItem => {
+const sanitizeBulkImportClient = (
+  client: BulkImportClientItem,
+): BulkImportClientItem => {
   const safeClient = {
     ...(client as BulkImportClientItem & {
-    assignedClinicianId?: string;
-    clinicId?: string;
+      assignedClinicianId?: string;
+      clinicId?: string;
     }),
   };
   delete safeClient.assignedClinicianId;
@@ -1278,16 +1302,22 @@ const sanitizeBulkImportClient = (client: BulkImportClientItem): BulkImportClien
   const { address, ...clientWithoutAddress } = safeClient;
 
   const hasObjectAddress =
-    !!address && typeof address === 'object' && !Array.isArray(address);
+    !!address && typeof address === "object" && !Array.isArray(address);
   const stringAddress =
-    typeof address === 'string' ? address.trim() : undefined;
-  const normalizedAddressStreet = safeClient.addressStreet?.trim() || stringAddress;
+    typeof address === "string" ? address.trim() : undefined;
+  const normalizedAddressStreet =
+    safeClient.addressStreet?.trim() || stringAddress;
 
-  const normalizedPhoneNumber = normalizePhoneNumberValue(safeClient.phoneNumber);
+  const normalizedPhoneNumber = normalizePhoneNumberValue(
+    safeClient.phoneNumber,
+  );
   const normalizedCountryCode =
     normalizeCountryCodeValue(
-    normalizedPhoneNumber ? safeClient.countryCode || safeClient.mobileCountryCode : undefined
-    ) || (normalizedPhoneNumber ? BULK_IMPORT_FALLBACK_COUNTRY_CODE : undefined);
+      normalizedPhoneNumber
+        ? safeClient.countryCode || safeClient.mobileCountryCode
+        : undefined,
+    ) ||
+    (normalizedPhoneNumber ? BULK_IMPORT_FALLBACK_COUNTRY_CODE : undefined);
 
   return {
     ...clientWithoutAddress,
@@ -1301,36 +1331,40 @@ const sanitizeBulkImportClient = (client: BulkImportClientItem): BulkImportClien
 };
 
 export const clientsApi = createApi({
-  reducerPath: 'clientsApi',
+  reducerPath: "clientsApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_CLIENTS_API_BASE_URL,
+    baseUrl: import.meta.env.VITE_API_BASE_URL,
     prepareHeaders: (headers, { getState }) => {
-      const skipContentType = headers.get('x-skip-content-type') === 'true';
+      const skipContentType = headers.get("x-skip-content-type") === "true";
       if (skipContentType) {
-        headers.delete('x-skip-content-type');
+        headers.delete("x-skip-content-type");
       }
 
       const state = getState() as RootState;
       const expiresAt = state.auth.tokens?.access?.expiresAt;
-      const isReduxTokenValid = expiresAt ? new Date(expiresAt) > new Date() : true;
+      const isReduxTokenValid = expiresAt
+        ? new Date(expiresAt) > new Date()
+        : true;
       let token = isReduxTokenValid ? state.auth.tokens?.access?.token : null;
 
       if (!token) {
-        const localExpiry = localStorage.getItem('accessTokenExpiry');
-        const isLocalValid = localExpiry ? new Date(localExpiry) > new Date() : false;
-        token = isLocalValid ? localStorage.getItem('accessToken') : null;
+        const localExpiry = localStorage.getItem("accessTokenExpiry");
+        const isLocalValid = localExpiry
+          ? new Date(localExpiry) > new Date()
+          : false;
+        token = isLocalValid ? localStorage.getItem("accessToken") : null;
       }
 
       if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
+        headers.set("Authorization", `Bearer ${token}`);
       }
       if (!skipContentType) {
-        headers.set('Content-Type', 'application/json');
+        headers.set("Content-Type", "application/json");
       }
       return headers;
     },
   }),
-  tagTypes: ['Clients'],
+  tagTypes: ["Clients"],
   endpoints: (builder) => ({
     getClients: builder.query({
       query: (params: {
@@ -1339,7 +1373,7 @@ export const clientsApi = createApi({
         status?: string;
         search?: string;
       }) => ({
-        url: '/client',
+        url: "/client",
         params: {
           page: params.page || 1,
           limit: params.limit || 10,
@@ -1347,95 +1381,129 @@ export const clientsApi = createApi({
           search: params.search,
         },
       }),
-      providesTags: ['Clients'],
+      providesTags: ["Clients"],
     }),
-    
+
     createClient: builder.mutation<CreateClientResponse, CreateClientRequest>({
       query: (clientData) => ({
-        url: '/client',
-        method: 'POST',
+        url: "/client",
+        method: "POST",
         body: {
           ...clientData,
           dateOfBirth: normalizeNullableDate(clientData.dateOfBirth),
         },
       }),
-      invalidatesTags: ['Clients'],
+      invalidatesTags: ["Clients"],
     }),
 
-    bulkImportClients: builder.mutation<BulkImportClientsResponse, { clients: BulkImportClientItem[] }>({
+    bulkImportClients: builder.mutation<
+      BulkImportClientsResponse,
+      { clients: BulkImportClientItem[] }
+    >({
       query: (body) => {
         const normalizedClients = body.clients.map(sanitizeBulkImportClient);
 
         return {
-          url: '/client/bulk-import',
-          method: 'POST',
+          url: "/client/bulk-import",
+          method: "POST",
           body: { clients: normalizedClients },
         };
       },
-      invalidatesTags: ['Clients'],
+      invalidatesTags: ["Clients"],
     }),
-    
+
     getClientById: builder.query<GetClientByIdResponse, string>({
       query: (id) => `/client/${id}`,
-      providesTags: (_result, _error, id) => [{ type: 'Clients', id }],
+      providesTags: (_result, _error, id) => [{ type: "Clients", id }],
     }),
 
-    generateClientPublicToken: builder.mutation<ClientPublicTokenResponse, string>({
+    generateClientPublicToken: builder.mutation<
+      ClientPublicTokenResponse,
+      string
+    >({
       query: (clientId) => ({
         url: `/client/${clientId}/token`,
-        method: 'POST',
+        method: "POST",
       }),
-      invalidatesTags: (_result, _error, clientId) => [{ type: 'Clients', id: clientId }, 'Clients'],
+      invalidatesTags: (_result, _error, clientId) => [
+        { type: "Clients", id: clientId },
+        "Clients",
+      ],
     }),
 
-    sendClientIntakeLink: builder.mutation<SendClientIntakeLinkResponse, string>({
+    sendClientIntakeLink: builder.mutation<
+      SendClientIntakeLinkResponse,
+      string
+    >({
       query: (clientId) => ({
         url: `/client/${clientId}/send-intake-link`,
-        method: 'POST',
+        method: "POST",
       }),
-      invalidatesTags: (_result, _error, clientId) => [{ type: 'Clients', id: clientId }, 'Clients'],
+      invalidatesTags: (_result, _error, clientId) => [
+        { type: "Clients", id: clientId },
+        "Clients",
+      ],
     }),
 
     getPublicClientByToken: builder.query<GetPublicClientResponse, string>({
       query: (publicToken) => `/client/public/${publicToken}`,
-      providesTags: (_result, _error, publicToken) => [{ type: 'Clients', id: publicToken }],
+      providesTags: (_result, _error, publicToken) => [
+        { type: "Clients", id: publicToken },
+      ],
     }),
 
-    updatePublicClientByToken: builder.mutation<GetPublicClientResponse, UpdatePublicClientRequest>({
+    updatePublicClientByToken: builder.mutation<
+      GetPublicClientResponse,
+      UpdatePublicClientRequest
+    >({
       query: ({ publicToken, ...body }) => ({
         url: `/client/public/${publicToken}`,
-        method: 'PATCH',
+        method: "PATCH",
         body: {
           ...body,
           dateOfBirth: normalizeNullableDate(body.dateOfBirth),
         },
       }),
-      invalidatesTags: (_result, _error, { publicToken }) => [{ type: 'Clients', id: publicToken }, 'Clients'],
+      invalidatesTags: (_result, _error, { publicToken }) => [
+        { type: "Clients", id: publicToken },
+        "Clients",
+      ],
     }),
 
-    updateClientStatus: builder.mutation<UpdateClientStatusResponse, UpdateClientStatusRequest>({
+    updateClientStatus: builder.mutation<
+      UpdateClientStatusResponse,
+      UpdateClientStatusRequest
+    >({
       query: ({ clientId, status }) => ({
         url: `/client/${clientId}/status`,
-        method: 'PATCH',
+        method: "PATCH",
         body: { status },
       }),
       async onQueryStarted({ clientId, status }, { dispatch, queryFulfilled }) {
         const patchClientById = dispatch(
-          clientsApi.util.updateQueryData('getClientById', clientId, (draft) => {
-            if (draft?.response?.data) {
-              draft.response.data.status = status;
-            }
-          })
+          clientsApi.util.updateQueryData(
+            "getClientById",
+            clientId,
+            (draft) => {
+              if (draft?.response?.data) {
+                draft.response.data.status = status;
+              }
+            },
+          ),
         );
 
         const patchClientsList = dispatch(
-          clientsApi.util.updateQueryData('getClients', { page: 1, limit: 10 }, (draft) => {
-            const docs = draft?.response?.data?.docs;
-            const client = docs?.find((item) => item.id === clientId);
-            if (client) {
-              client.status = status;
-            }
-          })
+          clientsApi.util.updateQueryData(
+            "getClients",
+            { page: 1, limit: 10 },
+            (draft) => {
+              const docs = draft?.response?.data?.docs;
+              const client = docs?.find((item) => item.id === clientId);
+              if (client) {
+                client.status = status;
+              }
+            },
+          ),
         );
 
         try {
@@ -1443,11 +1511,15 @@ export const clientsApi = createApi({
           const returnedStatus = data?.response?.data?.status;
           if (returnedStatus) {
             dispatch(
-              clientsApi.util.updateQueryData('getClientById', clientId, (draft) => {
-                if (draft?.response?.data) {
-                  draft.response.data.status = returnedStatus;
-                }
-              })
+              clientsApi.util.updateQueryData(
+                "getClientById",
+                clientId,
+                (draft) => {
+                  if (draft?.response?.data) {
+                    draft.response.data.status = returnedStatus;
+                  }
+                },
+              ),
             );
           }
         } catch {
@@ -1455,304 +1527,390 @@ export const clientsApi = createApi({
           patchClientsList.undo();
         }
       },
-      invalidatesTags: (_result, _error, { clientId }) => [{ type: 'Clients', id: clientId }, 'Clients'],
+      invalidatesTags: (_result, _error, { clientId }) => [
+        { type: "Clients", id: clientId },
+        "Clients",
+      ],
     }),
 
-    getClientAppointments: builder.query<GetClientAppointmentsResponse, string>({
-      query: (clientId) => `/appointment/client/${clientId}`,
-      providesTags: (_result, _error, clientId) => [{ type: 'Clients', id: clientId }],
-    }),
+    getClientAppointments: builder.query<GetClientAppointmentsResponse, string>(
+      {
+        query: (clientId) => `/appointment/client/${clientId}`,
+        providesTags: (_result, _error, clientId) => [
+          { type: "Clients", id: clientId },
+        ],
+      },
+    ),
 
-    getCalendarAppointments: builder.query<GetCalendarAppointmentsResponse, GetCalendarAppointmentsParams>({
+    getCalendarAppointments: builder.query<
+      GetCalendarAppointmentsResponse,
+      GetCalendarAppointmentsParams
+    >({
       query: (params) => buildCalendarAppointmentsQuery(params),
-      providesTags: ['Clients'],
+      providesTags: ["Clients"],
     }),
 
     getSessions: builder.query<GetSessionsResponse, void>({
       query: () => `/session`,
-      providesTags: ['Clients'],
+      providesTags: ["Clients"],
     }),
 
-    getSessionsByClinicianToken: builder.query<GetClinicianSessionsResponse, string>({
+    getSessionsByClinicianToken: builder.query<
+      GetClinicianSessionsResponse,
+      string
+    >({
       query: (clinicianToken) => `/appointment/session/${clinicianToken}`,
-      providesTags: ['Clients'],
+      providesTags: ["Clients"],
     }),
 
-    getInvoices: builder.query<GetInvoicesResponse, { page?: number; limit?: number }>({
+    getInvoices: builder.query<
+      GetInvoicesResponse,
+      { page?: number; limit?: number }
+    >({
       query: (params) => ({
-        url: '/invoice',
+        url: "/invoice",
         params: {
           page: params?.page || 1,
           limit: params?.limit || 10,
         },
       }),
-      providesTags: ['Clients'],
+      providesTags: ["Clients"],
     }),
 
     getInvoiceStats: builder.query<InvoiceStatsResponse, void>({
-      query: () => '/invoice/stats',
-      providesTags: ['Clients'],
+      query: () => "/invoice/stats",
+      providesTags: ["Clients"],
     }),
 
-    getCurrentSubscription: builder.query<GetCurrentSubscriptionResponse, void>({
-      query: () => '/subscription/current',
-      providesTags: ['Clients'],
+    getCurrentSubscription: builder.query<GetCurrentSubscriptionResponse, void>(
+      {
+        query: () => "/subscription/current",
+        providesTags: ["Clients"],
+      },
+    ),
+
+    getSubscriptionPaymentMethod: builder.query<
+      GetSubscriptionPaymentMethodResponse,
+      void
+    >({
+      query: () => "/subscription/payment-method",
+      providesTags: ["Clients"],
     }),
 
-    getSubscriptionPaymentMethod: builder.query<GetSubscriptionPaymentMethodResponse, void>({
-      query: () => '/subscription/payment-method',
-      providesTags: ['Clients'],
-    }),
-
-    createBillingPortalSession: builder.mutation<CreateBillingPortalSessionResponse, CreateBillingPortalSessionRequest | void>({
+    createBillingPortalSession: builder.mutation<
+      CreateBillingPortalSessionResponse,
+      CreateBillingPortalSessionRequest | void
+    >({
       query: (body) => ({
-        url: '/subscription/billing-portal',
-        method: 'POST',
+        url: "/subscription/billing-portal",
+        method: "POST",
         body,
       }),
     }),
 
     cancelSubscription: builder.mutation<CancelSubscriptionResponse, void>({
       query: () => ({
-        url: '/subscription/cancel',
-        method: 'POST',
+        url: "/subscription/cancel",
+        method: "POST",
       }),
-      invalidatesTags: ['Clients'],
+      invalidatesTags: ["Clients"],
     }),
 
-    renewSubscription: builder.mutation<RenewSubscriptionResponse, RenewSubscriptionRequest>({
+    renewSubscription: builder.mutation<
+      RenewSubscriptionResponse,
+      RenewSubscriptionRequest
+    >({
       query: (body) => ({
-        url: '/subscription/renew',
-        method: 'POST',
+        url: "/subscription/renew",
+        method: "POST",
         body,
       }),
-      invalidatesTags: ['Clients'],
+      invalidatesTags: ["Clients"],
     }),
 
     getAvailablePlans: builder.query<GetAvailablePlansResponse, void>({
-      query: () => '/plans/available',
-      providesTags: ['Clients'],
+      query: () => "/plans/available",
+      providesTags: ["Clients"],
     }),
 
-    contactProviderIssue: builder.mutation<ContactProviderIssueResponse, ContactProviderIssueRequest>({
+    contactProviderIssue: builder.mutation<
+      ContactProviderIssueResponse,
+      ContactProviderIssueRequest
+    >({
       query: (body) => ({
-        url: '/issue/contact-provider',
-        method: 'POST',
+        url: "/issue/contact-provider",
+        method: "POST",
         body,
       }),
     }),
 
-    initiatePlanOnboarding: builder.mutation<InitiatePlanOnboardingResponse, InitiatePlanOnboardingRequest>({
+    initiatePlanOnboarding: builder.mutation<
+      InitiatePlanOnboardingResponse,
+      InitiatePlanOnboardingRequest
+    >({
       query: (body) => ({
-        url: '/plans/initiate',
-        method: 'POST',
+        url: "/plans/initiate",
+        method: "POST",
         body,
       }),
     }),
 
-    verifyPlanOnboardingEmail: builder.mutation<VerifyPlanOnboardingEmailResponse, VerifyPlanOnboardingEmailRequest>({
+    verifyPlanOnboardingEmail: builder.mutation<
+      VerifyPlanOnboardingEmailResponse,
+      VerifyPlanOnboardingEmailRequest
+    >({
       query: (body) => ({
-        url: '/plans/verify-email',
-        method: 'POST',
+        url: "/plans/verify-email",
+        method: "POST",
         body,
       }),
     }),
 
-    createPlanCheckout: builder.mutation<CreatePlanCheckoutResponse, CreatePlanCheckoutRequest>({
+    createPlanCheckout: builder.mutation<
+      CreatePlanCheckoutResponse,
+      CreatePlanCheckoutRequest
+    >({
       query: (body) => ({
-        url: '/plans/create-checkout',
-        method: 'POST',
+        url: "/plans/create-checkout",
+        method: "POST",
         body,
       }),
     }),
 
-    cancelPlanOnboarding: builder.mutation<CancelPlanOnboardingResponse, CancelPlanOnboardingRequest>({
+    cancelPlanOnboarding: builder.mutation<
+      CancelPlanOnboardingResponse,
+      CancelPlanOnboardingRequest
+    >({
       query: (body) => ({
-        url: '/plans/cancel',
-        method: 'POST',
+        url: "/plans/cancel",
+        method: "POST",
         body,
       }),
     }),
 
-    getClinicTransactions: builder.query<GetClinicTransactionsResponse, { page?: number; limit?: number }>({
+    getClinicTransactions: builder.query<
+      GetClinicTransactionsResponse,
+      { page?: number; limit?: number }
+    >({
       query: (params) => ({
-        url: '/transaction/clinic',
+        url: "/transaction/clinic",
         params: {
           page: params?.page || 1,
           limit: params?.limit || 50,
         },
       }),
-      providesTags: ['Clients'],
+      providesTags: ["Clients"],
     }),
 
-    getClinicMembers: builder.query<GetClinicMembersResponse, { page?: number; limit?: number }>({
+    getClinicMembers: builder.query<
+      GetClinicMembersResponse,
+      { page?: number; limit?: number }
+    >({
       query: (params) => ({
-        url: '/clinic-member',
+        url: "/clinic-member",
         params: {
           page: params?.page || 1,
           limit: params?.limit || 10,
         },
       }),
-      providesTags: ['Clients'],
+      providesTags: ["Clients"],
     }),
 
     getClinic: builder.query<GetClinicResponse, void>({
-      query: () => '/clinic',
-      providesTags: ['Clients'],
+      query: () => "/clinic",
+      providesTags: ["Clients"],
     }),
 
     getPublicClinic: builder.query<GetClinicResponse, string>({
       query: (publicToken) => `/clinic/public/${publicToken}`,
-      providesTags: ['Clients'],
+      providesTags: ["Clients"],
     }),
 
-    patchClinicPermissions: builder.mutation<PatchClinicPermissionsResponse, ClinicPermissions>({
+    patchClinicPermissions: builder.mutation<
+      PatchClinicPermissionsResponse,
+      ClinicPermissions
+    >({
       query: (body) => ({
-        url: '/clinic/permissions',
-        method: 'PATCH',
+        url: "/clinic/permissions",
+        method: "PATCH",
         body,
       }),
-      invalidatesTags: ['Clients'],
+      invalidatesTags: ["Clients"],
     }),
 
     updateClinic: builder.mutation<UpdateClinicResponse, UpdateClinicRequest>({
       query: ({ logo, ...body }) => {
         if (logo) {
           const formData = new FormData();
-          formData.append('name', body.name);
-          formData.append('email', body.email);
-          if (body.color) formData.append('color', body.color);
-          if (body.phoneNumber) formData.append('phoneNumber', body.phoneNumber);
-          if (body.countryCode) formData.append('countryCode', body.countryCode);
-          if (body.url) formData.append('url', body.url);
-          if (body.address) formData.append('address', JSON.stringify(body.address));
-          formData.append('logo', logo);
+          formData.append("name", body.name);
+          formData.append("email", body.email);
+          if (body.color) formData.append("color", body.color);
+          if (body.phoneNumber)
+            formData.append("phoneNumber", body.phoneNumber);
+          if (body.countryCode)
+            formData.append("countryCode", body.countryCode);
+          if (body.url) formData.append("url", body.url);
+          if (body.address)
+            formData.append("address", JSON.stringify(body.address));
+          formData.append("logo", logo);
 
           return {
-            url: '/clinic',
-            method: 'PUT',
+            url: "/clinic",
+            method: "PUT",
             body: formData,
             headers: {
-              'x-skip-content-type': 'true',
+              "x-skip-content-type": "true",
             },
           };
         }
 
         return {
-          url: '/clinic',
-          method: 'PUT',
+          url: "/clinic",
+          method: "PUT",
           body,
         };
       },
-      invalidatesTags: ['Clients'],
+      invalidatesTags: ["Clients"],
     }),
 
-    createInvoice: builder.mutation<CreateInvoiceResponse, CreateInvoiceRequest>({
+    createInvoice: builder.mutation<
+      CreateInvoiceResponse,
+      CreateInvoiceRequest
+    >({
       query: (body) => ({
-        url: '/invoice',
-        method: 'POST',
+        url: "/invoice",
+        method: "POST",
         body,
       }),
-      invalidatesTags: ['Clients'],
+      invalidatesTags: ["Clients"],
     }),
 
-    createSession: builder.mutation<CreateSessionResponse, CreateSessionRequest>({
+    createSession: builder.mutation<
+      CreateSessionResponse,
+      CreateSessionRequest
+    >({
       query: (body) => ({
-        url: '/session',
-        method: 'POST',
+        url: "/session",
+        method: "POST",
         body,
       }),
-      invalidatesTags: ['Clients'],
+      invalidatesTags: ["Clients"],
     }),
 
-    updateSession: builder.mutation<UpdateSessionResponse, UpdateSessionRequest>({
+    updateSession: builder.mutation<
+      UpdateSessionResponse,
+      UpdateSessionRequest
+    >({
       query: ({ sessionId, ...body }) => ({
         url: `/session/${sessionId}`,
-        method: 'PUT',
+        method: "PUT",
         body,
       }),
-      invalidatesTags: ['Clients'],
+      invalidatesTags: ["Clients"],
     }),
 
-    deleteSession: builder.mutation<{ success: boolean; status: number; message: string }, string>({
+    deleteSession: builder.mutation<
+      { success: boolean; status: number; message: string },
+      string
+    >({
       query: (sessionId) => ({
         url: `/session/${sessionId}`,
-        method: 'DELETE',
+        method: "DELETE",
       }),
-      invalidatesTags: ['Clients'],
+      invalidatesTags: ["Clients"],
     }),
 
-    createAppointment: builder.mutation<CreateAppointmentResponse, CreateAppointmentRequest>({
+    createAppointment: builder.mutation<
+      CreateAppointmentResponse,
+      CreateAppointmentRequest
+    >({
       query: (body) => ({
-        url: '/appointment',
-        method: 'POST',
+        url: "/appointment",
+        method: "POST",
         body,
       }),
-      invalidatesTags: ['Clients'],
+      invalidatesTags: ["Clients"],
     }),
 
-    createClinicMember: builder.mutation<ClinicMemberMutationResponse, CreateClinicMemberRequest>({
+    createClinicMember: builder.mutation<
+      ClinicMemberMutationResponse,
+      CreateClinicMemberRequest
+    >({
       query: (body) => ({
-        url: '/clinic-member',
-        method: 'POST',
+        url: "/clinic-member",
+        method: "POST",
         body,
       }),
-      invalidatesTags: ['Clients'],
+      invalidatesTags: ["Clients"],
     }),
 
-    updateClinicMember: builder.mutation<ClinicMemberMutationResponse, UpdateClinicMemberRequest>({
+    updateClinicMember: builder.mutation<
+      ClinicMemberMutationResponse,
+      UpdateClinicMemberRequest
+    >({
       query: ({ memberId, ...body }) => ({
         url: `/clinic-member/${memberId}`,
-        method: 'PATCH',
+        method: "PATCH",
         body,
       }),
-      invalidatesTags: ['Clients'],
+      invalidatesTags: ["Clients"],
     }),
 
-    updateClinicMemberRole: builder.mutation<ClinicMemberMutationResponse, UpdateClinicMemberRoleRequest>({
+    updateClinicMemberRole: builder.mutation<
+      ClinicMemberMutationResponse,
+      UpdateClinicMemberRoleRequest
+    >({
       query: ({ memberId, role }) => ({
         url: `/clinic-member/${memberId}/role`,
-        method: 'PATCH',
+        method: "PATCH",
         body: { role },
       }),
-      invalidatesTags: ['Clients'],
+      invalidatesTags: ["Clients"],
     }),
 
     deleteClinicMember: builder.mutation<DeleteClinicMemberResponse, string>({
       query: (memberId) => ({
         url: `/clinic-member/${memberId}`,
-        method: 'DELETE',
+        method: "DELETE",
       }),
-      invalidatesTags: ['Clients'],
+      invalidatesTags: ["Clients"],
     }),
-    
+
     updateClient: builder.mutation<UpdateClientResponse, UpdateClientRequest>({
       query: ({ clientId, ...body }) => ({
         url: `/client/${clientId}`,
-        method: 'PUT',
+        method: "PUT",
         body: {
           ...body,
           dateOfBirth: normalizeNullableDate(body.dateOfBirth),
         },
       }),
-      invalidatesTags: (_result, _error, { clientId }) => [{ type: 'Clients', id: clientId }, 'Clients'],
+      invalidatesTags: (_result, _error, { clientId }) => [
+        { type: "Clients", id: clientId },
+        "Clients",
+      ],
     }),
-    
+
     deleteClient: builder.mutation({
       query: (id) => ({
         url: `/client/${id}`,
-        method: 'DELETE',
+        method: "DELETE",
       }),
-      invalidatesTags: ['Clients'],
+      invalidatesTags: ["Clients"],
     }),
 
-    createClinicalNote: builder.mutation<CreateClinicalNoteResponse, CreateClinicalNoteRequest>({
+    createClinicalNote: builder.mutation<
+      CreateClinicalNoteResponse,
+      CreateClinicalNoteRequest
+    >({
       query: (body) => ({
-        url: '/clinical-note',
-        method: 'POST',
+        url: "/clinical-note",
+        method: "POST",
         body,
       }),
-      invalidatesTags: (_result, _error, { clientId }) => [{ type: 'Clients', id: clientId }],
+      invalidatesTags: (_result, _error, { clientId }) => [
+        { type: "Clients", id: clientId },
+      ],
     }),
   }),
 });

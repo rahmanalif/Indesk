@@ -1,5 +1,5 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import type { RootState } from '../../store';
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import type { RootState } from "../../store";
 
 interface LoginCredentials {
   email: string;
@@ -75,7 +75,7 @@ interface RegisterRequest {
   lastName: string;
   email: string;
   password: string;
-  role: 'user';
+  role: "user";
 }
 
 interface RegisterResponse {
@@ -217,30 +217,34 @@ interface UpdateSelfProfileResponse {
 }
 
 export const authApi = createApi({
-  reducerPath: 'authApi',
+  reducerPath: "authApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_AUTH_API_BASE_URL,
+    baseUrl: import.meta.env.VITE_API_BASE_URL,
     prepareHeaders: (headers, { getState }) => {
-      const skipContentType = headers.get('x-skip-content-type') === 'true';
+      const skipContentType = headers.get("x-skip-content-type") === "true";
       if (skipContentType) {
-        headers.delete('x-skip-content-type');
+        headers.delete("x-skip-content-type");
       } else {
-        headers.set('Content-Type', 'application/json');
+        headers.set("Content-Type", "application/json");
       }
 
       const state = getState() as RootState;
       const expiresAt = state.auth.tokens?.access?.expiresAt;
-      const isReduxTokenValid = expiresAt ? new Date(expiresAt) > new Date() : true;
+      const isReduxTokenValid = expiresAt
+        ? new Date(expiresAt) > new Date()
+        : true;
       let token = isReduxTokenValid ? state.auth.tokens?.access?.token : null;
 
       if (!token) {
-        const localExpiry = localStorage.getItem('accessTokenExpiry');
-        const isLocalValid = localExpiry ? new Date(localExpiry) > new Date() : false;
-        token = isLocalValid ? localStorage.getItem('accessToken') : null;
+        const localExpiry = localStorage.getItem("accessTokenExpiry");
+        const isLocalValid = localExpiry
+          ? new Date(localExpiry) > new Date()
+          : false;
+        token = isLocalValid ? localStorage.getItem("accessToken") : null;
       }
 
       if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
+        headers.set("Authorization", `Bearer ${token}`);
       }
       return headers;
     },
@@ -248,76 +252,91 @@ export const authApi = createApi({
   endpoints: (builder) => ({
     login: builder.mutation<LoginResponse, LoginCredentials>({
       query: (credentials) => ({
-        url: '/auth/login',
-        method: 'POST',
+        url: "/auth/login",
+        method: "POST",
         body: credentials,
       }),
     }),
     register: builder.mutation<RegisterResponse, RegisterRequest>({
       query: (body) => ({
-        url: '/auth/register',
-        method: 'POST',
+        url: "/auth/register",
+        method: "POST",
         body,
       }),
     }),
-    verifyAccount: builder.mutation<VerifyAccountResponse, VerifyAccountRequest>({
+    verifyAccount: builder.mutation<
+      VerifyAccountResponse,
+      VerifyAccountRequest
+    >({
       query: (body) => ({
-        url: '/auth/verify-account',
-        method: 'POST',
+        url: "/auth/verify-account",
+        method: "POST",
         body,
       }),
     }),
-    forgotPassword: builder.mutation<ForgotPasswordResponse, ForgotPasswordRequest>({
+    forgotPassword: builder.mutation<
+      ForgotPasswordResponse,
+      ForgotPasswordRequest
+    >({
       query: (body) => ({
-        url: '/auth/forgot-password',
-        method: 'POST',
+        url: "/auth/forgot-password",
+        method: "POST",
         body,
       }),
     }),
-    resetPassword: builder.mutation<ResetPasswordResponse, ResetPasswordRequest>({
+    resetPassword: builder.mutation<
+      ResetPasswordResponse,
+      ResetPasswordRequest
+    >({
       query: (body) => ({
-        url: '/auth/reset-password',
-        method: 'POST',
+        url: "/auth/reset-password",
+        method: "POST",
         body,
       }),
     }),
     logout: builder.mutation<LogoutResponse, LogoutRequest>({
       query: (body) => ({
-        url: '/auth/logout',
-        method: 'POST',
+        url: "/auth/logout",
+        method: "POST",
         body,
       }),
     }),
-    changePassword: builder.mutation<ChangePasswordResponse, ChangePasswordRequest>({
+    changePassword: builder.mutation<
+      ChangePasswordResponse,
+      ChangePasswordRequest
+    >({
       query: (body) => ({
-        url: '/auth/change-password',
-        method: 'POST',
+        url: "/auth/change-password",
+        method: "POST",
         body,
       }),
     }),
-    updateSelfProfile: builder.mutation<UpdateSelfProfileResponse, UpdateSelfProfileRequest>({
+    updateSelfProfile: builder.mutation<
+      UpdateSelfProfileResponse,
+      UpdateSelfProfileRequest
+    >({
       query: ({ firstName, lastName, avatar }) => {
         const formData = new FormData();
-        formData.append('firstName', firstName);
-        formData.append('lastName', lastName);
+        formData.append("firstName", firstName);
+        formData.append("lastName", lastName);
         if (avatar) {
-          formData.append('avatar', avatar);
+          formData.append("avatar", avatar);
         }
 
         return {
-          url: '/user/self/update',
-          method: 'PATCH',
+          url: "/user/self/update",
+          method: "PATCH",
           body: formData,
           headers: {
-            'x-skip-content-type': 'true',
+            "x-skip-content-type": "true",
           },
         };
       },
     }),
     getSelfProfile: builder.query<GetSelfProfileResponse, void>({
       query: () => ({
-        url: '/user/self/in',
-        method: 'GET',
+        url: "/user/self/in",
+        method: "GET",
       }),
     }),
   }),
