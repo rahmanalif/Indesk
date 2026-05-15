@@ -443,12 +443,61 @@ export interface SubscriptionPlan {
   updatedAt?: string;
 }
 
+export type ExtraSeatType = "clinician" | "admin";
+
+export interface ExtraSeatTier {
+  upTo: number | null;
+  pricePerSeat: number;
+}
+
+export interface ExtraSeatTypeConfig {
+  type: ExtraSeatType;
+  max: number | null;
+  tiers: ExtraSeatTier[];
+}
+
+export interface ExtraSeatsConfig {
+  supported: boolean;
+  types: ExtraSeatTypeConfig[];
+}
+
+export interface PlanFeatures {
+  clients: boolean;
+  appointments: boolean;
+  notes: boolean;
+  assessments: boolean;
+  outcome_measures: boolean;
+  online_booking: boolean;
+  scheduling: boolean;
+  integrations: boolean;
+  custom_branding: boolean;
+  sigmund_ai_assistant: boolean;
+  [key: string]: boolean;
+}
+
+export interface PublicPlan {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  currency: string;
+  discount: number;
+  trial: number;
+  clientLimit: number;
+  clinicianLimit: number;
+  adminUserLimit: number;
+  features: PlanFeatures;
+  isActive: boolean;
+  extraSeatsConfig: ExtraSeatsConfig | null;
+  isPopular?: boolean;
+}
+
 export interface GetAvailablePlansResponse {
   success: boolean;
   status: number;
   message: string;
   response: {
-    data: SubscriptionPlan[];
+    data: PublicPlan[];
   };
 }
 
@@ -944,7 +993,7 @@ export interface UpdateClientStatusResponse {
   status: number;
   message: string;
   response?: {
-    data?: ClientItem;
+    data?: any;
   };
 }
 
@@ -1044,6 +1093,7 @@ export interface BulkImportClientItem {
   insuranceNumber?: string;
   insuranceAuthorizationNumber?: string;
   note?: string;
+  status?: string;
 }
 
 export interface GetClientByIdResponse {
@@ -1498,7 +1548,7 @@ export const clientsApi = createApi({
             { page: 1, limit: 10 },
             (draft) => {
               const docs = draft?.response?.data?.docs;
-              const client = docs?.find((item) => item.id === clientId);
+              const client = docs?.find((item: any) => item.id === clientId);
               if (client) {
                 client.status = status;
               }

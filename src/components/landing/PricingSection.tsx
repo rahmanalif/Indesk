@@ -18,6 +18,8 @@ type PricingPlan = {
   id: string;
   name: string;
   price: number;
+  formattedPrice: string;
+  currency: string;
   description: string;
   isPopular: boolean;
   featureItems: string[];
@@ -37,109 +39,22 @@ const formatFeatureLabel = (key: string) =>
     .join(' ');
 
 /**
- * Formats numbers for display, removing decimal points for whole numbers
+ * Formats numbers into currency string based on user's locale and the specified currency.
  */
-const formatPrice = (price: number) =>
-  Number.isInteger(price) ? `${price}` : price.toFixed(2);
-
-const POUND_SYMBOL = '\u00A3';
-
-/**
- * Normalizes various representations of the British Pound symbol to a single consistent character
- */
-const normalizePound = (value: string) =>
-  value
-    .replace(/^GBP\s*/i, POUND_SYMBOL)
-    .replace(/^Ãƒâ€šÃ‚Â£/i, POUND_SYMBOL)
-    .replace(/^Ã‚Â£/i, POUND_SYMBOL)
-    .replace(/^Â£/i, POUND_SYMBOL);
-
-/**
- * Parses a tier label string into a structured TierRow object
- * Expected format: "Tiered pricing: 1-9 extra clinicians: £12"
- */
-const parseTierRow = (label: string): TierRow | null => {
-  const normalized = label.replace(/^Tiered pricing:\s*/i, '').trim();
-  const parts = normalized.split(':');
-
-  if (parts.length < 2) {
-    return null;
-  }
-
-  return {
-    label: parts.slice(0, -1).join(':').trim(),
-    value: normalizePound(parts[parts.length - 1].trim()),
-  };
+const formatCurrency = (amount: number, currencyCode: string) => {
+  const userLocale = navigator.language || 'en-GB';
+  return new Intl.NumberFormat(userLocale, {
+    style: 'currency',
+    currency: currencyCode || 'GBP',
+    minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+    maximumFractionDigits: 2
+  }).format(amount);
 };
 
-/**
- * Default features shown if the API returns no feature list
- */
-const defaultFeatures = [
-  'Notes',
-  'Clients',
-  'Scheduling',
-  'Assessments',
-  'Appointments',
-  'Integrations',
-  'Online Booking',
-  'Custom Branding',
-  'Sigmund AI Assistant',
-];
-
-/**
- * Static fallback plans used when the API call fails or is empty
- */
-const fallbackPlans: PricingPlan[] = [
-  {
-    id: 'fallback-self',
-    name: 'Self',
-    price: 13,
-    description: 'Self Plan - solo clinician',
-    isPopular: false,
-    includedCliniciansLabel: '1 Clinician',
-    includedAdminUsersLabel: '0 Admin Users',
-    extraSummary: 'Extra clinicians are not available on this plan.',
-    tierRows: [],
-    featureItems: defaultFeatures,
-  },
-  {
-    id: 'fallback-collective',
-    name: 'Collective',
-    price: 23,
-    description: 'Collective Plan - growing practices',
-    isPopular: true,
-    includedCliniciansLabel: '1 Clinician Included',
-    includedAdminUsersLabel: '1 Admin User',
-    extraSummary: 'Extra Clinician Tiers:',
-    tierRows: [
-      { label: '1-9 extra clinicians:', value: `${POUND_SYMBOL}12/each` },
-      { label: '10-24 extra clinicians:', value: `${POUND_SYMBOL}10/each` },
-      { label: '25+ extra clinicians:', value: `${POUND_SYMBOL}8/each` },
-    ],
-    featureItems: defaultFeatures,
-  },
-  {
-    id: 'fallback-institute',
-    name: 'Institute',
-    price: 79,
-    description: 'Institute Plan - larger organisations',
-    isPopular: false,
-    includedCliniciansLabel: '10 Clinicians Included',
-    includedAdminUsersLabel: '1 Admin User',
-    extraSummary: 'Extra Clinician Tiers:',
-    tierRows: [
-      { label: '1-15 extra clinicians:', value: `${POUND_SYMBOL}10/each` },
-      { label: '16+ extra clinicians:', value: `${POUND_SYMBOL}8/each` },
-    ],
-    featureItems: defaultFeatures,
-  },
-];
 
 /**
  * The main Pricing section for the landing page.
- * It fetches live plans from the API, processes them for display,
- * and falls back to static defaults if necessary.
+ * It fetches live plans from the API and processes them for display.
  */
 export function PricingSection() {
   // Hook for intersection observer animation
@@ -151,43 +66,60 @@ export function PricingSection() {
   /**
    * Process API data into our internal PricingPlan format
    */
-  const apiPlans: PricingPlan[] = (data?.response?.data || [])
-    .filter((plan) => plan.isActive !== false) // Only show active plans
-    .map((plan) => {
+  const apiPlans: PricingPlan[] = ((data as any)?.data || data?.response?.data || [])
+    .filter((plan: any) => plan.isActive !== false) // Only show active plans
+    .map((plan: any) => {
       // Map the boolean feature flags to a list of strings
       const featureItems = Object.entries(plan.features || {})
         .filter(([, enabled]) => Boolean(enabled))
         .map(([key]) => formatFeatureLabel(key));
 
-      // Parse tiered pricing labels if they exist
-      const tierRows = Array.isArray(plan.seatPolicy?.extraClinicianTierLabels)
-        ? plan.seatPolicy.extraClinicianTierLabels
-            .map(parseTierRow)
-            .filter((row): row is TierRow => Boolean(row))
-        : [];
-
       // Construct clinicians inclusion label
       const includedCliniciansLabel =
-        plan.seatPolicy?.includedCliniciansLabel?.replace(/^Includes\s+/i, '').replace(/\.$/, '') ||
-        `${plan.seatPolicy?.includedClinicians ?? 0} Clinician${plan.seatPolicy?.includedClinicians === 1 ? '' : 's'}${(plan.seatPolicy?.includedClinicians ?? 0) > 1 ? ' Included' : ''}`;
+        `${plan.clinicianLimit ?? 0} Clinician${plan.clinicianLimit === 1 ? '' : 's'}${(plan.clinicianLimit ?? 0) > 1 ? ' Included' : ''}`;
 
       // Construct admin users inclusion label
       const includedAdminUsersLabel =
-        plan.seatPolicy?.includedAdminUsersLabel?.replace(/^Includes\s+/i, '').replace(/\.$/, '') ||
-        `${plan.seatPolicy?.includedAdminUsers ?? 0} Admin User${plan.seatPolicy?.includedAdminUsers === 1 ? '' : 's'}`;
+        `${plan.adminUserLimit ?? 0} Admin User${plan.adminUserLimit === 1 ? '' : 's'}`;
 
-      // Construct extra clinician cost summary
-      const extraSummary = tierRows.length > 0
-        ? 'Extra Clinician Tiers:'
-        : normalizePound(
-            (plan.seatPolicy?.extraClinicianSummary || 'Extra clinicians are not available on this plan.')
-              .replace(/^Each additional clinician costs\s+/i, 'Additional clinicians: '),
-          );
+      let extraSummary = 'Extra clinicians are not available on this plan.';
+      const tierRows: TierRow[] = [];
+
+      if (plan.extraSeatsConfig?.supported) {
+        const clinicianConfig = plan.extraSeatsConfig.types.find((t: any) => t.type === 'clinician');
+        if (clinicianConfig && clinicianConfig.tiers.length > 0) {
+          if (clinicianConfig.tiers.length === 1 && clinicianConfig.tiers[0].upTo === null) {
+            const price = clinicianConfig.tiers[0].pricePerSeat;
+            const priceText = price === 0 ? 'Included' : `${formatCurrency(price, plan.currency)}/each`;
+            extraSummary = `Additional clinicians: ${priceText}`;
+          } else {
+            extraSummary = 'Extra Clinician Tiers:';
+            clinicianConfig.tiers.forEach((tier: any, index: number) => {
+              const prevUpTo = index === 0 ? 0 : (clinicianConfig.tiers[index - 1].upTo || 0);
+              const start = prevUpTo + 1;
+              const end = tier.upTo;
+              let label = '';
+              if (end) {
+                label = start === 1 ? `Up to ${end} extra clinicians:` : `${start}-${end} extra clinicians:`;
+              } else {
+                label = `${start}+ extra clinicians:`;
+              }
+              const value = tier.pricePerSeat === 0 ? 'Included' : `${formatCurrency(tier.pricePerSeat, plan.currency)}/each`;
+              tierRows.push({
+                label,
+                value,
+              });
+            });
+          }
+        }
+      }
 
       return {
         id: plan.id,
         name: plan.name,
         price: Number(plan.price) || 0,
+        formattedPrice: formatCurrency(Number(plan.price) || 0, plan.currency),
+        currency: plan.currency || 'GBP',
         description: plan.description || '',
         isPopular: Boolean(plan.isPopular),
         featureItems,
@@ -198,10 +130,7 @@ export function PricingSection() {
       };
     });
 
-  /**
-   * Final list of plans: use API plans if available, otherwise fall back to static data.
-   */
-  const plans = apiPlans.length > 0 ? apiPlans : fallbackPlans;
+  const plans = apiPlans;
 
   return (
     <section id="pricing" className="bg-[#faf9f6] px-4 py-12 sm:px-5 sm:py-14 lg:px-8 lg:py-16">
@@ -216,7 +145,7 @@ export function PricingSection() {
             Simple, predictable pricing. No hidden fees or surprise charges. Designed for clinicians, by clinicians.
           </p>
           {isLoading && <p className="mt-4 text-sm text-[#4d514b]">Loading plans...</p>}
-          {isError && <p className="mt-4 text-sm text-[#4d514b]">Unable to load live plans, showing default pricing.</p>}
+          {isError && <p className="mt-4 text-sm text-[#4d514b]">Unable to load plans. Please try again later.</p>}
         </div>
 
         {/* Pricing Cards Grid */}
@@ -247,11 +176,16 @@ export function PricingSection() {
                 </div>
 
                 {/* Pricing Display */}
-                <div className="mb-7 mt-7 flex items-end">
-                  <span className="font-serif text-[50px] font-medium leading-[0.95] tracking-normal text-[#151817] lg:text-[54px]">
-                    {POUND_SYMBOL}{formatPrice(plan.price)}
-                  </span>
-                  <small className="mb-[7px] ml-2 text-[15px] leading-none text-[#3e433e]">/mo</small>
+                <div className="mb-7 mt-7 flex flex-col items-start">
+                  <div className="flex items-end">
+                    <span className="font-serif text-[50px] font-medium leading-[0.95] tracking-normal text-[#151817] lg:text-[54px]">
+                      {plan.formattedPrice}
+                    </span>
+                    <small className="mb-[7px] ml-2 text-[15px] leading-none text-[#3e433e]">/mo</small>
+                  </div>
+                  <small className="mt-2 text-[13px] text-[#71766d]">
+                    All charges billed in {plan.currency}
+                  </small>
                 </div>
 
                 {/* Call to Action */}
