@@ -318,7 +318,7 @@ export function AdminQuestionnairesWorkspace() {
         <div className="border-b border-border/50 bg-white px-6 py-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h2 className="text-xl font-bold text-foreground">Admin Questionnaires</h2>
+              <h2 className="text-xl font-bold text-foreground">Admin & Clinic Questionnaires</h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 Pick a template, hit send, edit it in the modal, choose clinicians, and send the email.
               </p>

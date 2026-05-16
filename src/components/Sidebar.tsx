@@ -1,11 +1,47 @@
 import { useLocation, Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/Button';
 import { Tooltip } from './ui/Tooltip';
 import { navItems } from '../config/navigation';
 import { useAuth } from '../hooks/useAuth';
 import { usePermissions } from '../hooks/usePermissions';
+
+function NavLabel({ text }: { text: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+
+  useEffect(() => {
+    const check = () => {
+      if (containerRef.current && textRef.current) {
+        setIsOverflowing(textRef.current.scrollWidth > containerRef.current.clientWidth);
+      }
+    };
+    check();
+    window.addEventListener('resize', check);
+    const timeout = setTimeout(check, 100);
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener('resize', check);
+    };
+  }, [text]);
+
+  return (
+    <div ref={containerRef} className="flex-1 overflow-hidden relative flex items-center">
+      <div className={cn("w-full", isOverflowing ? "absolute opacity-0 pointer-events-none" : "")}>
+        <span ref={textRef} className="truncate text-sm block">{text}</span>
+      </div>
+      {isOverflowing && (
+        <div className="flex w-max animate-[marquee_4s_linear_infinite]">
+          <span className="text-sm whitespace-nowrap pr-8">{text}</span>
+          <span className="text-sm whitespace-nowrap pr-8" aria-hidden="true">{text}</span>
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -93,7 +129,7 @@ export function Sidebar({
                           : 'text-muted-foreground group-hover:text-primary'
                     )}
                   />
-                  <span className="truncate text-sm">{item.label}</span>
+                  <NavLabel text={item.label} />
                 </>
               )}
             </div>
