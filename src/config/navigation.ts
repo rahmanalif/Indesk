@@ -73,7 +73,7 @@ export const navItems: NavItem[] = [
   },
   {
     icon: LayoutTemplate,
-    label: "Admin/Clinic Questionnaires",
+    label: "Clinic Admin",
     path: "/admin-questionnaires",
     permission: "clinician_forms",
   },

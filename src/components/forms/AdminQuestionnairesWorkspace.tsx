@@ -12,6 +12,7 @@ import {
   Maximize2,
   Minimize2,
   ChevronDown,
+  Eye,
 } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Input } from '../ui/Input';
@@ -26,6 +27,7 @@ import { cn } from '../../lib/utils';
 import {
   useGetClinicMembersQuery,
   useGetClinicQuery,
+  useGetClientsQuery,
   type ClinicMemberItem,
 } from '../../redux/api/clientsApi';
 import {
@@ -47,6 +49,39 @@ const CATEGORY_LABELS: Record<AdminQuestionnaireCategory, string> = {
 };
 
 const SEED_TEMPLATES: AdminQuestionnaireTemplate[] = [
+  {
+    id: 'system-associate-welcome-letter',
+    title: 'New Associate Welcome Letter',
+    category: 'letter',
+    description: 'Standard welcome letter for new associate clinicians joining the practice.',
+    content:
+      '[CLINIC NAME]\nNew Associate Welcome Letter\nConfidential — for recipient only\n\nDear [RECIPIENT NAME],\n\nOn behalf of [CLINIC NAME], I would like to warmly welcome you to the team. We are delighted to have you join us and look forward to working together.\n\nPlease read the information below carefully, sign and return the attached contract at your earliest convenience, and complete the enclosed clinician details form.\n\n  Fees & Payment Structure\nOur standard fee for online therapy sessions is [£XX] per session for self-paying clients. For each session booked with one of our clients, the practice retains a fee of [£XX] per session and [X]% of total assessment fees. Please complete the enclosed form with details of any health insurance companies you are registered with and the applicable fees.\n\n  Your Clinician Profile\nTo add you to our website, we would be grateful if you could provide:\n- A professional photograph, consistent in style with existing clinician photos on our website [WEBSITE URL].\n- A brief profile statement written using the same headings and structure as existing clinician profiles on the website.\n- A list of your clinical specialisms.\n- One or two brief anonymised client testimonials or reviews, if available.\n\n  DBS Certificate\nPlease send a copy of your current DBS (Disclosure and Barring Service) certificate. If your certificate is on the DBS Update Service, please let us know your reference number so that we can carry out a status check.\n\n  Email & Communication\nYou may wish to set up a [CLINIC NAME] email address (e.g. firstname@[DOMAIN]) for communication with the practice and with clients. Please let us know if you would like one arranged, or if you prefer to use your own professional email address.\n\n  Practice Management Software\nWe use [PRACTICE MANAGEMENT SOFTWARE] as our practice management platform. Once a provisional client has been identified for you, we will arrange access and provide initial onboarding training.\n\n  Clinician Group\nWe have a [WhatsApp / Teams / other] group for associates and clinicians where we share updates, ideas, and keep in touch. We will add you to this shortly. Please let us know if you have any preference for communication platform.\n\nIf you have any questions before we meet, please do not hesitate to get in touch. We very much look forward to having you on board.\n\nWith warm regards,\n\n[DIRECTOR NAME]\n[TITLE], [CLINIC NAME]\n[EMAIL]  |  [PHONE]\n\n[CLINIC NAME]  |  [ADDRESS]  |  [EMAIL]  |  [WEBSITE]',
+    status: 'active',
+    updatedAt: new Date().toISOString(),
+    isSystemTemplate: true,
+  },
+  {
+    id: 'system-clinician-details-form',
+    title: 'Clinician Details Form',
+    category: 'admin',
+    description: 'Form for collecting professional, contact, and bank details from clinicians.',
+    content:
+      '[CLINIC NAME]\nClinician Details Form\nPlease complete and return — keep a copy for your own records\n\nPlease fill in your contact details below and return a completed copy to [EMAIL]. Save a copy for yourself as it will also include the contact details of other clinicians once collated.\n\n  Personal & Professional Details\nFull Name: [RECIPIENT NAME]\nPreferred Name / Title:\nProfessional Qualifications:\nRegulatory Body & Reg. No.:\nHCPC / BACP / BPS No.:\nDate of Birth:\n\n  Contact Details\nPersonal Email:\nPractice Email (if applicable):\nMobile Number:\nHome Address:\nEmergency Contact Name:\nEmergency Contact Number:\n\n  Clinical Details\nClinical Specialisms:\nTherapeutic Approaches:\nAge Groups Worked With:\nLanguages Spoken:\nDBS Certificate Number:\nDBS Issue Date:\nDBS Update Service (Y/N):\nIndemnity Insurer:\nIndemnity Policy Number:\nIndemnity Expiry Date:\n\n  Insurance Panels\nPlease list any health insurance companies you are registered with and the applicable session fees:\nInsurance Provider | Panel Member No. | Session Fee (£)\n\n\n\n\n\n  Bank Details (for payment)\nAccount Holder Name:\nBank Name:\nSort Code:\nAccount Number:\n\n[CLINIC NAME]  |  [ADDRESS]  |  [EMAIL]  |  [WEBSITE]',
+    status: 'active',
+    updatedAt: new Date().toISOString(),
+    isSystemTemplate: true,
+  },
+  {
+    id: 'system-freelance-admin-agreement',
+    title: 'Freelance Administrative Staff Agreement',
+    category: 'agreement',
+    description: 'Contractual agreement for freelance administrative support staff.',
+    content:
+      '[CLINIC NAME]\nFreelance Administrative Staff Agreement\nThis Freelance Administrative Staff Agreement (the "Agreement") is entered into on [DATE], by and between:\n\n[CLINIC NAME], a [limited company / sole trader / other] with its principal place of business at [ADDRESS] ("the Company");\nand\n[RECIPIENT NAME], an independent contractor residing at [RECIPIENT ADDRESS] ("the Freelancer").\n\n  Recitals\nWHEREAS, the Company provides [psychological therapy / healthcare / other] services and requires freelance administrative support to assist with day-to-day operations;\nWHEREAS, the Freelancer possesses the necessary skills and experience to provide administrative services as described herein and is willing to do so on a freelance basis;\nNOW, THEREFORE, the parties agree as follows:\n\n1.  Scope of Services\nThe Freelancer agrees to provide the following administrative services (the "Services"):\n- Scheduling client appointments and managing the practice diary.\n- Managing client databases and records.\n- Answering phone calls and responding to emails on behalf of the practice.\n- Compiling invoices and recording bookkeeping data.\n- Assisting in the preparation of reports, documents, and other administrative tasks.\n- Other administrative duties as reasonably assigned by the Company.\n\n2.  Term\nThis Agreement will commence on [START DATE] and continue until terminated by either party in accordance with Clause 7.\n\n3.  Fees and Payment\nThe Freelancer will be compensated at a rate of [£X] per hour, payable [monthly / fortnightly / on completion].\nThe Freelancer shall submit invoices to [BILLING EMAIL] no later than the last working day of each month.\nPayment will be made by the Company within [30] days of receiving a valid invoice.\n\n4.  Independent Contractor Status\nThe Freelancer is an independent contractor and not an employee of the Company. Nothing in this Agreement shall be construed to create an employer-employee relationship, partnership, or joint venture. The Freelancer is solely responsible for all taxes, national insurance, and other liabilities arising from the provision of Services.\n\n5.  Confidentiality\nThe Freelancer agrees to maintain strict confidentiality of all information related to the Company\'s business, including client records, financial data, proprietary materials, and any other sensitive information ("Confidential Information").\nThe Freelancer shall not disclose, share, or use any Confidential Information for any purpose other than the performance of the Services, during or after the term of this Agreement.\nThe Freelancer acknowledges that client data is subject to UK GDPR and agrees to handle all personal data in accordance with applicable data protection legislation.\n\n6.  Intellectual Property\nAny materials, documents, reports, or work products created by the Freelancer in the course of performing the Services shall be the property of the Company. The Freelancer agrees to assign all rights in such work to the Company upon creation.\n\n7.  Termination\nEither party may terminate this Agreement by giving [14] days\' written notice to the other party. Upon termination, the Freelancer shall be entitled to payment for all Services rendered up to the date of termination.\n\n8.  Non-Compete and Non-Solicitation\nNon-Compete: During the term of this Agreement and for [X] months/years after termination, the Freelancer shall not engage in or assist any business that directly competes with the Company in the provision of [psychological / healthcare] services.\nNon-Solicitation: During the term of this Agreement and for [X] months/years after termination, the Freelancer shall not directly or indirectly solicit the Company\'s clients, referrers, or staff.\n\n9.  Indemnity\nThe Freelancer agrees to indemnify and hold harmless the Company from any claims, damages, liabilities, and expenses arising out of the Freelancer\'s performance of the Services, including claims related to negligence or breach of this Agreement.\n\n10.  General Provisions\nAmendments: Any amendments or modifications must be made in writing and signed by both parties.\nGoverning Law: This Agreement is governed by the laws of England and Wales.\nDispute Resolution: Any dispute arising from this Agreement shall be resolved through mediation in England and Wales, before recourse to litigation.\nSeverability: If any provision is found to be invalid or unenforceable, the remaining provisions shall continue in full force and effect.\n\nSignatures\nThis Agreement comes into effect when signed by both parties.\n\nFor and on behalf of the Company:\nName:  _______________________________________________\nSignature:  _______________________________________________\nDate:  _______________________________________________\nFreelancer:\nName:  _______________________________________________\nSignature:  _______________________________________________\nDate:  _______________________________________________\n\n[CLINIC NAME]  |  [ADDRESS]  |  [EMAIL]  |  [WEBSITE]',
+    status: 'active',
+    updatedAt: new Date().toISOString(),
+    isSystemTemplate: true,
+  },
   {
     id: 'system-associate-licence-agreement',
     title: 'Associate Licence Agreement',
@@ -94,9 +129,18 @@ const getStoredTemplates = (): AdminQuestionnaireTemplate[] => {
 
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
+    const systemIds = new Set(SEED_TEMPLATES.map(t => t.id));
+    
     if (!raw) return SEED_TEMPLATES;
+    
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : SEED_TEMPLATES;
+    if (!Array.isArray(parsed)) return SEED_TEMPLATES;
+
+    // Filter out old system templates from localStorage to avoid duplicates 
+    // and ensure we use the latest versions from SEED_TEMPLATES
+    const userTemplates = parsed.filter(t => !systemIds.has(t.id));
+    
+    return [...SEED_TEMPLATES, ...userTemplates];
   } catch {
     return SEED_TEMPLATES;
   }
@@ -120,6 +164,16 @@ const buildRecipientFromMember = (member: ClinicMemberItem): Recipient | null =>
   };
 };
 
+const buildRecipientFromClient = (client: any): Recipient => {
+  const fullName = `${client.firstName || ''} ${client.lastName || ''}`.trim();
+  return {
+    id: client.id,
+    name: fullName || client.email || 'Client',
+    email: client.email || '',
+    role: 'Client',
+  };
+};
+
 const applyTemplatePlaceholders = (
   content: string,
   clinicName: string,
@@ -131,7 +185,7 @@ const applyTemplatePlaceholders = (
       ? selectedRecipients[0].name
       : selectedRecipients.length > 1
         ? 'Team'
-        : 'Clinician';
+        : 'Recipient';
 
   return content
     .replaceAll('[CLINIC NAME]', clinicName)
@@ -158,12 +212,15 @@ export function AdminQuestionnairesWorkspace() {
   const [templates, setTemplates] = useState<AdminQuestionnaireTemplate[]>(getStoredTemplates);
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
   const [isSendModalOpen, setIsSendModalOpen] = useState(false);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<AdminQuestionnaireTemplate | null>(null);
   const [sendingTemplate, setSendingTemplate] = useState<AdminQuestionnaireTemplate | null>(null);
+  const [previewingTemplate, setPreviewingTemplate] = useState<AdminQuestionnaireTemplate | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'All' | AdminQuestionnaireCategory>('All');
   const [statusFilter, setStatusFilter] = useState<'active' | 'archived' | 'all'>('active');
   const [clinicianSearchTerm, setClinicianSearchTerm] = useState('');
+  const [recipientType, setRecipientType] = useState<'clinician' | 'client'>('clinician');
   const [draftTitle, setDraftTitle] = useState('');
   const [draftSubject, setDraftSubject] = useState('');
   const [draftContent, setDraftContent] = useState('');
@@ -172,6 +229,7 @@ export function AdminQuestionnairesWorkspace() {
 
   const { data: clinicResponse } = useGetClinicQuery();
   const { data: clinicMembersResponse, isLoading: isRecipientsLoading } = useGetClinicMembersQuery({ page: 1, limit: 100 });
+  const { data: clientsResponse, isLoading: isClientsLoading } = useGetClientsQuery({ page: 1, limit: 100 });
 
   const clinicName = clinicResponse?.response?.data?.name || 'Your Clinic';
   const todayLabel = useMemo(() => new Date().toLocaleDateString('en-GB'), []);
@@ -199,12 +257,19 @@ export function AdminQuestionnairesWorkspace() {
   }, [templates, statusFilter, categoryFilter, searchTerm]);
 
   const recipients = useMemo(() => {
-    const members = clinicMembersResponse?.response?.data?.docs || [];
-    return members
-      .map(buildRecipientFromMember)
-      .filter((item): item is Recipient => Boolean(item))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [clinicMembersResponse]);
+    if (recipientType === 'clinician') {
+      const members = clinicMembersResponse?.response?.data?.docs || [];
+      return members
+        .map(buildRecipientFromMember)
+        .filter((item): item is Recipient => Boolean(item))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    } else {
+      const clients = clientsResponse?.response?.data?.docs || [];
+      return clients
+        .map(buildRecipientFromClient)
+        .sort((a, b) => a.name.localeCompare(b.name));
+    }
+  }, [clinicMembersResponse, clientsResponse, recipientType]);
 
   const visibleRecipients = useMemo(() => {
     const query = clinicianSearchTerm.trim().toLowerCase();
@@ -219,10 +284,17 @@ export function AdminQuestionnairesWorkspace() {
     });
   }, [recipients, clinicianSearchTerm]);
 
-  const selectedRecipients = useMemo(
-    () => recipients.filter((recipient) => selectedRecipientIds.includes(recipient.id)),
-    [recipients, selectedRecipientIds]
-  );
+  const selectedRecipients = useMemo(() => {
+    const members = (clinicMembersResponse?.response?.data?.docs || [])
+      .map(buildRecipientFromMember)
+      .filter((item): item is Recipient => Boolean(item));
+    
+    const clients = (clientsResponse?.response?.data?.docs || [])
+      .map(buildRecipientFromClient);
+
+    const allPossible = [...members, ...clients];
+    return allPossible.filter((recipient) => selectedRecipientIds.includes(recipient.id));
+  }, [clinicMembersResponse, clientsResponse, selectedRecipientIds]);
 
   const categoryOptions = [
     { value: 'All', label: 'All Categories' },
@@ -240,7 +312,7 @@ export function AdminQuestionnairesWorkspace() {
             : template
         )
       );
-      notify.success('Admin questionnaire updated.');
+      notify.success('Clinic admin template updated.');
       return;
     }
 
@@ -252,7 +324,7 @@ export function AdminQuestionnairesWorkspace() {
     };
 
     setTemplates((prev) => [nextTemplate, ...prev]);
-    notify.success('Admin questionnaire created.');
+    notify.success('Clinic admin template created.');
   };
 
   const handleDuplicate = (template: AdminQuestionnaireTemplate) => {
@@ -302,6 +374,11 @@ export function AdminQuestionnairesWorkspace() {
     setIsSendModalOpen(true);
   };
 
+  const openPreviewModal = (template: AdminQuestionnaireTemplate) => {
+    setPreviewingTemplate(template);
+    setIsPreviewModalOpen(true);
+  };
+
   const toggleRecipient = (recipientId: string) => {
     setSelectedRecipientIds((prev) =>
       prev.includes(recipientId) ? prev.filter((id) => id !== recipientId) : [...prev, recipientId]
@@ -318,9 +395,9 @@ export function AdminQuestionnairesWorkspace() {
         <div className="border-b border-border/50 bg-white px-6 py-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h2 className="text-xl font-bold text-foreground">Admin & Clinic Questionnaires</h2>
+              <h2 className="text-xl font-bold text-foreground">Clinic Admin</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Pick a template, hit send, edit it in the modal, choose clinicians, and send the email.
+                Pick a template, hit send, edit it in the modal, choose recipients, and send the email.
               </p>
             </div>
             <Button
@@ -389,6 +466,14 @@ export function AdminQuestionnairesWorkspace() {
                 <Button
                   variant="ghost"
                   size="sm"
+                  onClick={() => openPreviewModal(template)}
+                >
+                  <Eye className="mr-2 h-3.5 w-3.5" />
+                  Preview
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => {
                     setEditingTemplate(template);
                     setIsTemplateModalOpen(true);
@@ -433,6 +518,37 @@ export function AdminQuestionnairesWorkspace() {
         bodyClassName="overflow-hidden p-0"
       >
         <div className="flex flex-col h-[600px] bg-white">
+          {/* Recipient Type Toggle */}
+          <div className="flex items-center px-4 py-3 bg-muted/20 border-b border-border/40 gap-4">
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Recipient Type:</span>
+            <div className="flex bg-muted/50 rounded-lg p-1">
+              <button
+                onClick={() => {
+                  setRecipientType('clinician');
+                  setClinicianSearchTerm('');
+                }}
+                className={cn(
+                  "px-3 py-1 text-xs font-medium rounded-md transition-all",
+                  recipientType === 'clinician' ? "bg-white text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Staff (Clinicians)
+              </button>
+              <button
+                onClick={() => {
+                  setRecipientType('client');
+                  setClinicianSearchTerm('');
+                }}
+                className={cn(
+                  "px-3 py-1 text-xs font-medium rounded-md transition-all",
+                  recipientType === 'client' ? "bg-white text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Patients (Clients)
+              </button>
+            </div>
+          </div>
+
           {/* Recipients Field */}
           <div className="flex items-center px-4 py-2 border-b border-border/40 min-h-[48px] relative">
             <span className="text-sm text-muted-foreground mr-3 w-8">To</span>
@@ -456,7 +572,7 @@ export function AdminQuestionnairesWorkspace() {
                 <div className="flex items-center w-full">
                   <input
                     type="text"
-                    placeholder={selectedRecipientIds.length === 0 ? "Select clinicians..." : ""}
+                    placeholder={selectedRecipientIds.length === 0 ? `Select ${recipientType === 'clinician' ? 'clinicians' : 'patients'}...` : ""}
                     className="w-full border-none bg-transparent p-1 text-sm outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
                     value={clinicianSearchTerm}
                     onChange={(e) => {
@@ -481,30 +597,36 @@ export function AdminQuestionnairesWorkspace() {
                       onClick={() => setIsRecipientDropdownOpen(false)}
                     />
                     <div className="absolute top-full left-0 z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-border bg-white shadow-lg no-scrollbar">
-                      {visibleRecipients
-                        .filter((r) => !selectedRecipientIds.includes(r.id))
-                        .map((recipient) => (
-                          <button
-                            key={recipient.id}
-                            className="w-full text-left px-3 py-2 hover:bg-muted text-sm flex items-center justify-between group"
-                            onClick={() => {
-                              toggleRecipient(recipient.id);
-                              setClinicianSearchTerm('');
-                              // We keep it open so they can select more easily, 
-                              // or close it if you prefer. Gmail keeps it open if focused.
-                            }}
-                          >
-                            <div className="flex flex-col">
-                              <span className="font-medium">{recipient.name}</span>
-                              <span className="text-[10px] text-muted-foreground">{recipient.email}</span>
-                            </div>
-                            <span className="text-[10px] text-muted-foreground uppercase group-hover:text-primary transition-colors">{recipient.role}</span>
-                          </button>
-                        ))}
-                      {visibleRecipients.filter((r) => !selectedRecipientIds.includes(r.id)).length === 0 && (
+                      {(isRecipientsLoading || isClientsLoading) ? (
                         <div className="px-3 py-4 text-center text-xs text-muted-foreground italic">
-                          All available clinicians selected
+                          Loading recipients...
                         </div>
+                      ) : (
+                        <>
+                          {visibleRecipients
+                            .filter((r) => !selectedRecipientIds.includes(r.id))
+                            .map((recipient) => (
+                              <button
+                                key={recipient.id}
+                                className="w-full text-left px-3 py-2 hover:bg-muted text-sm flex items-center justify-between group"
+                                onClick={() => {
+                                  toggleRecipient(recipient.id);
+                                  setClinicianSearchTerm('');
+                                }}
+                              >
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{recipient.name}</span>
+                                  <span className="text-[10px] text-muted-foreground">{recipient.email}</span>
+                                </div>
+                                <span className="text-[10px] text-muted-foreground uppercase group-hover:text-primary transition-colors">{recipient.role}</span>
+                              </button>
+                            ))}
+                          {visibleRecipients.filter((r) => !selectedRecipientIds.includes(r.id)).length === 0 && (
+                            <div className="px-3 py-4 text-center text-xs text-muted-foreground italic">
+                              All available recipients selected
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   </>
@@ -598,6 +720,36 @@ export function AdminQuestionnairesWorkspace() {
         onSave={handleSave}
         template={editingTemplate}
       />
+
+      <Modal
+        isOpen={isPreviewModalOpen}
+        onClose={() => {
+          setIsPreviewModalOpen(false);
+          setPreviewingTemplate(null);
+        }}
+        title={`Preview: ${previewingTemplate?.title}`}
+        size="lg"
+      >
+        <div className="bg-muted/30 rounded-xl p-8 border border-border/50 min-h-[400px]">
+          <div className="max-w-none prose prose-sm prose-slate">
+            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground">
+              {previewingTemplate ? applyTemplatePlaceholders(previewingTemplate.content, clinicName, todayLabel, []) : ''}
+            </pre>
+          </div>
+        </div>
+        <div className="mt-6 flex justify-end gap-3">
+          <Button variant="outline" onClick={() => setIsPreviewModalOpen(false)}>
+            Close
+          </Button>
+          <Button onClick={() => {
+            setIsPreviewModalOpen(false);
+            if (previewingTemplate) openSendModal(previewingTemplate);
+          }}>
+            <Send className="mr-2 h-4 w-4" />
+            Send This
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

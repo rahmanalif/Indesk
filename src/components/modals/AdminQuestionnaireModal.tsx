@@ -102,7 +102,7 @@ export function AdminQuestionnaireModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={template ? 'Edit Admin Questionnaire' : 'Create Admin Questionnaire'}
+      title={template ? 'Edit Clinic Admin Template' : 'Create Clinic Admin Template'}
       description="Keep this lightweight for now: title, summary, and document-style content."
       size="xl"
     >
