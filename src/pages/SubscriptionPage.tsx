@@ -9,12 +9,14 @@ import { UpdatePaymentModal } from '../components/modals/UpdatePaymentModal';
 import { BillingDetailsModal } from '../components/modals/BillingDetailsModal';
 import { Pagination } from '../components/ui/Pagination';
 import { useCancelSubscriptionMutation, useGetClinicTransactionsQuery, useGetCurrentSubscriptionQuery, useGetSubscriptionPaymentMethodQuery } from '../redux/api/clientsApi';
+import { CreateClinicianModal } from '../components/modals/CreateClinicianModal';
 
 export function SubscriptionPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [selectedBilling, setSelectedBilling] = useState<any>(null);
   const [isBillingOpen, setIsBillingOpen] = useState(false);
+  const [isCreateClinicianOpen, setIsCreateClinicianOpen] = useState(false);
 
   const { data: subscriptionResponse, isLoading: subscriptionLoading, isError: subscriptionError } = useGetCurrentSubscriptionQuery();
   const subscriptionData = subscriptionResponse?.response?.data?.subscription;
@@ -22,7 +24,7 @@ export function SubscriptionPage() {
   const paymentMethod = paymentMethodResponse?.response?.data?.paymentMethod ?? null;
   const [cancelSubscription, { isLoading: isCancellingSubscription }] = useCancelSubscriptionMutation();
 
-	  const subscriptions = useMemo(() => {
+  const subscriptions = useMemo(() => {
     if (!subscriptionData) {
       return [];
     }
@@ -44,7 +46,7 @@ export function SubscriptionPage() {
         status,
       },
     ];
-	  }, [subscriptionData]);
+  }, [subscriptionData]);
 
   const paymentMethodTitle = paymentMethod?.displayLabel
     || (paymentMethod?.brand && paymentMethod?.last4
@@ -99,9 +101,12 @@ export function SubscriptionPage() {
           </p>
         </div>
 
-        {/* <Button onClick={() => setIsAddOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" /> Add Subscription
-        </Button> */}
+        <Button
+          onClick={() => setIsCreateClinicianOpen(true)}
+          className="bg-primary hover:bg-primary/90"
+        >
+          <Plus className="mr-2 h-4 w-4" /> Add Team Member
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -122,111 +127,111 @@ export function SubscriptionPage() {
             {/* Desktop Table */}
             {!subscriptionLoading && !subscriptionError && (
               <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-muted/50 text-muted-foreground font-medium">
-                  <tr>
-                    <th className="px-4 py-3 rounded-l-lg">Plan Name</th>
-                    <th className="px-4 py-3">Cycle</th>
-                    <th className="px-4 py-3">Price</th>
-                    <th className="px-4 py-3">Next Billing</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3 rounded-r-lg text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/50">
-                  {subscriptions.length === 0 && (
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-muted/50 text-muted-foreground font-medium">
                     <tr>
-                      <td colSpan={6} className="px-4 py-6 text-sm text-muted-foreground">
-                        No active subscription found.
-                      </td>
+                      <th className="px-4 py-3 rounded-l-lg">Plan Name</th>
+                      <th className="px-4 py-3">Cycle</th>
+                      <th className="px-4 py-3">Price</th>
+                      <th className="px-4 py-3">Next Billing</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3 rounded-r-lg text-right">Actions</th>
                     </tr>
-                  )}
-                  {subscriptions.map((sub) => (
-                    <tr key={sub.id} className="group hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3 font-medium">
-                        <div className="flex items-center gap-2">
-                          <div className={cn("p-1.5 rounded", sub.status === 'Active' ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
-                            {sub.name.includes('Add-on') ? <Plus className="h-3 w-3" /> : <Check className="h-3 w-3" />}
+                  </thead>
+                  <tbody className="divide-y divide-border/50">
+                    {subscriptions.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-6 text-sm text-muted-foreground">
+                          No active subscription found.
+                        </td>
+                      </tr>
+                    )}
+                    {subscriptions.map((sub) => (
+                      <tr key={sub.id} className="group hover:bg-muted/30 transition-colors">
+                        <td className="px-4 py-3 font-medium">
+                          <div className="flex items-center gap-2">
+                            <div className={cn("p-1.5 rounded", sub.status === 'Active' ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
+                              {sub.name.includes('Add-on') ? <Plus className="h-3 w-3" /> : <Check className="h-3 w-3" />}
+                            </div>
+                            {sub.name}
                           </div>
-                          {sub.name}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">{sub.cycle}</td>
-                      <td className="px-4 py-3">{sub.price}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{sub.nextBilling}</td>
-                      <td className="px-4 py-3">
-                        <Badge
-                          variant={sub.status === 'Active' ? 'success' : 'secondary'}
-                          className={sub.status === 'Active' ? "bg-green-100 text-green-700 hover:bg-green-200 border-none" : ""}
-                        >
-                          {sub.status}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 text-xs"
-                          onClick={handleCancelSubscription}
-                          isLoading={isCancellingSubscription}
-                        >
-                          Cancel
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        </td>
+                        <td className="px-4 py-3">{sub.cycle}</td>
+                        <td className="px-4 py-3">{sub.price}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{sub.nextBilling}</td>
+                        <td className="px-4 py-3">
+                          <Badge
+                            variant={sub.status === 'Active' ? 'success' : 'secondary'}
+                            className={sub.status === 'Active' ? "bg-green-100 text-green-700 hover:bg-green-200 border-none" : ""}
+                          >
+                            {sub.status}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={handleCancelSubscription}
+                            isLoading={isCancellingSubscription}
+                          >
+                            Cancel
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
 
             {/* Mobile Card View */}
             {!subscriptionLoading && !subscriptionError && (
               <div className="md:hidden space-y-4">
-              {subscriptions.map((sub) => (
-                <Card key={sub.id} className="p-4 border border-border/50 shadow-sm flex flex-col gap-3">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-2 font-semibold text-sm">
-                      <div className={cn("p-1.5 rounded", sub.status === 'Active' ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
-                        {sub.name.includes('Add-on') ? <Plus className="h-3 w-3" /> : <Check className="h-3 w-3" />}
+                {subscriptions.map((sub) => (
+                  <Card key={sub.id} className="p-4 border border-border/50 shadow-sm flex flex-col gap-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2 font-semibold text-sm">
+                        <div className={cn("p-1.5 rounded", sub.status === 'Active' ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
+                          {sub.name.includes('Add-on') ? <Plus className="h-3 w-3" /> : <Check className="h-3 w-3" />}
+                        </div>
+                        {sub.name}
                       </div>
-                      {sub.name}
+                      <Badge
+                        variant={sub.status === 'Active' ? 'success' : 'secondary'}
+                        className={sub.status === 'Active' ? "bg-green-100 text-green-700 h-5 text-[10px]" : "h-5 text-[10px]"}
+                      >
+                        {sub.status}
+                      </Badge>
                     </div>
-                    <Badge
-                      variant={sub.status === 'Active' ? 'success' : 'secondary'}
-                      className={sub.status === 'Active' ? "bg-green-100 text-green-700 h-5 text-[10px]" : "h-5 text-[10px]"}
-                    >
-                      {sub.status}
-                    </Badge>
-                  </div>
 
-                  <div className="flex items-center justify-between text-sm py-2 border-t border-b border-border/50">
-                    <div>
-                      <div className="text-xs text-muted-foreground">Price</div>
-                      <div className="font-medium">{sub.price} <span className="text-xs text-muted-foreground">/{sub.cycle}</span></div>
+                    <div className="flex items-center justify-between text-sm py-2 border-t border-b border-border/50">
+                      <div>
+                        <div className="text-xs text-muted-foreground">Price</div>
+                        <div className="font-medium">{sub.price} <span className="text-xs text-muted-foreground">/{sub.cycle}</span></div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-muted-foreground">Next Billing</div>
+                        <div className="font-medium">{sub.nextBilling}</div>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-xs text-muted-foreground">Next Billing</div>
-                      <div className="font-medium">{sub.nextBilling}</div>
-                    </div>
-                  </div>
 
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 text-xs flex-1"
-                      onClick={handleCancelSubscription}
-                      isLoading={isCancellingSubscription}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </Card>
-              ))}
-              {subscriptions.length === 0 && (
-                <div className="text-sm text-muted-foreground">No active subscription found.</div>
-              )}
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 text-xs flex-1"
+                        onClick={handleCancelSubscription}
+                        isLoading={isCancellingSubscription}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+                {subscriptions.length === 0 && (
+                  <div className="text-sm text-muted-foreground">No active subscription found.</div>
+                )}
               </div>
             )}
           </CardContent>
@@ -284,44 +289,44 @@ export function SubscriptionPage() {
           {/* Desktop Table */}
           {!transactionsLoading && !transactionsError && (
             <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-muted/50 text-muted-foreground font-medium">
-                <tr>
-                  <th className="px-4 py-3 rounded-l-lg">Date</th>
-                  <th className="px-4 py-3">Description</th>
-                  <th className="px-4 py-3">Amount</th>
-                  <th className="px-4 py-3 rounded-r-lg text-right">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/50">
-                {transactions.length === 0 && (
+              <table className="w-full text-sm text-left">
+                <thead className="bg-muted/50 text-muted-foreground font-medium">
                   <tr>
-                    <td colSpan={4} className="px-4 py-6 text-sm text-muted-foreground">
-                      No billing history found.
-                    </td>
+                    <th className="px-4 py-3 rounded-l-lg">Date</th>
+                    <th className="px-4 py-3">Description</th>
+                    <th className="px-4 py-3">Amount</th>
+                    <th className="px-4 py-3 rounded-r-lg text-right">Status</th>
                   </tr>
-                )}
-                {transactions.map((item) => {
-                  const date = new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                  const statusLabel = item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : 'Unknown';
-                  return (
-                    <tr key={item.id} className="hover:bg-muted/50 cursor-pointer transition-colors" onClick={() => handleBillingClick(item)}>
-                      <td className="px-4 py-3">{date}</td>
-                      <td className="px-4 py-3">{item.description}</td>
-                      <td className="px-4 py-3">£{item.amount.toFixed(2)}</td>
-                      <td className="px-4 py-3 text-right">
-                        <Badge
-                          variant="secondary"
-                          className={item.status === 'completed' ? "bg-green-100 text-green-700 hover:bg-green-200 border-none" : ""}
-                        >
-                          {statusLabel}
-                        </Badge>
+                </thead>
+                <tbody className="divide-y divide-border/50">
+                  {transactions.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-6 text-sm text-muted-foreground">
+                        No billing history found.
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  )}
+                  {transactions.map((item) => {
+                    const date = new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    const statusLabel = item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : 'Unknown';
+                    return (
+                      <tr key={item.id} className="hover:bg-muted/50 cursor-pointer transition-colors" onClick={() => handleBillingClick(item)}>
+                        <td className="px-4 py-3">{date}</td>
+                        <td className="px-4 py-3">{item.description}</td>
+                        <td className="px-4 py-3">£{item.amount.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-right">
+                          <Badge
+                            variant="secondary"
+                            className={item.status === 'completed' ? "bg-green-100 text-green-700 hover:bg-green-200 border-none" : ""}
+                          >
+                            {statusLabel}
+                          </Badge>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
 
@@ -366,6 +371,10 @@ export function SubscriptionPage() {
       <AddSubscriptionModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onAdd={handleAddSubscription} />
       <UpdatePaymentModal isOpen={isPaymentOpen} onClose={() => setIsPaymentOpen(false)} />
       <BillingDetailsModal isOpen={isBillingOpen} onClose={() => setIsBillingOpen(false)} billingItem={selectedBilling} />
+      <CreateClinicianModal
+        isOpen={isCreateClinicianOpen}
+        onClose={() => setIsCreateClinicianOpen(false)}
+      />
     </div>
   );
 }

@@ -86,7 +86,7 @@ export function CliniciansPage() {
 	        plan.name?.toLowerCase() === planName.toLowerCase()
 	    );
 	    const displayPlan = currentPlanFromAvailable || currentSubscription?.plan || subscriptionUsage?.plan;
-	    const displaySeatPolicy = displayPlan?.seatPolicy || subscriptionUsage?.plan?.seatPolicy;
+	    const displaySeatPolicy = 'seatPolicy' in (displayPlan as object) ? (displayPlan as any)?.seatPolicy : subscriptionUsage?.plan?.seatPolicy;
 	    const displayPlanName = displayPlan?.name || planName;
 	    const displayPlanPrice = typeof displayPlan?.price === 'number'
 	        ? `£${displayPlan.price.toFixed(Number.isInteger(displayPlan.price) ? 0 : 2)}/month`
@@ -95,8 +95,8 @@ export function CliniciansPage() {
 	    const displayIncludedAdmins = displaySeatPolicy?.includedAdminUsers ?? subscriptionUsage?.adminUsers?.included ?? includedAdminUsers;
 	    const displayClinicianCount = subscriptionUsage?.clinicians?.currentCount ?? clinicianCount;
 	    const displayAdminCount = subscriptionUsage?.adminUsers?.currentCount ?? subscriptionUsage?.adminUsers?.billableCount ?? adminUserCount;
-	    const displayClinicianLimit = subscriptionUsage?.clinicians?.limit ?? displayPlan?.clinicianLimit ?? clinicianLimit;
-	    const displayAdminLimit = subscriptionUsage?.adminUsers?.limit ?? displayPlan?.adminUserLimit ?? adminUserLimit;
+		const displayClinicianLimit = subscriptionUsage?.clinicians?.limit ?? (displayPlan as any)?.clinicianLimit ?? clinicianLimit;
+		const displayAdminLimit = subscriptionUsage?.adminUsers?.limit ?? (displayPlan as any)?.adminUserLimit ?? adminUserLimit;
 	    const displayClinicianRemaining = subscriptionUsage?.clinicians?.remaining ?? (
 	        typeof displayClinicianLimit === 'number' && displayClinicianLimit > 0
 	            ? Math.max(displayClinicianLimit - displayClinicianCount, 0)
@@ -115,7 +115,7 @@ export function CliniciansPage() {
 	    const displayCanAddAdmin = subscriptionUsage?.adminUsers?.canAddAdminUser ?? (
 	        typeof displayAdminLimit === 'number' && displayAdminLimit > 0 ? displayAdminCount < displayAdminLimit : true
 	    );
-	    const displayTierLabels = (displaySeatPolicy?.extraClinicianTierLabels || []).map((label) =>
+		const displayTierLabels = (displaySeatPolicy?.extraClinicianTierLabels || []).map((label: string) =>
 	        label.replace(/^Tiered pricing:\s*/i, '').replace(/Â£|Ã‚Â£|Ãƒâ€šÃ‚Â£/g, 'GBP ')
 	    );
 	    const displayClinicianSummary = displaySeatPolicy?.extraClinicianSummary?.replace(/Â£|Ã‚Â£|Ãƒâ€šÃ‚Â£/g, 'GBP ');
@@ -458,7 +458,7 @@ export function CliniciansPage() {
 	                                    </p>
 	                                ) : displayClinicianPricing.length > 0 ? (
 	                                    <div className="space-y-1">
-	                                        {displayClinicianPricing.map((item) => (
+                                        {displayClinicianPricing.map((item: string) => (
 	                                            <p key={item}>{item}</p>
 	                                        ))}
 	                                    </div>

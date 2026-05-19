@@ -67,7 +67,7 @@ export const navItems: NavItem[] = [
   },
   {
     icon: ClipboardList,
-    label: "Forms",
+    label: "Outcome Measures",
     path: "/forms",
     permission: "clinician_forms",
   },

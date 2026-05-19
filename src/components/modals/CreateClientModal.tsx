@@ -79,7 +79,32 @@ export function CreateClientModal({
   }, [clinicMembersResponse]);
 
   // Form State - Updated to match API requirements
-  const [formData, setFormData] = useState({
+  type FormStatus = 'active' | 'pending' | 'inactive' | '';
+  interface FormData {
+    firstName: string;
+    lastName: string;
+    email: string;
+    dateOfBirth: string;
+    gender: string;
+    phoneNumber: string;
+    countryCode: string;
+    address: {
+      street: string;
+      city: string;
+      state: string;
+      zip: string;
+      country: string;
+    };
+    insuranceProvider: string;
+    insuranceNumber: string;
+    insuranceAuthorizationNumber: string;
+    note: string;
+    status: FormStatus;
+    clinicId: string;
+    assignedClinicianId: string;
+  }
+
+  const [formData, setFormData] = useState<FormData>({
     firstName: '',
     lastName: '',
     email: '',
@@ -180,7 +205,7 @@ export function CreateClientModal({
       insuranceNumber: formData.insuranceNumber || null,
       insuranceAuthorizationNumber: formData.insuranceAuthorizationNumber || null,
       note: formData.note || null,
-      status: formData.status,
+      status: formData.status || undefined,
       clinicId: formData.clinicId,
       assignedClinicianId: formData.assignedClinicianId || null
     };

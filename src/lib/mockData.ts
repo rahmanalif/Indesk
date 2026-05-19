@@ -124,7 +124,7 @@ export const PERMISSION_KEYS = [
   { id: 'page_clinic', label: 'Clinic & Clinicians', category: 'Admin' },
   { id: 'page_invoices', label: 'Invoices', category: 'Billing' },
   { id: 'page_sessions', label: 'Sessions', category: 'Clinical' },
-  { id: 'page_forms', label: 'Forms', category: 'Clinical' },
+  { id: 'page_forms', label: 'Outcome Measures', category: 'Clinical' },
   { id: 'page_money', label: 'Money Matters', category: 'Billing' },
   { id: 'page_subscription', label: 'Subscription', category: 'Admin' },
   { id: 'page_integrations', label: 'Integrations', category: 'Admin' }

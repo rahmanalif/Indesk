@@ -170,7 +170,7 @@ export function FormsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Forms & Questionnaires
+            Outcome Measures
           </h1>
           <p className="text-muted-foreground mt-1">
             Manage clinical assessments, templates, and Sigmund-assisted forms.
@@ -186,7 +186,7 @@ export function FormsPage() {
           </Button>
           <Button onClick={() => setIsCreateFormModalOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Create New Form
+           Create New Assessment
           </Button>
         </div>
       </div>
