@@ -90,7 +90,7 @@ export function CreateAppointmentModal({
     typeof val === 'string' &&
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val);
   const shouldFetchClient = isGuid(selectedClientId);
-  const { data: clientDetails } = useGetClientByIdQuery(selectedClientId as string, {
+  useGetClientByIdQuery(selectedClientId as string, {
     skip: !shouldFetchClient,
   });
   const apiClients = useMemo(() => {
@@ -112,6 +112,8 @@ export function CreateAppointmentModal({
       .map((m) => ({
         value: String(m.id),
         label: `${m.user?.firstName || ''} ${m.user?.lastName || ''}`.trim() || m.user?.email || 'Clinician',
+        userId: String(m.user?.id || m.userId || ''),
+        userEmail: String(m.user?.email || '').toLowerCase().trim(),
       }));
   }, [clinicMembersResponse]);
   const currentUserClinicianOption = useMemo(() => {
@@ -120,16 +122,17 @@ export function CreateAppointmentModal({
     const userEmail = String(currentUser.email || '').toLowerCase().trim();
     if (!userId && !userEmail) return null;
 
-    return (
-      clinicianOptions.find((option: any) => {
-        const members = clinicMembersResponse?.response?.data?.docs || [];
-        const member = members.find((m: any) => String(m.id) === String(option.value));
-        const memberUserId = String(member?.user?.id || member?.userId || '');
-        const memberEmail = String(member?.user?.email || '').toLowerCase().trim();
-        return (userId && memberUserId === userId) || (userEmail && memberEmail === userEmail);
-      }) || null
-    );
-  }, [clinicMembersResponse, clinicianOptions, currentUser]);
+    return clinicianOptions.find((option: any) => {
+      return (userId && option.userId === userId) || (userEmail && option.userEmail === userEmail);
+    }) || null;
+  }, [clinicianOptions, currentUser]);
+  const effectiveClinicianId = useMemo(
+    () =>
+      String(clinicianId || '').trim() ||
+      String(currentUserClinicianOption?.value || '').trim() ||
+      String(clinicianOptions[0]?.value || '').trim(),
+    [clinicianId, currentUserClinicianOption, clinicianOptions],
+  );
   const integrationsRaw = integrationsResponse?.response?.data;
   const integrations = Array.isArray(integrationsRaw) ? integrationsRaw : integrationsRaw?.docs || [];
   const zoomIntegration = integrations.find((integration: any) => {
@@ -291,10 +294,11 @@ export function CreateAppointmentModal({
     const dateIso = new Date(`${dateStr}T00:00:00.000Z`).toISOString();
     const timeIso = new Date(`${dateStr}T${timeStr}:00.000Z`).toISOString();
 
-    const clinicianIdToSend = String(clinicianId || '').trim() || null;
+    const resolvedClinicianId = effectiveClinicianId;
+    const clinicianIdToSend = resolvedClinicianId || null;
 
     if (!clinicianIdToSend) {
-      alert('Clinician is missing. Please select a valid client or clinician.');
+      alert('No clinician is available in this clinic. Please add/select a clinician first.');
       setIsLoading(false);
       return;
     }
@@ -401,7 +405,7 @@ export function CreateAppointmentModal({
 
             <Select
               label="Clinician"
-              value={clinicianId}
+              value={effectiveClinicianId}
               onChange={(e) => {
                 const nextId = e.target.value;
                 setClinicianId(nextId);
