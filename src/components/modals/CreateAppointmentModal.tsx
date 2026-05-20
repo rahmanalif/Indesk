@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Link, Video } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -12,6 +13,7 @@ import { useData } from '../../context/DataContext';
 import { cn } from '../../lib/utils';
 import { useCreateAppointmentMutation, useGetClientByIdQuery, useGetClinicMembersQuery, useGetSessionsQuery, useGetClientsQuery } from '../../redux/api/clientsApi';
 import { useGetIntegrationsQuery } from '../../redux/api/integrationApi';
+import type { RootState } from '../../store';
 
 const APPOINTMENT_CLINICIAN_ROLES = new Set(['clinician', 'superadmin', 'admin']);
 
@@ -54,6 +56,7 @@ export function CreateAppointmentModal({
   preferredClinicianId,
 }: CreateAppointmentModalProps) {
   const navigate = useNavigate();
+  const currentUser = useSelector((state: RootState) => state.auth.user);
   const { addAppointment, updateAppointment } = useData();
   const [createAppointment] = useCreateAppointmentMutation();
   const { data: integrationsResponse } = useGetIntegrationsQuery(undefined, {
@@ -111,6 +114,22 @@ export function CreateAppointmentModal({
         label: `${m.user?.firstName || ''} ${m.user?.lastName || ''}`.trim() || m.user?.email || 'Clinician',
       }));
   }, [clinicMembersResponse]);
+  const currentUserClinicianOption = useMemo(() => {
+    if (!currentUser) return null;
+    const userId = String(currentUser.id || '');
+    const userEmail = String(currentUser.email || '').toLowerCase().trim();
+    if (!userId && !userEmail) return null;
+
+    return (
+      clinicianOptions.find((option: any) => {
+        const members = clinicMembersResponse?.response?.data?.docs || [];
+        const member = members.find((m: any) => String(m.id) === String(option.value));
+        const memberUserId = String(member?.user?.id || member?.userId || '');
+        const memberEmail = String(member?.user?.email || '').toLowerCase().trim();
+        return (userId && memberUserId === userId) || (userEmail && memberEmail === userEmail);
+      }) || null
+    );
+  }, [clinicMembersResponse, clinicianOptions, currentUser]);
   const integrationsRaw = integrationsResponse?.response?.data;
   const integrations = Array.isArray(integrationsRaw) ? integrationsRaw : integrationsRaw?.docs || [];
   const zoomIntegration = integrations.find((integration: any) => {
@@ -200,11 +219,16 @@ export function CreateAppointmentModal({
       ? clinicianOptions.find((option) => option.value === String(preferredClinicianId))
       : null;
 
-    setClinicianId(preferredMatch?.value || clinicianOptions[0].value);
+    setClinicianId(
+      preferredMatch?.value ||
+      currentUserClinicianOption?.value ||
+      clinicianOptions[0].value
+    );
   }, [
     isOpen,
     clinicianOptions,
     preferredClinicianId,
+    currentUserClinicianOption,
     clinicianId,
   ]);
 
