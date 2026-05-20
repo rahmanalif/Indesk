@@ -79,7 +79,7 @@ export function LoginPage() {
     addressZipCode: '',
     addressCountry: '',
     planId: '',
-    startTrial: true,
+    startTrial: false,
     acceptedTerms: false,
   });
   const [formErrors, setFormErrors] = useState({
