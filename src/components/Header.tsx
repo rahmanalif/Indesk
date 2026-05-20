@@ -86,12 +86,15 @@ export function Header({
   const notificationRef = useRef<HTMLDivElement>(null);
   const hasHandledUnauthorizedRef = useRef(false);
   const [locallyReadIds, setLocallyReadIds] = useState<Set<string>>(new Set());
+  const [notificationPage, setNotificationPage] = useState(1);
+  const [notificationList, setNotificationList] = useState<NotificationItem[]>([]);
   const [markAllAsRead] = useMarkAllAsReadMutation();
   const [markAsRead] = useMarkAsReadMutation();
   const shouldSkipProtectedQueries = selfProfileStatus === 401;
+  const notificationsLimit = 10;
 
-  const { data: notificationsResponse } = useGetNotificationsQuery(
-    { page: 1, limit: 10, sort: 'createdAt:desc' },
+  const { data: notificationsResponse, isFetching: isNotificationsFetching } = useGetNotificationsQuery(
+    { page: notificationPage, limit: notificationsLimit },
     { pollingInterval: 30000, skip: shouldSkipProtectedQueries }
   );
   const { data: unreadCountResponse } = useGetUnreadCountQuery(undefined, {
@@ -113,7 +116,26 @@ export function Header({
     return `${days}d ago`;
   };
 
-  const notifications = (notificationsResponse?.response?.data ?? []).map((item: NotificationItem, index: number) => {
+  useEffect(() => {
+    const incoming = notificationsResponse?.response?.data ?? [];
+    setNotificationList((prev) => {
+      if (notificationPage === 1) {
+        return incoming;
+      }
+      const map = new Map<string, NotificationItem>();
+      [...prev, ...incoming].forEach((item, index) => {
+        const id = String(item.id ?? item._id ?? index);
+        map.set(id, item);
+      });
+      return Array.from(map.values());
+    });
+  }, [notificationsResponse, notificationPage]);
+
+  const notificationTotalPages = notificationsResponse?.response?.pagination?.totalPages ?? 1;
+  const hasMoreNotifications = notificationPage < notificationTotalPages;
+  const isLoadingMoreNotifications = isNotificationsFetching && notificationPage > 1;
+
+  const notifications = notificationList.map((item: NotificationItem, index: number) => {
     const id = String(item.id ?? item._id ?? index);
     return {
       id,
@@ -127,6 +149,12 @@ export function Header({
   const unreadCount = unreadCountResponse?.response?.data?.count ?? 0;
   const accessibleNavItems = getAccessibleNavItems(effectiveUser ?? user);
   const reportClinicId = profile?.ownedClinics?.[0]?.id;
+  const loadMoreNotifications = () => {
+    if (isLoadingMoreNotifications || !hasMoreNotifications) {
+      return;
+    }
+    setNotificationPage((prev) => prev + 1);
+  };
 
   const markAllRead = async () => {
     try {
@@ -175,6 +203,12 @@ export function Header({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (isNotificationOpen) {
+      setNotificationPage(1);
+    }
+  }, [isNotificationOpen]);
 
   return (
     <>
@@ -272,6 +306,9 @@ export function Header({
                 notifications={notifications}
                 onMarkAllRead={markAllRead}
                 onRead={markSingleRead}
+                onLoadMore={loadMoreNotifications}
+                hasMore={hasMoreNotifications}
+                isLoadingMore={isLoadingMoreNotifications}
               />
             )}
           </div>

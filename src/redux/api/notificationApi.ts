@@ -33,7 +33,6 @@ export interface GetNotificationsParams {
   page?: number;
   limit?: number;
   isRead?: boolean;
-  sort?: string;
 }
 
 export interface GetUnreadCountResponse {
@@ -97,7 +96,6 @@ export const notificationApi = createApi({
         params: {
           page: params.page ?? 1,
           limit: params.limit ?? 10,
-          sort: params.sort,
         },
       }),
       providesTags: [{ type: "Notifications", id: "LIST" }],

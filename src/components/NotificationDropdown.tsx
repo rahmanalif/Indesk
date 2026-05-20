@@ -13,9 +13,19 @@ interface NotificationDropdownProps {
     notifications: Notification[];
     onMarkAllRead: () => void;
     onRead: (id: string | number) => void;
+    onLoadMore: () => void;
+    hasMore: boolean;
+    isLoadingMore: boolean;
 }
 
-export function NotificationDropdown({ notifications, onMarkAllRead, onRead }: NotificationDropdownProps) {
+export function NotificationDropdown({
+    notifications,
+    onMarkAllRead,
+    onRead,
+    onLoadMore,
+    hasMore,
+    isLoadingMore,
+}: NotificationDropdownProps) {
     const unreadCount = notifications.filter(n => !n.read).length;
 
     return (
@@ -26,7 +36,16 @@ export function NotificationDropdown({ notifications, onMarkAllRead, onRead }: N
                 {unreadCount > 0 && <span className="bg-primary/10 text-primary text-[10px] font-black px-2 py-0.5 rounded-full">{unreadCount}</span>}
             </div>
 
-            <div className="max-h-[300px] overflow-y-auto">
+            <div
+                className="max-h-[300px] overflow-y-auto"
+                onScroll={(e) => {
+                    const target = e.currentTarget;
+                    const remaining = target.scrollHeight - target.scrollTop - target.clientHeight;
+                    if (remaining < 40 && hasMore && !isLoadingMore) {
+                        onLoadMore();
+                    }
+                }}
+            >
                 {notifications.length === 0 ? (
                     <div className="p-4 text-center text-sm text-muted-foreground">No new notifications</div>
                 ) : (
@@ -45,6 +64,12 @@ export function NotificationDropdown({ notifications, onMarkAllRead, onRead }: N
                             <p className="text-xs text-muted-foreground">{n.desc}</p>
                         </div>
                     ))
+                )}
+                {isLoadingMore && (
+                    <div className="p-3 text-center text-xs text-muted-foreground">Loading more...</div>
+                )}
+                {!hasMore && notifications.length > 0 && (
+                    <div className="p-3 text-center text-xs text-muted-foreground">No more notifications</div>
                 )}
             </div>
 
