@@ -244,9 +244,24 @@ export function CreateAppointmentModal({
       return;
     }
 
+    const selectedSessionData = sessionTypes.find(s => s.id.toString() === sessionType);
+    if (!selectedSessionData) {
+      alert('Selected session type is invalid. Please re-select a session.');
+      return;
+    }
+    if (!selectedSessionData.name || selectedSessionData.duration == null) {
+      alert('Selected session data is incomplete. Please re-select a session type.');
+      return;
+    }
+
+    const selectedClient = apiClients.find(c => String(c.id) === String(selectedClientId));
+    if (!selectedClient) {
+      alert('Selected client is not available in this clinic. Please re-select a client.');
+      return;
+    }
+
     setIsLoading(true);
 
-    const selectedSessionData = sessionTypes.find(s => s.id.toString() === sessionType);
     const dateStr = date ? date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
     const timeStr = time || '09:00';
     const dateIso = new Date(`${dateStr}T00:00:00.000Z`).toISOString();
@@ -266,22 +281,27 @@ export function CreateAppointmentModal({
       return;
     }
 
-    const selectedClinician = clinicianOptions.find(o => o.value === clinicianId);
+    const selectedClinician = clinicianOptions.find(o => o.value === clinicianIdToSend);
+    if (!selectedClinician) {
+      alert('Selected clinician is invalid for this clinic. Please re-select a clinician.');
+      setIsLoading(false);
+      return;
+    }
     const appointmentData = {
       id: existingData?.id,
       clientName: clientNameInput,
       clientId: selectedClientId,
-      clinician: selectedClinician?.label || 'Clinician',
+      clinician: selectedClinician.label,
       clinicianId: clinicianIdToSend,
       date: dateStr,
       time: timeStr,
-      duration: selectedSessionData?.duration ?? 50,
-      type: selectedSessionData?.name || 'Therapy Session',
+      duration: selectedSessionData.duration,
+      type: selectedSessionData.name,
       meetingType,
       notes,
-      color: selectedSessionData?.color || 'bg-blue-100 border-blue-200 text-blue-700',
-      status: existingData?.status || 'Active',
-      videoLink: existingData?.videoLink || 'https://zoom.us/j/123456789'
+      color: selectedSessionData.color,
+      status: existingData?.status,
+      videoLink: existingData?.videoLink,
     };
 
     createAppointment({

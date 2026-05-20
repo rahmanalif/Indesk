@@ -9,6 +9,7 @@ import { InvoicePreviewModal } from '../components/modals/InvoicePreviewModal';
 import { Pagination } from '../components/ui/Pagination';
 import { DatePicker } from '../components/ui/DatePicker';
 import { notify } from '../components/ui/ToastHost';
+import { EmptyState } from '../components/ui/EmptyState';
 import { useGetIntegrationsQuery } from '../redux/api/integrationApi';
 import { useExportInvoiceToXeroMutation, useGetInvoiceStatsQuery, useGetInvoicesQuery } from '../redux/api/invoiceApi';
 
@@ -256,7 +257,10 @@ export function InvoicesPage() {
         <div className="text-sm text-destructive">Failed to load invoices.</div>
       )}
       {!isLoading && !isError && displayedInvoices.length === 0 && (
-        <div className="text-sm text-muted-foreground">No invoices found.</div>
+        <EmptyState
+          title="No Invoices Yet"
+          description="No invoices match your current filters. Try resetting filters or create a new invoice."
+        />
       )}
       {/* Desktop Table View */}
       <Card className="hidden md:block border-none shadow-sm overflow-hidden">
