@@ -20,6 +20,17 @@ export function SubscriptionPage() {
 
   const { data: subscriptionResponse, isLoading: subscriptionLoading, isError: subscriptionError } = useGetCurrentSubscriptionQuery();
   const subscriptionData = subscriptionResponse?.response?.data?.subscription;
+  const clinicianUsage = subscriptionResponse?.response?.data?.usage?.clinicians;
+  const clinicianCurrent = clinicianUsage?.currentCount ?? 0;
+  const clinicianIncluded = clinicianUsage?.included ?? 0;
+  const clinicianExtrasAllowed = Boolean(clinicianUsage?.canAddClinician || clinicianUsage?.extraCliniciansAllowed);
+  const clinicianMaxExtras = clinicianUsage?.maxExtraClinicians ?? null;
+  const clinicianExtrasUsed = Math.max(0, clinicianCurrent - clinicianIncluded);
+  const clinicianAtIncludedLimit = clinicianCurrent >= clinicianIncluded;
+  const clinicianAtCap = typeof clinicianMaxExtras === 'number' && clinicianMaxExtras > 0
+    && clinicianExtrasUsed >= clinicianMaxExtras;
+  const showAddClinicianButton = clinicianAtIncludedLimit;
+  const canBuyExtraClinician = clinicianExtrasAllowed && !clinicianAtCap;
   const { data: paymentMethodResponse, isLoading: paymentMethodLoading, isError: paymentMethodError } = useGetSubscriptionPaymentMethodQuery();
   const paymentMethod = paymentMethodResponse?.response?.data?.paymentMethod ?? null;
   const [cancelSubscription, { isLoading: isCancellingSubscription }] = useCancelSubscriptionMutation();
@@ -91,31 +102,32 @@ export function SubscriptionPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Subscription & Billing
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your Inkind Suite plan and payment methods.
-          </p>
-        </div>
-
-        <Button
-          onClick={() => setIsCreateClinicianOpen(true)}
-          className="bg-primary hover:bg-primary/90"
-        >
-          <Plus className="mr-2 h-4 w-4" /> Add Team Member
-        </Button>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Active Subscriptions List (Replaces simple card) */}
         <Card className="lg:col-span-2 shadow-md">
-          <CardHeader>
-            <CardTitle>Subscriptions</CardTitle>
-            <CardDescription>Manage your current plans and services</CardDescription>
+          <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
+            <div>
+              <CardTitle>Subscriptions</CardTitle>
+              <CardDescription>Manage your current plans and services</CardDescription>
+            </div>
+            {showAddClinicianButton ? (
+              <Button
+                size="sm"
+                onClick={() => setIsCreateClinicianOpen(true)}
+                disabled={!canBuyExtraClinician}
+                title={
+                  !clinicianExtrasAllowed
+                    ? 'Extra clinicians are not available on this plan'
+                    : clinicianAtCap
+                      ? `Maximum of ${clinicianMaxExtras} extra clinicians reached on this plan`
+                      : undefined
+                }
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Plus className="mr-2 h-4 w-4" /> Add Clinician
+              </Button>
+            ) : null}
           </CardHeader>
           <CardContent>
             {subscriptionLoading && (

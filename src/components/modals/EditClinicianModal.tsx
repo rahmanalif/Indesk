@@ -94,9 +94,9 @@ export function EditClinicianModal({ isOpen, onClose, clinician }: EditClinician
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Edit Clinician Details" size="xl">
+        <Modal isOpen={isOpen} onClose={onClose} title="Edit Clinician Details" size="xl" className="xl:max-w-6xl">
             <form onSubmit={handleSubmit} className="space-y-6 mt-2">
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.95fr)]">
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                     <div className="space-y-5">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <Input

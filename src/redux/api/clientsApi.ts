@@ -423,9 +423,10 @@ export interface SubscriptionSeatPolicy {
 export interface SubscriptionPlan {
   id: string;
   name: string;
-  type: string;
+  type?: string;
   description?: string | null;
   price: number;
+  currency?: string;
   trial?: number | null;
   clientLimit?: number | null;
   clinicianLimit?: number | null;
@@ -436,6 +437,7 @@ export interface SubscriptionPlan {
   discount?: number | null;
   features?: SubscriptionPlanFeatures;
   seatPolicy?: SubscriptionSeatPolicy;
+  extraSeatsConfig?: ExtraSeatsConfig | null;
   isPopular?: boolean;
   savings?: string | null;
   isActive?: boolean;
@@ -645,6 +647,10 @@ export interface SubscriptionUsageSeatBlock {
   billableCount?: number;
   ownerExempted?: boolean;
   isUnlimited?: boolean;
+  extraCliniciansAllowed?: boolean;
+  extraAdminsAllowed?: boolean;
+  maxExtraClinicians?: number | null;
+  maxExtraAdmins?: number | null;
 }
 
 export interface SubscriptionPaymentMethod {
