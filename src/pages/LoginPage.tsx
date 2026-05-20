@@ -363,6 +363,27 @@ export function LoginPage() {
       setSignupErrors((prev) => ({ ...prev, code: '' }));
       setSignupSuccess(response.message || 'We sent a verification code to your email address.');
     } catch (error: any) {
+      const status = error?.status || error?.originalStatus;
+      const apiMessage = error?.data?.message || '';
+      const normalizedMessage = String(apiMessage).toLowerCase();
+      const isExistingAccountError =
+        status === 409 ||
+        normalizedMessage.includes('email already taken') ||
+        normalizedMessage.includes('user already exists') ||
+        normalizedMessage.includes('account already exists');
+
+      if (isExistingAccountError) {
+        setShowSignupPanel(false);
+        setFormData((prev) => ({
+          ...prev,
+          email: signupData.email.trim(),
+        }));
+        setSignupError('');
+        setSignupSuccess('');
+        setFormErrors((prev) => ({ ...prev, email: '', password: '' }));
+        return;
+      }
+
       setSignupError(getFriendlyErrorMessage(error, 'Failed to start onboarding. Please try again.'));
     }
   };
