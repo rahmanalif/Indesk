@@ -14,6 +14,7 @@ import {
   type NotificationItem,
   useGetNotificationsQuery,
   useGetUnreadCountQuery,
+  useMarkAsReadMutation,
   useMarkAllAsReadMutation,
 } from '../redux/api/notificationApi';
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
@@ -86,6 +87,7 @@ export function Header({
   const hasHandledUnauthorizedRef = useRef(false);
   const [locallyReadIds, setLocallyReadIds] = useState<Set<string>>(new Set());
   const [markAllAsRead] = useMarkAllAsReadMutation();
+  const [markAsRead] = useMarkAsReadMutation();
   const shouldSkipProtectedQueries = selfProfileStatus === 401;
 
   const { data: notificationsResponse } = useGetNotificationsQuery(
@@ -135,12 +137,19 @@ export function Header({
     }
   };
 
-  const markSingleRead = (id: string) => {
+  const markSingleRead = async (id: string | number) => {
+    const normalizedId = String(id);
     setLocallyReadIds((prev) => {
       const next = new Set(prev);
-      next.add(id);
+      next.add(normalizedId);
       return next;
     });
+
+    try {
+      await markAsRead(normalizedId).unwrap();
+    } catch (err) {
+      console.error('Failed to mark single notification as read:', err);
+    }
   };
 
   // Click outside handler

@@ -52,6 +52,12 @@ export interface MarkAllReadResponse {
   message?: string;
 }
 
+export interface MarkAsReadResponse {
+  success?: boolean;
+  status?: number;
+  message?: string;
+}
+
 export const notificationApi = createApi({
   reducerPath: "notificationApi",
   baseQuery: fetchBaseQuery({
@@ -109,6 +115,16 @@ export const notificationApi = createApi({
         { type: "Notifications", id: "UNREAD_COUNT" },
       ],
     }),
+    markAsRead: builder.mutation<MarkAsReadResponse, string>({
+      query: (notificationId) => ({
+        url: `/notification/${notificationId}/read`,
+        method: "PATCH",
+      }),
+      invalidatesTags: [
+        { type: "Notifications", id: "LIST" },
+        { type: "Notifications", id: "UNREAD_COUNT" },
+      ],
+    }),
   }),
 });
 
@@ -116,4 +132,5 @@ export const {
   useGetNotificationsQuery,
   useGetUnreadCountQuery,
   useMarkAllAsReadMutation,
+  useMarkAsReadMutation,
 } = notificationApi;
