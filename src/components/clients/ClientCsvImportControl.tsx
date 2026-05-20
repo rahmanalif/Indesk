@@ -20,7 +20,7 @@ type ClientCsvImportControlProps = {
   existingEmails: Set<string>;
   isImporting: boolean;
   onImportClients: (clients: BulkImportClientItem[]) => Promise<BulkImportResponseLike>;
-  onImported: () => Promise<void> | void;
+  onImported: () => Promise<unknown> | unknown;
 };
 
 export function ClientCsvImportControl({

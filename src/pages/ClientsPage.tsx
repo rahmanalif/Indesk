@@ -158,9 +158,9 @@ export function ClientsPage() {
     }
   };
 
-  const existingClientEmails = useMemo(
+  const existingClientEmails = useMemo<Set<string>>(
     () =>
-      new Set(
+      new Set<string>(
         (clientsData?.response?.data?.docs || [])
           .map((client: any) => String(client.email || "").trim().toLowerCase())
           .filter(Boolean)
