@@ -209,12 +209,12 @@ export function ClinicDetailsPage() {
                                             onChange={(e) => setCurrencyInput(e.target.value)}
                                             options={CURRENCY_OPTIONS}
                                         />
-                                        <div className="rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
+                                        {/* <div className="rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
                                             <p className="text-sm font-medium text-foreground">Selected Currency</p>
                                             <p className="mt-1 text-sm text-muted-foreground">
                                                 {CURRENCY_OPTIONS.find(opt => opt.value === currencyInput)?.label || currencyInput}
                                             </p>
-                                        </div>
+                                        </div> */}
                                     </div>
                                 </>
                             )}
