@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Sparkles, Send, Bot } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Avatar } from '../components/ui/Avatar';
@@ -355,9 +357,42 @@ export function AIAssistancePage() {
                 className={`p-3 rounded-2xl max-w-[85%] text-sm ${msg.role === 'user'
                   ? 'bg-primary text-primary-foreground rounded-tr-none'
                   : 'bg-white border border-border/50 rounded-tl-none shadow-sm'
-                  } whitespace-pre-wrap`}
+                  }`}
               >
-                {msg.text}
+                {msg.role === 'ai' ? (
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      p: ({ children }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap">{children}</p>,
+                      ul: ({ children }) => <ul className="mb-2 list-disc pl-5">{children}</ul>,
+                      ol: ({ children }) => <ol className="mb-2 list-decimal pl-5">{children}</ol>,
+                      li: ({ children }) => <li className="mb-1">{children}</li>,
+                      h1: ({ children }) => <h1 className="mb-2 text-base font-semibold">{children}</h1>,
+                      h2: ({ children }) => <h2 className="mb-2 text-sm font-semibold">{children}</h2>,
+                      h3: ({ children }) => <h3 className="mb-2 text-sm font-semibold">{children}</h3>,
+                      code: ({ children, className }) => (
+                        <code
+                          className={
+                            className
+                              ? `${className} block overflow-x-auto rounded bg-muted p-2 text-[12px]`
+                              : 'rounded bg-muted px-1 py-0.5 text-[12px]'
+                          }
+                        >
+                          {children}
+                        </code>
+                      ),
+                      a: ({ href, children }) => (
+                        <a href={href} target="_blank" rel="noreferrer" className="underline">
+                          {children}
+                        </a>
+                      ),
+                    }}
+                  >
+                    {msg.text}
+                  </ReactMarkdown>
+                ) : (
+                  <div className="whitespace-pre-wrap">{msg.text}</div>
+                )}
               </div>
             </div>
           ))}

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { Check, CreditCard, Plus } from 'lucide-react';
 import { Button } from '../components/ui/Button';
@@ -9,28 +10,16 @@ import { UpdatePaymentModal } from '../components/modals/UpdatePaymentModal';
 import { BillingDetailsModal } from '../components/modals/BillingDetailsModal';
 import { Pagination } from '../components/ui/Pagination';
 import { useCancelSubscriptionMutation, useGetClinicTransactionsQuery, useGetCurrentSubscriptionQuery, useGetSubscriptionPaymentMethodQuery } from '../redux/api/clientsApi';
-import { CreateClinicianModal } from '../components/modals/CreateClinicianModal';
 
 export function SubscriptionPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [selectedBilling, setSelectedBilling] = useState<any>(null);
   const [isBillingOpen, setIsBillingOpen] = useState(false);
-  const [isCreateClinicianOpen, setIsCreateClinicianOpen] = useState(false);
+  const navigate = useNavigate();
 
   const { data: subscriptionResponse, isLoading: subscriptionLoading, isError: subscriptionError } = useGetCurrentSubscriptionQuery();
   const subscriptionData = subscriptionResponse?.response?.data?.subscription;
-  const clinicianUsage = subscriptionResponse?.response?.data?.usage?.clinicians;
-  const clinicianCurrent = clinicianUsage?.currentCount ?? 0;
-  const clinicianIncluded = clinicianUsage?.included ?? 0;
-  const clinicianExtrasAllowed = Boolean(clinicianUsage?.canAddClinician || clinicianUsage?.extraCliniciansAllowed);
-  const clinicianMaxExtras = clinicianUsage?.maxExtraClinicians ?? null;
-  const clinicianExtrasUsed = Math.max(0, clinicianCurrent - clinicianIncluded);
-  const clinicianAtIncludedLimit = clinicianCurrent >= clinicianIncluded;
-  const clinicianAtCap = typeof clinicianMaxExtras === 'number' && clinicianMaxExtras > 0
-    && clinicianExtrasUsed >= clinicianMaxExtras;
-  const showAddClinicianButton = clinicianAtIncludedLimit;
-  const canBuyExtraClinician = clinicianExtrasAllowed && !clinicianAtCap;
   const { data: paymentMethodResponse, isLoading: paymentMethodLoading, isError: paymentMethodError } = useGetSubscriptionPaymentMethodQuery();
   const paymentMethod = paymentMethodResponse?.response?.data?.paymentMethod ?? null;
   const [cancelSubscription, { isLoading: isCancellingSubscription }] = useCancelSubscriptionMutation();
@@ -99,6 +88,7 @@ export function SubscriptionPage() {
     setSelectedBilling(item);
     setIsBillingOpen(true);
   };
+  const handleOpenExtraClinician = () => navigate('/clinic/team');
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -111,23 +101,13 @@ export function SubscriptionPage() {
               <CardTitle>Subscriptions</CardTitle>
               <CardDescription>Manage your current plans and services</CardDescription>
             </div>
-            {showAddClinicianButton ? (
-              <Button
-                size="sm"
-                onClick={() => setIsCreateClinicianOpen(true)}
-                disabled={!canBuyExtraClinician}
-                title={
-                  !clinicianExtrasAllowed
-                    ? 'Extra clinicians are not available on this plan'
-                    : clinicianAtCap
-                      ? `Maximum of ${clinicianMaxExtras} extra clinicians reached on this plan`
-                      : undefined
-                }
-                className="bg-primary hover:bg-primary/90"
-              >
-                <Plus className="mr-2 h-4 w-4" /> Add Clinician
-              </Button>
-            ) : null}
+            <Button
+              size="sm"
+              onClick={handleOpenExtraClinician}
+              className="bg-primary hover:bg-primary/90"
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add Extra Member
+            </Button>
           </CardHeader>
           <CardContent>
             {subscriptionLoading && (
@@ -383,10 +363,6 @@ export function SubscriptionPage() {
       <AddSubscriptionModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onAdd={handleAddSubscription} />
       <UpdatePaymentModal isOpen={isPaymentOpen} onClose={() => setIsPaymentOpen(false)} />
       <BillingDetailsModal isOpen={isBillingOpen} onClose={() => setIsBillingOpen(false)} billingItem={selectedBilling} />
-      <CreateClinicianModal
-        isOpen={isCreateClinicianOpen}
-        onClose={() => setIsCreateClinicianOpen(false)}
-      />
     </div>
   );
 }

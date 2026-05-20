@@ -81,13 +81,17 @@ export function UserProfilePage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div>
+      <div className="flex justify-between">
+        <div>
+
         <h1 className="text-3xl font-bold tracking-tight text-foreground">
           {titleRole}
         </h1>
         <p className="text-muted-foreground mt-1">
           Manage your account settings and preferences.
         </p>
+
+        </div>
         <div className="mt-3">
           <Button
             variant="outline"
