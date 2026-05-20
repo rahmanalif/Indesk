@@ -91,7 +91,7 @@ export function Header({
   const shouldSkipProtectedQueries = selfProfileStatus === 401;
 
   const { data: notificationsResponse } = useGetNotificationsQuery(
-    { page: 1, limit: 10, isRead: false },
+    { page: 1, limit: 10, sort: 'createdAt:desc' },
     { pollingInterval: 30000, skip: shouldSkipProtectedQueries }
   );
   const { data: unreadCountResponse } = useGetUnreadCountQuery(undefined, {
