@@ -1,9 +1,12 @@
-import { ArrowLeft, CalendarDays, FileText, Check } from 'lucide-react';
+import { ArrowLeft, CalendarDays, FileText, Check, Video, CreditCard, Calendar, Mail, MessageSquare, Shield, BarChart3, Plug } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { useEffect } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { Footer } from '../../components/landing/Footer';
 import { Navbar } from '../../components/landing/Navbar';
 import { legalDocumentsBySlug } from '../../content/legalDocuments';
+import { Badge } from '../../components/ui/Badge';
+import { useGetPublicIntegrationsQuery } from '../../redux/api/integrationApi';
 
 const emailPattern = /([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/gi;
 const emailOnlyPattern = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
@@ -28,18 +31,214 @@ function renderTextWithMailto(text: string) {
   });
 }
 
+const integrationDocumentationSlug = 'integration-documentation';
+const integrationDocumentationSections = [
+  {
+    key: 'add',
+    title: 'Connect',
+  },
+  {
+    key: 'use',
+    title: 'Use InDesk',
+  },
+  {
+    key: 'remove',
+    title: 'Disconnect',
+  },
+] as const;
+
+const integrationDocumentationIcons: Record<string, LucideIcon> = {
+  zoom: Video,
+  google_meet: Video,
+  stripe: CreditCard,
+  mailchimp: Mail,
+  twilio: MessageSquare,
+  google_calendar: Calendar,
+  xero: BarChart3,
+  healthcode: Shield,
+  emdr: Plug,
+};
+
+const legalNavigationItems = [
+  ...Object.values(legalDocumentsBySlug).map((item) => ({
+    slug: item.slug,
+    title: item.shortTitle,
+  })),
+  {
+    slug: integrationDocumentationSlug,
+    title: 'Integration Documentation',
+  },
+];
+
 export function LegalDocumentPage() {
   const { slug } = useParams<{ slug: string }>();
+  const isIntegrationDocumentationPage = slug === integrationDocumentationSlug;
+  const { data: publicIntegrationsResponse, isLoading: isLoadingPublicIntegrations } =
+    useGetPublicIntegrationsQuery(undefined, {
+      skip: !isIntegrationDocumentationPage,
+    });
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [slug]);
 
-  if (!slug || !legalDocumentsBySlug[slug]) {
+  if (!slug || (!legalDocumentsBySlug[slug] && !isIntegrationDocumentationPage)) {
     return <Navigate to="/" replace />;
   }
 
-  const document = legalDocumentsBySlug[slug];
+  const publicIntegrations = (publicIntegrationsResponse?.response?.data || []).filter(
+    (item) => item.availability !== 'coming_soon'
+  );
+
+  if (isIntegrationDocumentationPage) {
+    return (
+      <main className="min-h-screen bg-cream text-charcoal">
+        <Navbar mode="sticky" forceSolid />
+
+        <section className="relative overflow-hidden border-b border-charcoal/10 bg-gradient-to-b from-[#fcf3ea] via-cream to-cream">
+          <div
+            className="absolute inset-0 opacity-[0.04] pointer-events-none"
+            style={{
+              backgroundImage:
+                'linear-gradient(#2D2A26 1px, transparent 1px), linear-gradient(90deg, #2D2A26 1px, transparent 1px)',
+              backgroundSize: '32px 32px',
+            }}
+          />
+
+          <div className="relative mx-auto flex min-h-[360px] max-w-6xl flex-col justify-end px-4 pb-14 pt-16 sm:px-6 lg:px-8">
+            <Link
+              to="/"
+              className="mb-8 inline-flex w-fit items-center gap-2 text-sm font-medium text-charcoal/70 transition-colors hover:text-terracotta"
+            >
+              <ArrowLeft size={16} />
+              Back to InDesk
+            </Link>
+
+            <div className="max-w-3xl">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-terracotta/20 bg-white/60 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-terracotta">
+                <FileText size={14} />
+                Integration Documentation
+              </div>
+              <h1 className="text-4xl font-serif font-semibold leading-tight text-charcoal sm:text-5xl">
+                Integration Documentation
+              </h1>
+              <p className="mt-5 text-lg leading-relaxed text-warm-gray">
+                Practical setup and usage notes for the integrations available in InDesk, including how to connect, use, and disconnect each one.
+              </p>
+              <div className="mt-6 inline-flex items-center gap-2 rounded-full bg-charcoal px-4 py-2 text-sm text-white">
+                <CalendarDays size={15} />
+                Public API reference
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="grid gap-10 lg:grid-cols-[220px_minmax(0,1fr)]">
+            <aside className="lg:sticky lg:top-28 lg:self-start">
+              <div className="rounded-2xl border border-charcoal/10 bg-white p-6 shadow-sm">
+                <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-charcoal/50">
+                  Policies & Support
+                </h2>
+                <ul className="mt-5 space-y-3 text-sm text-warm-gray">
+                  {legalNavigationItems.map((item) => (
+                    <li key={item.slug}>
+                      <Link
+                        to={`/legal/${item.slug}`}
+                        className={`transition-colors hover:text-terracotta ${
+                          item.slug === integrationDocumentationSlug ? 'font-semibold text-terracotta' : ''
+                        }`}
+                      >
+                        {item.title}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </aside>
+
+            <article className="space-y-8">
+              {isLoadingPublicIntegrations ? (
+                <section className="rounded-3xl border border-charcoal/10 bg-white p-8 shadow-sm sm:p-10">
+                  <p className="text-base leading-8 text-warm-gray">Loading integration documentation...</p>
+                </section>
+              ) : publicIntegrations.length === 0 ? (
+                <section className="rounded-3xl border border-charcoal/10 bg-white p-8 shadow-sm sm:p-10">
+                  <p className="text-base leading-8 text-warm-gray">No integration documentation is available yet.</p>
+                </section>
+              ) : (
+                publicIntegrations.map((item) => (
+                  <section
+                    key={item.type}
+                    className="rounded-3xl border border-charcoal/10 bg-white p-8 shadow-sm sm:p-10 transition-all hover:shadow-md"
+                  >
+                    {(() => {
+                      const Icon = integrationDocumentationIcons[item.type] || Plug;
+
+                      return (
+                    <div className="mb-6 flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-beige text-terracotta">
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div>
+                        <h2 className="text-2xl font-serif font-semibold text-charcoal">{item.name}</h2>
+                        <p className="mt-2 max-w-3xl text-base leading-7 text-warm-gray">
+                          {item.documentation?.overview || item.description}
+                        </p>
+                        </div>
+                      </div>
+                      {item.availability === 'coming_soon' && (
+                        <Badge
+                          variant="secondary"
+                          className="border-charcoal/10 bg-transparent text-charcoal/70"
+                        >
+                          {item.comingSoonMessage || 'Coming Soon'}
+                        </Badge>
+                      )}
+                    </div>
+                      );
+                    })()}
+
+                    <div className="grid gap-4 xl:grid-cols-3">
+                      {integrationDocumentationSections.map((section) => {
+                        const entries = item.documentation?.[section.key] || [];
+
+                        return (
+                          <div
+                            key={section.key}
+                            className="rounded-2xl border border-charcoal/10 bg-white p-5"
+                          >
+                            <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-charcoal/55">
+                              {section.title}
+                            </h3>
+                            <ul className="mt-4 space-y-3 border-t border-charcoal/8 pt-4 text-sm leading-6 text-warm-gray">
+                              {entries.map((entry) => (
+                                <li key={entry} className="flex gap-3">
+                                  <div className="mt-1.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-charcoal/10 bg-cream text-terracotta">
+                                    <Check size={11} strokeWidth={3} />
+                                  </div>
+                                  <span>{entry}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                ))
+              )}
+            </article>
+          </div>
+        </section>
+
+        <Footer />
+      </main>
+    );
+  }
+
+  const document = legalDocumentsBySlug[slug as keyof typeof legalDocumentsBySlug];
   const isSupportPage = document.slug === 'support';
 
   return (
@@ -92,7 +291,7 @@ export function LegalDocumentPage() {
                 Policies & Support
               </h2>
               <ul className="mt-5 space-y-3 text-sm text-warm-gray">
-                {Object.values(legalDocumentsBySlug).map((item) => (
+                {legalNavigationItems.map((item) => (
                   <li key={item.slug}>
                     <Link
                       to={`/legal/${item.slug}`}
@@ -100,7 +299,7 @@ export function LegalDocumentPage() {
                         item.slug === document.slug ? 'font-semibold text-terracotta' : ''
                       }`}
                     >
-                      {item.shortTitle}
+                      {item.title}
                     </Link>
                   </li>
                 ))}

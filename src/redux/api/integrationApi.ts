@@ -20,7 +20,6 @@ export interface IntegrationItem {
 }
 
 export interface IntegrationDocumentation {
-  url: string;
   overview: string;
   add: string[];
   use: string[];
