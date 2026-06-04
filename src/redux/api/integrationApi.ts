@@ -19,12 +19,41 @@ export interface IntegrationItem {
   icon?: string;
 }
 
+export interface IntegrationDocumentation {
+  url: string;
+  overview: string;
+  add: string[];
+  use: string[];
+  remove: string[];
+}
+
+export interface PublicIntegrationItem {
+  type: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: string;
+  requiresOAuth: boolean;
+  availability: string;
+  comingSoonMessage?: string | null;
+  documentation?: IntegrationDocumentation | null;
+}
+
 export interface GetIntegrationsResponse {
   success: boolean;
   status: number;
   message: string;
   response: {
     data: IntegrationItem[] | { docs: IntegrationItem[] };
+  };
+}
+
+export interface GetPublicIntegrationsResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response: {
+    data: PublicIntegrationItem[];
   };
 }
 
@@ -82,6 +111,9 @@ export const integrationApi = createApi({
       query: () => "integration",
       providesTags: ["Integrations"],
     }),
+    getPublicIntegrations: builder.query<GetPublicIntegrationsResponse, void>({
+      query: () => "integration/public",
+    }),
     getIntegrationOAuthUrl: builder.query<GetIntegrationOAuthResponse, string>({
       query: (type) => `integration/oauth/${type}`,
     }),
@@ -100,6 +132,7 @@ export const integrationApi = createApi({
 
 export const {
   useGetIntegrationsQuery,
+  useGetPublicIntegrationsQuery,
   useLazyGetIntegrationOAuthUrlQuery,
   useDisconnectIntegrationMutation,
   useLazyCheckIntegrationHealthQuery,

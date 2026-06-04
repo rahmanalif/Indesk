@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   CalendarDays,
   CreditCard,
+  FileText,
   ExternalLink,
   Mail,
   MessageSquare,
@@ -18,6 +19,7 @@ import { IntegrationPermissionsModal } from '../components/modals/IntegrationPer
 import {
   useDisconnectIntegrationMutation,
   useGetIntegrationsQuery,
+  useGetPublicIntegrationsQuery,
   useLazyCheckIntegrationHealthQuery,
   useLazyGetIntegrationOAuthUrlQuery,
 } from '../redux/api/integrationApi';
@@ -184,12 +186,14 @@ export function IntegrationsPage() {
   const [healthState, setHealthState] = useState<{ summary: string; details: string | null; tone: 'default' | 'success' | 'error' } | null>(null);
 
   const { data: integrationsResponse, isLoading, isError, error, refetch } = useGetIntegrationsQuery();
+  const { data: publicDocsResponse } = useGetPublicIntegrationsQuery();
   const [getOAuthUrl] = useLazyGetIntegrationOAuthUrlQuery();
   const [disconnectIntegration, { isLoading: isDisconnecting }] = useDisconnectIntegrationMutation();
   const [checkIntegrationHealth, { isFetching: isCheckingHealth }] = useLazyCheckIntegrationHealthQuery();
 
   const apiListRaw = integrationsResponse?.response?.data;
   const apiIntegrations = Array.isArray(apiListRaw) ? apiListRaw : apiListRaw?.docs || [];
+  const publicDocs = publicDocsResponse?.response?.data || [];
 
   const integrationList = useMemo(() => {
     if (!apiIntegrations.length) return [];
@@ -442,6 +446,57 @@ export function IntegrationsPage() {
             </CardContent>
           </Card> */}
         </div>
+      )}
+
+      {publicDocs.length > 0 && (
+        <Card className="border-border/50">
+          <CardContent className="p-6">
+            <div className="mb-6 flex items-start justify-between gap-4">
+              <div>
+                <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-primary/10 bg-primary/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                  <FileText className="h-3.5 w-3.5" />
+                  Included Policies
+                </div>
+                <h2 className="text-xl font-semibold text-foreground">Integration documentation</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Public setup notes for the integrations available in InDesk.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {publicDocs.map((item) => (
+                <div key={item.type} className="rounded-xl border border-border/60 bg-card/40 p-4">
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-base font-semibold text-foreground">{item.name}</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {item.documentation?.overview || item.description}
+                      </p>
+                    </div>
+                    {item.availability === 'coming_soon' ? (
+                      <Badge variant="secondary">{item.comingSoonMessage || 'Coming Soon'}</Badge>
+                    ) : (
+                      <Badge variant="info">Public</Badge>
+                    )}
+                  </div>
+
+                  {item.documentation?.url && (
+                    <a
+                      href={item.documentation.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
+                    >
+                      View public API
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       <IntegrationPermissionsModal
