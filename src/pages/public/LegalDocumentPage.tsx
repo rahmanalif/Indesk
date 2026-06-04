@@ -5,6 +5,29 @@ import { Footer } from '../../components/landing/Footer';
 import { Navbar } from '../../components/landing/Navbar';
 import { legalDocumentsBySlug } from '../../content/legalDocuments';
 
+const emailPattern = /([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/gi;
+const emailOnlyPattern = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+
+function renderTextWithMailto(text: string) {
+  const parts = text.split(emailPattern);
+
+  return parts.map((part, index) => {
+    if (emailOnlyPattern.test(part)) {
+      return (
+        <a
+          key={`${part}-${index}`}
+          href={`mailto:${part}`}
+          className="font-medium text-terracotta transition-colors hover:text-charcoal"
+        >
+          {part}
+        </a>
+      );
+    }
+
+    return <span key={`${part}-${index}`}>{part}</span>;
+  });
+}
+
 export function LegalDocumentPage() {
   const { slug } = useParams<{ slug: string }>();
 
@@ -17,6 +40,7 @@ export function LegalDocumentPage() {
   }
 
   const document = legalDocumentsBySlug[slug];
+  const isSupportPage = document.slug === 'support';
 
   return (
     <main className="min-h-screen bg-cream text-charcoal">
@@ -44,7 +68,7 @@ export function LegalDocumentPage() {
           <div className="max-w-3xl">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-terracotta/20 bg-white/60 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-terracotta">
               <FileText size={14} />
-              Legal Document
+              {isSupportPage ? 'Support' : 'Legal Document'}
             </div>
             <h1 className="text-4xl font-serif font-semibold leading-tight text-charcoal sm:text-5xl">
               {document.title}
@@ -65,7 +89,7 @@ export function LegalDocumentPage() {
           <aside className="lg:sticky lg:top-28 lg:self-start">
             <div className="rounded-2xl border border-charcoal/10 bg-white p-6 shadow-sm">
               <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-charcoal/50">
-                Included Policies
+                Policies & Support
               </h2>
               <ul className="mt-5 space-y-3 text-sm text-warm-gray">
                 {Object.values(legalDocumentsBySlug).map((item) => (
@@ -118,7 +142,7 @@ export function LegalDocumentPage() {
 
                   <div className="space-y-5 text-base leading-8 text-warm-gray">
                     {section.paragraphs.map((paragraph) => (
-                      <p key={paragraph}>{paragraph}</p>
+                      <p key={paragraph}>{renderTextWithMailto(paragraph)}</p>
                     ))}
                   </div>
 

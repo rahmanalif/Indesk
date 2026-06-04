@@ -14,6 +14,7 @@ const accountLinks = [
 ];
 
 const legalLinks = [
+  { label: 'Support', to: '/legal/support' },
   { label: 'Privacy Policy', to: '/legal/privacy-policy' },
   { label: 'Terms of Service', to: '/legal/terms-of-service' },
   { label: 'Website Terms', to: '/legal/terms-of-website-use' },

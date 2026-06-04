@@ -16,6 +16,51 @@ export interface LegalDocument {
 
 export const legalDocuments: LegalDocument[] = [
   {
+    slug: 'support',
+    title: 'Support',
+    shortTitle: 'Support',
+    summary:
+      'How to contact the InDesk team for product help, account queries, and operational support.',
+    effectiveDate: 'June 2026',
+    intro: [
+      'We want support to be easy to find and simple to use. If you need help with InDesk, contact us and we will point you in the right direction as quickly as we can.',
+    ],
+    sections: [
+      {
+        heading: 'Support Contact',
+        paragraphs: [
+          'For support with InDesk, email support@myindesk.com.',
+          'Please use this address for product questions, account help, billing support, and general operational issues related to the platform.',
+        ],
+      },
+      {
+        heading: 'Response Times',
+        paragraphs: [
+          'We aim to respond to support requests within one working day.',
+          'If your request is urgent, include a short subject line explaining the issue clearly so the team can triage it quickly.',
+        ],
+      },
+      {
+        heading: 'What To Include',
+        paragraphs: [
+          'To help us investigate faster, include your practice name, the email associated with your account, and a brief description of the issue you are facing.',
+        ],
+        bullets: [
+          'What you were trying to do.',
+          'What happened instead.',
+          'Any error message you saw.',
+          'Screenshots if they help explain the issue.',
+        ],
+      },
+      {
+        heading: 'Sensitive Information',
+        paragraphs: [
+          'Do not include patient names, identifiable clinical information, or other special category personal data in support emails unless we have explicitly asked for a secure follow-up process.',
+        ],
+      },
+    ],
+  },
+  {
     slug: 'privacy-policy',
     title: 'Privacy Policy',
     shortTitle: 'Privacy Policy',
@@ -254,7 +299,7 @@ export const legalDocuments: LegalDocument[] = [
       {
         heading: '2.9 Support',
         paragraphs: [
-          'Support is available via the in-platform help centre and by emailing info@myindesk.com. We aim to respond within one working day. Please do not include patient names or identifiable clinical information in support messages.',
+          'Support is available via the in-platform help centre and by emailing support@myindesk.com. We aim to respond within one working day. Please do not include patient names or identifiable clinical information in support messages.',
         ],
       },
       {
