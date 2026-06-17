@@ -853,6 +853,26 @@ interface CreateAppointmentResponse {
   };
 }
 
+export interface UpdateAppointmentRequest {
+  id: string;
+  sessionId?: string;
+  clientId?: string;
+  clinicianId?: string;
+  date?: string;
+  time?: string;
+  note?: string | null;
+  meetingType?: string | null;
+}
+
+export interface UpdateAppointmentResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response: {
+    data: ClientAppointment;
+  };
+}
+
 export interface GetCalendarAppointmentsParams {
   startDate?: string;
   endDate?: string;
@@ -1888,6 +1908,29 @@ export const clientsApi = createApi({
       invalidatesTags: ["Clients"],
     }),
 
+    updateAppointment: builder.mutation<
+      UpdateAppointmentResponse,
+      UpdateAppointmentRequest
+    >({
+      query: ({ id, ...body }) => ({
+        url: `/appointment/${id}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: ["Clients"],
+    }),
+
+    deleteAppointment: builder.mutation<
+      { success: boolean; message: string },
+      string
+    >({
+      query: (id) => ({
+        url: `/appointment/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Clients"],
+    }),
+
     createClinicMember: builder.mutation<
       ClinicMemberMutationResponse,
       CreateClinicMemberRequest
@@ -2009,6 +2052,8 @@ export const {
   useUpdateSessionMutation,
   useDeleteSessionMutation,
   useCreateAppointmentMutation,
+  useUpdateAppointmentMutation,
+  useDeleteAppointmentMutation,
   useCreateClinicMemberMutation,
   useUpdateClinicMemberMutation,
   useUpdateClinicMemberRoleMutation,

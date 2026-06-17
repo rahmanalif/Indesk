@@ -11,7 +11,7 @@ import { TimePicker } from '../ui/TimePicker';
 import { Textarea } from '../ui/Textarea';
 import { useData } from '../../context/DataContext';
 import { cn } from '../../lib/utils';
-import { useCreateAppointmentMutation, useGetClientByIdQuery, useGetClinicMembersQuery, useGetSessionsQuery, useGetClientsQuery } from '../../redux/api/clientsApi';
+import { useCreateAppointmentMutation, useUpdateAppointmentMutation, useGetClientByIdQuery, useGetClinicMembersQuery, useGetSessionsQuery, useGetClientsQuery } from '../../redux/api/clientsApi';
 import { useGetIntegrationsQuery } from '../../redux/api/integrationApi';
 import type { RootState } from '../../store';
 
@@ -59,6 +59,7 @@ export function CreateAppointmentModal({
   const currentUser = useSelector((state: RootState) => state.auth.user);
   const { addAppointment, updateAppointment } = useData();
   const [createAppointment] = useCreateAppointmentMutation();
+  const [updateAppointmentApi] = useUpdateAppointmentMutation();
   const { data: integrationsResponse } = useGetIntegrationsQuery(undefined, {
     skip: !isOpen,
   });
@@ -332,7 +333,7 @@ export function CreateAppointmentModal({
       videoLink: existingData?.videoLink,
     };
 
-    createAppointment({
+    const payload = {
       sessionId: sessionType,
       clientId: selectedClientId.toString(),
       clinicianId: clinicianIdToSend,
@@ -340,7 +341,13 @@ export function CreateAppointmentModal({
       time: timeIso,
       note: notes || null,
       meetingType,
-    })
+    };
+
+    const action = existingData?.id 
+      ? updateAppointmentApi({ id: existingData.id, ...payload })
+      : createAppointment(payload);
+
+    action
       .unwrap()
       .then(async () => {
         await onAppointmentCreated?.();

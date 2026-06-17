@@ -10,13 +10,17 @@ interface AppointmentModalProps {
   onClose: () => void;
   appointment: any; // Replace with proper type
   onEdit?: () => void;
+  onDelete?: (id: string | number) => void;
+  isDeleting?: boolean;
 }
 
 export function AppointmentModal({
   isOpen,
   onClose,
   appointment,
-  onEdit
+  onEdit,
+  onDelete,
+  isDeleting
 }: AppointmentModalProps) {
   if (!appointment) return null;
   return (
@@ -82,7 +86,16 @@ export function AppointmentModal({
 
         {/* Actions */}
         <div className="flex items-center justify-between pt-4 border-t border-border/50">
-          <Button variant="destructive" className="text-red-500 hover:text-red-600 hover:bg-red-50">
+          <Button 
+            variant="destructive" 
+            className="text-red-500 hover:text-red-600 hover:bg-red-50"
+            isLoading={isDeleting}
+            onClick={() => {
+              if (window.confirm('Are you sure you want to cancel this appointment?')) {
+                onDelete?.(appointment.id);
+              }
+            }}
+          >
             <Trash2 className="mr-2 h-4 w-4" />
             Cancel
           </Button>

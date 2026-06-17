@@ -6,6 +6,7 @@ import { cn } from '../lib/utils';
 import { AppointmentModal } from './AppointmentModal';
 import { CreateAppointmentModal } from './modals/CreateAppointmentModal';
 import { useData } from '../context/DataContext';
+import { useDeleteAppointmentMutation } from '../redux/api/clientsApi';
 
 export type ViewMode = 'day' | 'week' | 'month';
 
@@ -23,7 +24,18 @@ export function Calendar({
   const [view, setView] = useState<ViewMode>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
 
-  const { appointments: allAppointments, addAppointment, updateAppointment } = useData();
+  const { appointments: allAppointments, addAppointment, updateAppointment, deleteAppointment } = useData();
+  const [deleteAppointmentApi, { isLoading: isDeleting }] = useDeleteAppointmentMutation();
+
+  const handleDeleteAppointment = async (id: string | number) => {
+    try {
+      await deleteAppointmentApi(String(id)).unwrap();
+      deleteAppointment(Number(id));
+      setSelectedAppointment(null);
+    } catch (error: any) {
+      alert(error?.data?.message || 'Failed to delete appointment');
+    }
+  };
 
   // Use filtered appointments if provided, otherwise use all
   const appointments = filteredAppointments || allAppointments;
@@ -221,6 +233,8 @@ export function Calendar({
       onClose={() => setSelectedAppointment(null)}
       appointment={selectedAppointment}
       onEdit={() => selectedAppointment && handleEditAppointment(selectedAppointment)}
+      onDelete={handleDeleteAppointment}
+      isDeleting={isDeleting}
     />
     <CreateAppointmentModal
       isOpen={isCreateModalOpen}
