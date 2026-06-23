@@ -178,8 +178,8 @@ export function PublicAssessmentPage() {
             </div>
           </div>
           <a
-            href={clinicPhone !== 'Not provided' ? `tel:${clinicPhone}` : undefined}
-            className="hidden sm:flex items-center gap-2 px-4 py-2 text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-all shadow-sm"
+            href={clinicPhone && clinicPhone !== "-" && clinicPhone !== "Not provided" ? `tel:${clinicPhone}` : undefined}
+            className={`hidden sm:flex items-center gap-2 px-4 py-2 text-white text-sm font-semibold rounded-xl transition-all shadow-sm ${clinicPhone && clinicPhone !== "-" && clinicPhone !== "Not provided" ? "hover:opacity-90" : "opacity-50 pointer-events-none cursor-not-allowed"}`}
             style={{ background: color }}
           >
             <Phone className="h-3.5 w-3.5" />
@@ -222,7 +222,7 @@ export function PublicAssessmentPage() {
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">{item.label}</p>
-                <p className="text-sm font-semibold text-slate-800 truncate">{item.value}</p>
+                <p className="text-sm font-semibold text-slate-800 truncate">{item.value && item.value !== "-" && item.value !== "Not provided" ? item.value : "N/A"}</p>
               </div>
             </div>
           ))}

@@ -6,12 +6,9 @@ import { Textarea } from '../ui/Textarea';
 import { Select } from '../ui/Select';
 import { DatePicker } from '../ui/DatePicker';
 import {
-  COUNTRY_PHONE_OPTIONS,
   COUNTRY_OPTIONS,
-  getCountryPhoneError,
-  getCountryPhoneOption,
-  normalizePhoneDigits,
 } from '../../lib/countryPhoneOptions';
+import { PhoneNumberInput, isValidPhoneNumber, parsePhoneNumber } from '../ui/PhoneNumberInput';
 import {
   useGetClinicMembersQuery,
   useGetClinicQuery,
@@ -127,13 +124,8 @@ export function CreateClientModal({
     clinicId: '',
     assignedClinicianId: ''
   });
-  const selectedCountryPhone = useMemo(
-    () => getCountryPhoneOption(formData.countryCode),
-    [formData.countryCode]
-  );
-
   const validatePhoneNumber = (phoneNumber: string) => {
-    return getCountryPhoneError(phoneNumber, selectedCountryPhone);
+    return phoneNumber && isValidPhoneNumber(phoneNumber) ? '' : 'Please enter a valid phone number';
   };
 
   useEffect(() => {
@@ -185,6 +177,8 @@ export function CreateClientModal({
       formData.address.zip
     ].some(value => value.trim().length > 0);
 
+    const parsedPhone = parsePhoneNumber(formData.phoneNumber || '');
+
     // Format the data for API
     const apiData: CreateClientRequest = {
       firstName,
@@ -192,8 +186,8 @@ export function CreateClientModal({
       email: formData.email.trim() || undefined,
       dateOfBirth: formData.dateOfBirth || null,
       gender: formData.gender || null,
-      phoneNumber: formData.phoneNumber,
-      countryCode: formData.countryCode,
+      phoneNumber: parsedPhone ? parsedPhone.nationalNumber : formData.phoneNumber,
+      countryCode: parsedPhone ? `+${parsedPhone.countryCallingCode}` : formData.countryCode,
       address: hasAddressDetails ? {
         street: formData.address.street,
         city: formData.address.city,
@@ -216,11 +210,10 @@ export function CreateClientModal({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     if (name === 'phoneNumber') {
-      const digitsOnly = normalizePhoneDigits(value, selectedCountryPhone);
       if (phoneError) {
         setPhoneError('');
       }
-      setFormData(prev => ({ ...prev, [name]: digitsOnly }));
+      setFormData(prev => ({ ...prev, [name]: value }));
       return;
     }
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -329,25 +322,18 @@ export function CreateClientModal({
                 />
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Select
-                  label="Country Code"
-                  name="countryCode"
-                  value={formData.countryCode}
-                  onChange={handleSelectChange}
-                  options={COUNTRY_PHONE_OPTIONS}
-                />
-                <Input
-                  label="Phone Number"
-                  type="tel"
-                  placeholder={selectedCountryPhone.example || `Up to ${selectedCountryPhone.maxDigits} digits`}
-                  name="phoneNumber"
-                  value={formData.phoneNumber}
-                  onChange={handleChange}
-                  onBlur={() => setPhoneError(validatePhoneNumber(formData.phoneNumber))}
-                  error={phoneError}
-                  maxLength={selectedCountryPhone.maxDigits}
-                />
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Phone Number *</label>
+                  <PhoneNumberInput
+                    value={formData.phoneNumber}
+                    onChange={(val) => {
+                      setFormData(prev => ({ ...prev, phoneNumber: val }));
+                      if (phoneError) setPhoneError('');
+                    }}
+                    error={phoneError}
+                  />
+                </div>
               </div>
             </div>
 

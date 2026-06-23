@@ -1,4 +1,4 @@
-﻿
+
 import { useState, useEffect, useMemo, useRef } from 'react';
 import {
     X, User, Calendar, CheckCircle, ChevronRight, Clock,
@@ -8,6 +8,7 @@ import { useData } from '../../context/DataContext';
 import { MOCK_CLINIC_DETAILS } from '../../lib/mockData';
 import { hexToRgb, brandGradient, brandBg } from '../../lib/branding';
 import { useGetSessionsByClinicianTokenQuery } from '../../redux/api/clientsApi';
+import { PhoneNumberInput, isValidPhoneNumber } from '../ui/PhoneNumberInput';
 
 export interface BookAppointmentModalProps {
     isOpen: boolean;
@@ -285,7 +286,6 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
             if (matchedDay) {
                 setSelectedDay(matchedDay.day);
                 setSelectedSlot(preselectedSlot.time);
-                setStep(2);
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -308,7 +308,7 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
         if (!formData.firstName.trim()) e.firstName = 'First name is required.';
         if (!formData.lastName.trim()) e.lastName = 'Last name is required.';
         if (!formData.email.match(/^[^@]+@[^@]+\.[^@]+$/)) e.email = 'Enter a valid email.';
-        if (!formData.phone.trim()) e.phone = 'Phone number is required.';
+        if (!formData.phone || !isValidPhoneNumber(formData.phone)) e.phone = 'Enter a valid phone number.';
         setErrors(e); return Object.keys(e).length === 0;
     };
     const validateStep2 = () => {
@@ -475,12 +475,11 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-700 mb-1.5">Phone Number *</label>
-                                <div className="relative">
-                                    <Phone className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                    <input type="tel" value={formData.phone} onChange={e => setFormData(f => ({ ...f, phone: e.target.value }))} placeholder="+1 (555) 000-0000"
-                                        className={`${inputWithIcon} ${errors.phone ? 'border-red-400 bg-red-50' : 'border-slate-200'}`} />
-                                </div>
-                                {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+                                <PhoneNumberInput
+                                    value={formData.phone}
+                                    onChange={(val) => setFormData(f => ({ ...f, phone: val }))}
+                                    error={errors.phone}
+                                />
                             </div>
                         </div>
                     )}

@@ -217,7 +217,11 @@ export function PublicClientIntakePage() {
               <p className="text-[10px] font-medium uppercase tracking-[0.24em] text-slate-500">Public Client Intake Form</p>
             </div>
           </div>
-          <a href={clinicPhone ? `tel:${clinicPhone}` : undefined} className="hidden items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 sm:flex" style={{ background: brandColor }}>
+          <a
+            href={clinicPhone && clinicPhone !== "-" && clinicPhone !== "Not provided" ? `tel:${clinicPhone}` : undefined}
+            className={`hidden items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-sm transition sm:flex ${clinicPhone && clinicPhone !== "-" && clinicPhone !== "Not provided" ? "hover:opacity-90" : "opacity-50 pointer-events-none cursor-not-allowed"}`}
+            style={{ background: brandColor }}
+          >
             <Phone className="h-3.5 w-3.5" />
             Contact
           </a>
@@ -260,7 +264,7 @@ export function PublicClientIntakePage() {
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{item.label}</p>
-                <p className="truncate text-sm font-semibold text-slate-800">{item.value}</p>
+                <p className="truncate text-sm font-semibold text-slate-800">{item.value && item.value !== "-" && item.value !== "Not provided" ? item.value : "N/A"}</p>
               </div>
             </div>
           ))}

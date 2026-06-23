@@ -103,6 +103,32 @@ export function PublicClinicianPage() {
     skip: !clinicianToken,
   });
 
+  const parsedApiSessions = useMemo(() => {
+    const raw = clinicianSessionsResponse?.response?.data as any;
+    const rows = Array.isArray(raw) ? raw : (Array.isArray(raw?.docs) ? raw.docs : []);
+    return rows.map((session: any, index: number) => {
+      const durationMinutes = Number(session?.duration) || 50;
+      const priceNumber = Number(session?.price);
+      return {
+        id: session?.id || session?._id || `api-session-${index}`,
+        name: session?.name || 'Session',
+        durationLabel: `${durationMinutes} min`,
+        priceLabel: Number.isFinite(priceNumber) && priceNumber >= 0 ? `£${priceNumber}` : (session?.price || '-'),
+      };
+    });
+  }, [clinicianSessionsResponse]);
+
+  const parsedFallbackSessions = useMemo(() => {
+    return fallbackSessionTypes.map((session) => ({
+      id: session.id,
+      name: session.name,
+      durationLabel: session.duration || '50 min',
+      priceLabel: session.price || '-',
+    }));
+  }, [fallbackSessionTypes]);
+
+  const sessionOptions = parsedApiSessions.length > 0 ? parsedApiSessions : parsedFallbackSessions;
+
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center text-slate-500">Loading clinician profile...</div>;
   }
@@ -125,29 +151,7 @@ export function PublicClinicianPage() {
   }
 
   const availability = clinician.availability || [];
-  const parsedApiSessions = useMemo(() => {
-    const raw = clinicianSessionsResponse?.response?.data as any;
-    const rows = Array.isArray(raw) ? raw : (Array.isArray(raw?.docs) ? raw.docs : []);
-    return rows.map((session: any, index: number) => {
-      const durationMinutes = Number(session?.duration) || 50;
-      const priceNumber = Number(session?.price);
-      return {
-        id: session?.id || session?._id || `api-session-${index}`,
-        name: session?.name || 'Session',
-        durationLabel: `${durationMinutes} min`,
-        priceLabel: Number.isFinite(priceNumber) && priceNumber >= 0 ? `£${priceNumber}` : (session?.price || '-'),
-      };
-    });
-  }, [clinicianSessionsResponse]);
-  const parsedFallbackSessions = useMemo(() => {
-    return fallbackSessionTypes.map((session) => ({
-      id: session.id,
-      name: session.name,
-      durationLabel: session.duration || '50 min',
-      priceLabel: session.price || '-',
-    }));
-  }, [fallbackSessionTypes]);
-  const sessionOptions = parsedApiSessions.length > 0 ? parsedApiSessions : parsedFallbackSessions;
+
 
   const getDayIsoDate = (dayName: string) => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

@@ -4,12 +4,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { AvailabilityScheduleEditor } from '../clinicians/AvailabilityScheduleEditor';
-import {
-  COUNTRY_PHONE_OPTIONS,
-  getCountryPhoneError,
-  getCountryPhoneOption,
-  normalizePhoneDigits,
-} from '../../lib/countryPhoneOptions';
+import { PhoneNumberInput, isValidPhoneNumber, parsePhoneNumber } from '../ui/PhoneNumberInput';
 import { useCreateClinicMemberMutation } from '../../redux/api/clientsApi';
 import {
   buildAvailabilitySchedulePayload,
@@ -43,7 +38,6 @@ export function CreateClinicianModal({
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState(initialRole);
-  const [countryCode, setCountryCode] = useState('+44');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [availability, setAvailability] = useState<string[]>(['monday', 'tuesday', 'wednesday', 'thursday', 'friday']);
   const [availabilitySchedule, setAvailabilitySchedule] = useState<AvailabilityDaySchedule[]>(
@@ -51,14 +45,12 @@ export function CreateClinicianModal({
   );
   const [bio, setBio] = useState('');
   const [specializationText, setSpecializationText] = useState('');
-  const selectedCountryPhone = useMemo(() => getCountryPhoneOption(countryCode), [countryCode]);
 
   const resetForm = () => {
     setFirstName('');
     setLastName('');
     setEmail('');
     setPhoneNumber('');
-    setCountryCode('+44');
     setPhoneError('');
     setSubmitError('');
     setRole(initialRole);
@@ -76,7 +68,7 @@ export function CreateClinicianModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const nextPhoneError = getCountryPhoneError(phoneNumber, selectedCountryPhone);
+    const nextPhoneError = phoneNumber && isValidPhoneNumber(phoneNumber) ? '' : 'Please enter a valid phone number';
     setPhoneError(nextPhoneError);
     setSubmitError('');
     if (nextPhoneError) {
@@ -89,13 +81,15 @@ export function CreateClinicianModal({
       .map((item) => item.trim())
       .filter(Boolean);
 
+    const parsedPhone = parsePhoneNumber(phoneNumber || '');
+
     createClinicMember({
       email: email.trim(),
       role,
       firstName: firstName.trim(),
       lastName: lastName.trim(),
-      phoneNumber: phoneNumber.trim() || undefined,
-      countryCode: countryCode.trim() || undefined,
+      phoneNumber: parsedPhone ? parsedPhone.nationalNumber : phoneNumber.trim() || undefined,
+      countryCode: parsedPhone ? `+${parsedPhone.countryCallingCode}` : undefined,
       bio: bio.trim() || undefined,
       specialization: specialization.length > 0 ? specialization : undefined,
       availabilitySchedule: buildAvailabilitySchedulePayload(availability, availabilitySchedule),
@@ -137,43 +131,19 @@ export function CreateClinicianModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="w-full space-y-1.5">
-              <label className={modalLabelClassName}>Country Code</label>
-              <select
-                value={countryCode}
-                onChange={(e) => {
-                  const nextCountryCode = e.target.value;
-                  const nextCountryPhone = getCountryPhoneOption(nextCountryCode);
-                  const trimmedPhoneNumber = normalizePhoneDigits(phoneNumber, nextCountryPhone);
-                  setCountryCode(nextCountryCode);
-                  setPhoneNumber(trimmedPhoneNumber);
-                  setPhoneError(trimmedPhoneNumber ? getCountryPhoneError(trimmedPhoneNumber, nextCountryPhone) : '');
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <label className={modalLabelClassName}>Phone Number</label>
+              <PhoneNumberInput
+                value={phoneNumber}
+                onChange={(val) => {
+                  setPhoneNumber(val);
+                  if (phoneError) setPhoneError('');
                 }}
-                className={modalSelectClassName}
-              >
-                {COUNTRY_PHONE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                error={phoneError}
+                className="mt-1.5"
+              />
             </div>
-            <Input
-              label="Phone"
-              type="tel"
-              value={phoneNumber}
-              onChange={(e) => {
-                setPhoneNumber(normalizePhoneDigits(e.target.value, selectedCountryPhone));
-                if (phoneError) {
-                  setPhoneError('');
-                }
-              }}
-              onBlur={() => setPhoneError(getCountryPhoneError(phoneNumber, selectedCountryPhone))}
-              placeholder={selectedCountryPhone.example || `Up to ${selectedCountryPhone.maxDigits} digits`}
-              maxLength={selectedCountryPhone.maxDigits}
-              error={phoneError}
-            />
           </div>
 
           <Input

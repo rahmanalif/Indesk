@@ -6,12 +6,7 @@ import { Select } from '../components/ui/Select';
 import { Eye, EyeOff, ArrowRight, AlertCircle, Mail, KeyRound } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { getFriendlyErrorMessage } from '../lib/utils';
-import {
-  COUNTRY_PHONE_OPTIONS,
-  getCountryPhoneError,
-  getCountryPhoneOption,
-  normalizePhoneDigits,
-} from '../lib/countryPhoneOptions';
+import { PhoneNumberInput, isValidPhoneNumber, parsePhoneNumber } from '../components/ui/PhoneNumberInput';
 import {
   useCancelPlanOnboardingMutation,
   useCreatePlanCheckoutMutation,
@@ -109,7 +104,6 @@ export function LoginPage() {
   const [signupError, setSignupError] = useState('');
   const [pendingOnboardingId, setPendingOnboardingId] = useState('');
   const selectedPlan = availablePlans.find((plan) => plan.id === signupData.planId);
-  const selectedCountryPhone = getCountryPhoneOption(signupData.countryCode);
   const isSignupLoading = isInitiating || isVerifyingEmail || isCreatingCheckout || isCancellingOnboarding;
   const isLoading = authLoading || isSignupLoading;
   const isPlanSelectDisabled = isLoading || ((isPlansLoading || isPlansFetching) && planOptions.length === 0);
@@ -240,19 +234,12 @@ export function LoginPage() {
       errors.clinicEmail = 'Please enter a valid clinic email address';
       isValid = false;
     }
-    if (signupData.clinicPhone.trim() && !signupData.countryCode.trim()) {
-      errors.countryCode = 'Country code is required';
-      isValid = false;
-    }
     if (!signupData.clinicPhone.trim()) {
       errors.clinicPhone = 'Clinic phone is required';
       isValid = false;
-    } else {
-      const phoneError = getCountryPhoneError(signupData.clinicPhone, selectedCountryPhone);
-      if (phoneError) {
-        errors.clinicPhone = phoneError.endsWith('.') ? phoneError.slice(0, -1) : phoneError;
-        isValid = false;
-      }
+    } else if (!isValidPhoneNumber(signupData.clinicPhone)) {
+      errors.clinicPhone = 'Please enter a valid phone number';
+      isValid = false;
     }
     if (!signupData.addressStreet.trim()) {
       errors.addressStreet = 'Street address is required';
@@ -338,8 +325,8 @@ export function LoginPage() {
         password: signupData.password,
         clinicName: signupData.clinicName.trim(),
         clinicEmail: signupData.clinicEmail.trim() || undefined,
-        countryCode: signupData.countryCode.trim() || undefined,
-        clinicPhone: signupData.clinicPhone.trim(),
+        countryCode: parsePhoneNumber(signupData.clinicPhone || '') ? `+${parsePhoneNumber(signupData.clinicPhone || '')?.countryCallingCode}` : signupData.countryCode,
+        clinicPhone: parsePhoneNumber(signupData.clinicPhone || '') ? parsePhoneNumber(signupData.clinicPhone || '')?.nationalNumber : signupData.clinicPhone.trim(),
         address: {
           street: signupData.addressStreet.trim(),
           city: signupData.addressCity.trim(),
@@ -472,9 +459,7 @@ export function LoginPage() {
     const nextValue = e.target instanceof HTMLInputElement && e.target.type === 'checkbox'
       ? e.target.checked
       : value;
-    const normalizedValue = name === 'clinicPhone' && typeof nextValue === 'string'
-      ? normalizePhoneDigits(nextValue, selectedCountryPhone)
-      : nextValue;
+    const normalizedValue = nextValue;
 
     setSignupData((prev) => ({
       ...prev,
@@ -772,48 +757,20 @@ export function LoginPage() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <label htmlFor="signup-country-code" className="text-sm font-medium text-foreground">Country Code</label>
-                    <Select
-                      id="signup-country-code"
-                      name="countryCode"
-                      value={signupData.countryCode}
-                      onChange={handleSignupInputChange}
-                      className={`${signupErrors.countryCode ? 'border-red-500' : ''}`}
-                      disabled={isLoading}
-                    >
-                      {COUNTRY_PHONE_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </Select>
-                    {signupErrors.countryCode && <p className="text-sm text-red-500">{signupErrors.countryCode}</p>}
-                  </div>
-
-                  <div className="space-y-2">
+                  <div className="space-y-2 sm:col-span-2">
                     <label htmlFor="signup-clinic-phone" className="text-sm font-medium text-foreground">Clinic Phone</label>
-                    <Input
+                    <PhoneNumberInput
                       id="signup-clinic-phone"
                       name="clinicPhone"
                       value={signupData.clinicPhone}
-                      onChange={handleSignupInputChange}
-                      placeholder={selectedCountryPhone.example}
-                      inputMode="numeric"
-                      maxLength={selectedCountryPhone.maxDigits}
-                      className={`h-11 bg-white ${signupErrors.clinicPhone ? 'border-red-500' : ''}`}
-                      disabled={isLoading}
+                      onChange={(val) => {
+                        setSignupData(prev => ({ ...prev, clinicPhone: val }));
+                        if (signupErrors.clinicPhone) {
+                          setSignupErrors(prev => ({ ...prev, clinicPhone: '' }));
+                        }
+                      }}
+                      error={signupErrors.clinicPhone}
                     />
-                    {signupErrors.clinicPhone && <p className="text-sm text-red-500">{signupErrors.clinicPhone}</p>}
-                    {!signupErrors.clinicPhone && (
-                      <p className="text-xs text-muted-foreground">
-                        {selectedCountryPhone.minDigits === selectedCountryPhone.maxDigits
-                          ? selectedCountryPhone.value === '+44'
-                            ? 'Use your full UK number, for example 07860599155'
-                            : `${selectedCountryPhone.maxDigits} digits required`
-                          : `${selectedCountryPhone.minDigits}-${selectedCountryPhone.maxDigits} digits required`}
-                      </p>
-                    )}
                   </div>
 
                   <div className="space-y-2 sm:col-span-2">

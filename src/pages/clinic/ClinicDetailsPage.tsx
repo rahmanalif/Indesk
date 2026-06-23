@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { MapPin, Globe, Mail, Phone, Upload, Check } from 'lucide-react';
+import { MapPin, Globe, Mail, Upload, Check } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../..
 import { useData } from '../../context/DataContext';
 import { cn } from '../../lib/utils';
 import { useGetClinicQuery, useUpdateClinicMutation } from '../../redux/api/clientsApi';
+import { PhoneNumberInput, parsePhoneNumber } from '../../components/ui/PhoneNumberInput';
 
 const CLINIC_CURRENCY_STORAGE_KEY = 'clinic_currency_preference';
 const CURRENCY_OPTIONS = [
@@ -72,7 +73,6 @@ export function ClinicDetailsPage() {
     const [clinicNameInput, setClinicNameInput] = useState('');
     const [clinicEmailInput, setClinicEmailInput] = useState('');
     const [clinicPhoneInput, setClinicPhoneInput] = useState('');
-    const [countryCodeInput, setCountryCodeInput] = useState('');
     const [clinicWebsiteInput, setClinicWebsiteInput] = useState('');
     const [currencyInput, setCurrencyInput] = useState(() => localStorage.getItem(CLINIC_CURRENCY_STORAGE_KEY) || 'GBP');
     const [streetInput, setStreetInput] = useState('');
@@ -85,8 +85,7 @@ export function ClinicDetailsPage() {
 
         setClinicNameInput((prev) => clinic.name ?? prev);
         setClinicEmailInput((prev) => clinic.email ?? prev);
-        setClinicPhoneInput((prev) => clinic.phoneNumber ?? prev);
-        setCountryCodeInput((prev) => clinic.countryCode ?? prev);
+        setClinicPhoneInput((prev) => clinic.phoneNumber ? `${clinic.countryCode || ''}${clinic.phoneNumber}` : prev);
         setClinicWebsiteInput((prev) => (clinic as any).url ?? prev);
         setStreetInput((prev) => (clinicAddress as any).street ?? prev);
         setCityInput((prev) => (clinicAddress as any).city ?? prev);
@@ -114,12 +113,13 @@ export function ClinicDetailsPage() {
         setIsLoading(true);
 
         try {
+            const parsedPhone = parsePhoneNumber(clinicPhoneInput || '');
             const response = await updateClinicMutation({
                 name: clinicNameInput || clinic?.name || '',
                 email: clinicEmailInput || clinic?.email || '',
                 color: tempColor,
-                phoneNumber: clinicPhoneInput,
-                countryCode: countryCodeInput,
+                phoneNumber: parsedPhone ? parsedPhone.nationalNumber : clinicPhoneInput,
+                countryCode: parsedPhone ? `+${parsedPhone.countryCallingCode}` : undefined,
                 url: clinicWebsiteInput,
                 address: {
                     street: streetInput,
@@ -142,8 +142,7 @@ export function ClinicDetailsPage() {
                 const updatedAddress = normalizeAddress(updatedClinic.address);
                 setClinicNameInput(updatedClinic.name ?? clinicNameInput);
                 setClinicEmailInput(updatedClinic.email ?? clinicEmailInput);
-                setClinicPhoneInput(updatedClinic.phoneNumber ?? clinicPhoneInput);
-                setCountryCodeInput(updatedClinic.countryCode ?? countryCodeInput);
+                setClinicPhoneInput(updatedClinic.phoneNumber ? `${updatedClinic.countryCode || ''}${updatedClinic.phoneNumber}` : clinicPhoneInput);
                 setClinicWebsiteInput((updatedClinic as any).url ?? clinicWebsiteInput);
                 setStreetInput((updatedAddress as any)?.street ?? streetInput);
                 setCityInput((updatedAddress as any)?.city ?? cityInput);
@@ -195,26 +194,23 @@ export function ClinicDetailsPage() {
                                 <>
                                     <Input label="Clinic Name" value={clinicName} onChange={(e) => setClinicNameInput(e.target.value)} />
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <Input label="Phone Number" value={clinicPhoneInput} onChange={(e) => setClinicPhoneInput(e.target.value)} icon={<Phone className="h-4 w-4" />} />
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-bold text-primary uppercase tracking-[0.15em] ml-1 block">Phone Number</label>
+                                            <PhoneNumberInput
+                                                value={clinicPhoneInput}
+                                                onChange={(val) => setClinicPhoneInput(val)}
+                                            />
+                                        </div>
                                         <Input label="Email Address" value={clinicEmailInput} onChange={(e) => setClinicEmailInput(e.target.value)} icon={<Mail className="h-4 w-4" />} />
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <Input label="Country Code" value={countryCodeInput} onChange={(e) => setCountryCodeInput(e.target.value)} />
                                         <Input label="Website URL" value={clinicWebsiteInput} onChange={(e) => setClinicWebsiteInput(e.target.value)} icon={<Globe className="h-4 w-4" />} />
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <Select
                                             label="Currency"
                                             value={currencyInput}
                                             onChange={(e) => setCurrencyInput(e.target.value)}
                                             options={CURRENCY_OPTIONS}
                                         />
-                                        {/* <div className="rounded-xl border border-border/60 bg-muted/20 px-4 py-3">
-                                            <p className="text-sm font-medium text-foreground">Selected Currency</p>
-                                            <p className="mt-1 text-sm text-muted-foreground">
-                                                {CURRENCY_OPTIONS.find(opt => opt.value === currencyInput)?.label || currencyInput}
-                                            </p>
-                                        </div> */}
                                     </div>
                                 </>
                             )}
