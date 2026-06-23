@@ -4,7 +4,6 @@ import {
   MapPin,
   Phone,
   Mail,
-  Globe,
   ArrowRight,
   Star,
   Shield,

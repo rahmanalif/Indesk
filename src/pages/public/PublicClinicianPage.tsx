@@ -1,6 +1,6 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Star, Mail, Phone, Clock, Calendar, Shield, Layers } from 'lucide-react';
+import { ArrowLeft, Star, Mail, Phone, Calendar, Shield, Layers } from 'lucide-react';
 import { BookAppointmentModal } from '@/components/modals/BookAppointmentModal';
 import { useData } from '../../context/DataContext';
 import { useGetPublicClinicQuery, useGetSessionsByClinicianTokenQuery } from '../../redux/api/clientsApi';
