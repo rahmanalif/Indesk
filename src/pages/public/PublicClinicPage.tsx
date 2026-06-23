@@ -133,12 +133,6 @@ export function PublicClinicPage() {
       });
   }, [clinic?.members, clinicEmail, clinicPhone]);
 
-  const statusColor = (status: string) => {
-    if (status === "Available") return "bg-green-500";
-    if (status === "In Session") return "bg-orange-500";
-    return "bg-slate-400";
-  };
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-slate-500">
@@ -299,9 +293,6 @@ export function PublicClinicPage() {
                       .map((n: string) => n[0])
                       .join("")
                       .slice(0, 2)}
-                    <span
-                      className={`absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-white ${statusColor(clinician.status)}`}
-                    />
                   </div>
                   <div>
                     <h3 className="font-bold text-slate-900 text-lg leading-tight">

@@ -179,17 +179,6 @@ export function PublicClinicianPage() {
 
   const selectedAvailability = availability.find((item: any) => item.day === selectedDay);
 
-  const statusBadgeStyle = (status: string) => {
-    if (status === 'Available') return 'text-green-700 bg-green-50 border-green-200';
-    if (status === 'In Session') return 'text-orange-700 bg-orange-50 border-orange-200';
-    return 'text-slate-600 bg-slate-50 border-slate-200';
-  };
-  const statusDotColor = (status: string) => {
-    if (status === 'Available') return 'bg-green-500';
-    if (status === 'In Session') return 'bg-orange-500';
-    return 'bg-slate-400';
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100" style={brandStyle}>
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-white/80 border-b border-slate-200/60 shadow-sm">
@@ -231,16 +220,10 @@ export function PublicClinicianPage() {
                   <div className="h-24 w-24 rounded-2xl flex items-center justify-center font-black text-3xl shadow-md mx-auto" style={{ backgroundColor: brandBg(color, 0.12), color }}>
                     {clinician.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                   </div>
-                  <span className={`absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-2 border-white ${statusDotColor(clinician.status)}`} />
                 </div>
 
                 <h1 className="text-xl font-black text-slate-900 mb-1">{clinician.name}</h1>
                 <p className="font-bold text-sm mb-3" style={{ color }}>{clinician.role}</p>
-
-                <span className={`inline-flex items-center gap-1.5 border rounded-full px-3 py-1 text-xs font-bold mb-4 ${statusBadgeStyle(clinician.status)}`}>
-                  <span className={`h-2 w-2 rounded-full ${statusDotColor(clinician.status)}`} />
-                  {clinician.status}
-                </span>
 
                 <div className="flex justify-center mb-5">
                   <div className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold border" style={{ backgroundColor: brandBg(color, 0.1), color, borderColor: brandBg(color, 0.2) }}>
@@ -378,6 +361,8 @@ export function PublicClinicianPage() {
         clinician={clinician}
         preselectedSlot={preselectedSlot}
         brandColor={color}
+        isZoomAvailable={clinic?.isZoomAvailable}
+        isMeetAvailable={clinic?.isMeetAvailable}
       />
     </div>
   );

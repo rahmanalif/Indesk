@@ -1931,6 +1931,29 @@ export const clientsApi = createApi({
       invalidatesTags: ["Clients"],
     }),
 
+    applyAppointmentWithToken: builder.mutation<
+      { message: string; appointment: ClientAppointment; paymentUrl?: string | null },
+      {
+        token: string;
+        clientFirstName: string;
+        clientLastName: string;
+        clientEmail: string;
+        clientPhone?: string;
+        clientCountryCode?: string;
+        sessionId: string;
+        time: string;
+        note?: string;
+        meetingType?: "in_person" | "zoom" | "google_meet";
+      }
+    >({
+      query: ({ token, ...body }) => ({
+        url: `/appointment/${token}`,
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Clients"],
+    }),
+
     createClinicMember: builder.mutation<
       ClinicMemberMutationResponse,
       CreateClinicMemberRequest
@@ -2061,4 +2084,6 @@ export const {
   useUpdateClientMutation,
   useDeleteClientMutation,
   useCreateClinicalNoteMutation,
+  useApplyAppointmentWithTokenMutation,
 } = clientsApi;
+

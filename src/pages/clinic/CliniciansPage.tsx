@@ -477,16 +477,6 @@ export function CliniciansPage() {
                       .map((n: string) => n[0])
                       .join("")}
                   </Avatar>
-                  <div
-                    className={`absolute bottom-0 right-0 h-5 w-5 rounded-full border-2 border-white 
-                    ${
-                      clinician.status === "Available"
-                        ? "bg-green-500"
-                        : clinician.status === "In Session"
-                          ? "bg-orange-500"
-                          : "bg-slate-400"
-                    }`}
-                  />
                 </div>
 
                 <h3 className="font-bold text-lg text-foreground">

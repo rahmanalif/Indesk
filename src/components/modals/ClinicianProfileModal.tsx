@@ -33,9 +33,7 @@ export function ClinicianProfileModal({ isOpen, onClose, clinician, onEdit }: Cl
                                 <h2 className="text-2xl font-bold">{clinician.name}</h2>
                                 <p className="text-muted-foreground font-medium">{clinician.role}</p>
                             </div>
-                            <Badge variant={clinician.status === 'Available' ? 'success' : 'secondary'}>
-                                {clinician.status}
-                            </Badge>
+
                         </div>
 
                         <div className="flex flex-wrap gap-2 text-sm text-muted-foreground pt-1">

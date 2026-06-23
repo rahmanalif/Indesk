@@ -2,13 +2,13 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import {
     X, User, Calendar, CheckCircle, ChevronRight, Clock,
-    ArrowLeft, Phone, Mail, Loader2, Layers, Send, Printer
+    ArrowLeft, Phone, Mail, Loader2, Layers, Send, Printer, Video
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { MOCK_CLINIC_DETAILS } from '../../lib/mockData';
 import { hexToRgb, brandGradient, brandBg } from '../../lib/branding';
-import { useGetSessionsByClinicianTokenQuery } from '../../redux/api/clientsApi';
-import { PhoneNumberInput, isValidPhoneNumber } from '../ui/PhoneNumberInput';
+import { useGetSessionsByClinicianTokenQuery, useApplyAppointmentWithTokenMutation } from '../../redux/api/clientsApi';
+import { PhoneNumberInput, isValidPhoneNumber, parsePhoneNumber } from '../ui/PhoneNumberInput';
 
 export interface BookAppointmentModalProps {
     isOpen: boolean;
@@ -16,6 +16,8 @@ export interface BookAppointmentModalProps {
     clinician: any;
     preselectedSlot?: { date: string; time: string } | null;
     brandColor?: string;
+    isZoomAvailable?: boolean;
+    isMeetAvailable?: boolean;
 }
 
 type Step = 1 | 2 | 3 | 4;
@@ -209,7 +211,7 @@ function openPrintInvoice(opts: {
 }
 
 // --- Component ----------------------------------------------------------------
-export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSlot, brandColor }: BookAppointmentModalProps) {
+export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSlot, brandColor, isZoomAvailable, isMeetAvailable }: BookAppointmentModalProps) {
     const { addPublicBooking, branding, sessionTypes: fallbackSessionTypes } = useData();
     const color = brandColor || branding.color || '#0066FF';
 
@@ -222,6 +224,7 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
     const [selectedDay, setSelectedDay] = useState<string | null>(null);
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
     const [selectedSessionId, setSelectedSessionId] = useState<string | number | null>(null);
+    const [meetingType, setMeetingType] = useState<"in_person" | "zoom" | "google_meet">("in_person");
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const availability = clinician?.availability || [];
@@ -229,6 +232,7 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
     const { data: clinicianSessionsResponse, isLoading: isSessionsLoading } = useGetSessionsByClinicianTokenQuery(clinicianToken, {
         skip: !clinicianToken || !isOpen,
     });
+    const [applyAppointment] = useApplyAppointmentWithTokenMutation();
 
     const parsedApiSessions = useMemo(() => {
         const raw = clinicianSessionsResponse?.response?.data as any;
@@ -263,6 +267,13 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
     const sessionOptions = parsedApiSessions.length > 0 ? parsedApiSessions : parsedFallbackSessions;
     const selectedSession = sessionOptions.find((s) => String(s.id) === String(selectedSessionId));
 
+    const availableMeetingTypes = useMemo(() => {
+        const types = [{ id: 'in_person', label: 'In-Person', icon: User }];
+        if (isZoomAvailable) types.push({ id: 'zoom', label: 'Zoom Video Call', icon: Video });
+        if (isMeetAvailable) types.push({ id: 'google_meet', label: 'Google Meet', icon: Video });
+        return types;
+    }, [isZoomAvailable, isMeetAvailable]);
+
     const getDayIsoDate = (dayName: string) => {
         const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         const today = new Date();
@@ -290,6 +301,22 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [preselectedSlot, isOpen]);
+
+    useEffect(() => {
+        if (isOpen) {
+            setStep(1);
+            setErrors({});
+            setFormData({ firstName: '', lastName: '', email: '', phone: '' });
+            setSelectedDay(preselectedSlot?.date || null);
+            setSelectedSlot(preselectedSlot?.time || null);
+            setSelectedSessionId(null);
+            setEmailSent(false);
+
+            if (isZoomAvailable) setMeetingType("zoom");
+            else if (isMeetAvailable) setMeetingType("google_meet");
+            else setMeetingType("in_person");
+        }
+    }, [isOpen, preselectedSlot, isZoomAvailable, isMeetAvailable]);
 
     useEffect(() => {
         if (!isOpen) {
@@ -325,9 +352,9 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
         else if (step === 2 && validateStep2()) setStep(3);
     };
 
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
         setIsLoading(true);
-        setTimeout(() => {
+        try {
             const rawTime = selectedSlot || '09:00 AM';
             const [timePart, period] = rawTime.split(' ');
             const [h, m] = timePart.split(':');
@@ -335,6 +362,28 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
             if (period === 'PM' && hour !== 12) hour += 12;
             if (period === 'AM' && hour === 12) hour = 0;
             const isoTime = `${String(hour).padStart(2, '0')}:${m || '00'}`;
+            const fullIsoDateTime = `${getDayIsoDate(selectedDay!)}T${isoTime}:00.000Z`;
+
+            const parsedPhone = parsePhoneNumber(formData.phone || '');
+
+            const response = await applyAppointment({
+                token: clinicianToken,
+                clientFirstName: formData.firstName,
+                clientLastName: formData.lastName,
+                clientEmail: formData.email,
+                clientPhone: parsedPhone ? parsedPhone.nationalNumber : formData.phone,
+                clientCountryCode: parsedPhone ? `+${parsedPhone.countryCallingCode}` : undefined,
+                sessionId: String(selectedSessionId),
+                time: fullIsoDateTime,
+                meetingType: meetingType,
+            }).unwrap();
+
+            const paymentUrl = (response as any).paymentUrl || (response as any).response?.data?.paymentUrl || (response as any).data?.paymentUrl;
+
+            if (paymentUrl) {
+                window.location.href = paymentUrl;
+                return; // don't set loading to false so the user can't click again while redirecting
+            }
 
             const resolvedDuration = selectedSession?.durationMinutes || 50;
 
@@ -352,7 +401,11 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
             setIsLoading(false);
             setEmailSent(true);
             setStep(4);
-        }, 1200);
+        } catch (err: any) {
+            console.error("Booking error:", err);
+            setErrors({ submit: err?.data?.message || 'Failed to book appointment' });
+            setIsLoading(false);
+        }
     };
 
     const handleDownloadInvoice = () => {
@@ -560,6 +613,38 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                                     );
                                 })}
                             </div>
+
+                            {availableMeetingTypes.length > 1 && (
+                                <div className="mt-6">
+                                    <p className="text-slate-500 text-sm mb-3">Preferred Meeting Type</p>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {availableMeetingTypes.map((type) => {
+                                            const isSelected = meetingType === type.id;
+                                            return (
+                                                <button
+                                                    key={type.id}
+                                                    onClick={() => setMeetingType(type.id as any)}
+                                                    className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all ${
+                                                        isSelected ? 'shadow-md' : 'hover:bg-slate-50'
+                                                    }`}
+                                                    style={isSelected ? { borderColor: color, backgroundColor: brandBg(color, 0.05) } : { borderColor: '#e2e8f0', backgroundColor: '#fff' }}
+                                                >
+                                                    <type.icon 
+                                                        className="h-6 w-6 mb-2 transition-colors" 
+                                                        style={{ color: isSelected ? color : '#64748b' }} 
+                                                    />
+                                                    <span 
+                                                        className={`text-sm font-semibold transition-colors`}
+                                                        style={{ color: isSelected ? color : '#475569' }}
+                                                    >
+                                                        {type.label}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                             {errors.slot && <p className="text-red-500 text-xs mt-3">{errors.slot}</p>}
                             {errors.session && <p className="text-red-500 text-xs mt-3">{errors.session}</p>}
                         </div>
@@ -577,6 +662,7 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                                     { label: 'Clinician', value: clinician?.name },
                                     { label: 'Date', value: selectedDay ? getDayFormatted(selectedDay) : '-' },
                                     { label: 'Time', value: selectedSlot || '-' },
+                                    { label: 'Meeting Type', value: availableMeetingTypes.find(t => t.id === meetingType)?.label || '-' },
                                     { label: 'Session Type', value: selectedSession?.name || '-' },
                                     { label: 'Duration', value: selectedSession?.durationLabel || '-' },
                                     { label: 'Amount Due', value: selectedSession?.priceLabel || '-' },
@@ -587,6 +673,7 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                                     </div>
                                 ))}
                             </div>
+                            {errors.submit && <p className="text-red-500 text-sm font-semibold mt-4 text-center">{errors.submit}</p>}
                         </div>
                     )}
 

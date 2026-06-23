@@ -310,11 +310,6 @@ export function DashboardPage() {
                             isSelected ? "border-primary" : "border-transparent group-hover:border-primary/20"
                           )}
                         />
-                        <div className={cn(
-                          "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white",
-                          clinician.status === 'Available' ? "bg-emerald-500" :
-                            clinician.status === 'In Session' ? "bg-amber-500" : "bg-slate-300"
-                        )} />
                       </div>
 
                       <div className="flex-1 min-w-0">
@@ -371,11 +366,6 @@ export function DashboardPage() {
                       fallback={clinician.name?.[0] || 'C'}
                       className="w-10 h-10"
                     />
-                    <div className={cn(
-                      "absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white",
-                      clinician.status === 'Available' ? "bg-emerald-500" :
-                        clinician.status === 'In Session' ? "bg-amber-500" : "bg-slate-300"
-                    )} />
                   </button>
                 );
               })}
