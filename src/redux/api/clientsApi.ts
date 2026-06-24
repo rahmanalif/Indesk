@@ -1916,7 +1916,7 @@ export const clientsApi = createApi({
     >({
       query: ({ id, ...body }) => ({
         url: `/appointment/${id}`,
-        method: "PUT",
+        method: "PATCH",
         body,
       }),
       invalidatesTags: ["Clients"],
