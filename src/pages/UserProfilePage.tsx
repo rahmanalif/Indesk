@@ -8,7 +8,7 @@ import {
 import { Avatar } from "../components/ui/Avatar";
 import { Button } from "../components/ui/Button";
 import { Badge } from "../components/ui/Badge";
-import { User, Mail, Shield, Key, Calendar } from "lucide-react";
+import { Mail, Shield, Key, Calendar, Globe } from "lucide-react";
 import { useState } from "react";
 import { ChangePasswordModal } from "../components/modals/ChangePasswordModal";
 import { useData } from "../context/DataContext";
@@ -56,7 +56,6 @@ export function UserProfilePage() {
     currentUser?.role ||
     "User";
   const displayEmail = profile?.email || currentUser?.email || "N/A";
-  const displayUserId = profile?.id || currentUser?.id || "000";
   const displayPhone = profile?.phoneNumber
     ? `${profile.countryCode || ""}${profile.phoneNumber}`
     : "N/A";
@@ -154,13 +153,13 @@ export function UserProfilePage() {
               <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-white rounded-md shadow-sm text-muted-foreground">
-                    <User className="w-4 h-4" />
+                    <Globe className="w-4 h-4" />
                   </div>
                   <div className="text-left">
                     <p className="text-xs text-muted-foreground font-medium uppercase">
-                      User ID
+                      Timezone
                     </p>
-                    <p className="text-sm font-semibold">#{displayUserId}</p>
+                    <p className="text-sm font-semibold">{profile?.timezone || "—"}</p>
                   </div>
                 </div>
               </div>

@@ -306,7 +306,6 @@ export interface ClinicDetails {
   description: string | null;
   permissions: ClinicPermissions;
   publicToken: string | null;
-  timezone?: string | null;
   isActive: boolean;
   activatedAt: string | null;
   ownerId: string;
@@ -359,7 +358,6 @@ export interface UpdateClinicRequest {
   url?: string;
   address?: UpdateClinicAddress;
   logo?: File | null;
-  timezone?: string;
 }
 
 export interface InvoiceStatsResponse {

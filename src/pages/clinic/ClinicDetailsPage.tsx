@@ -8,7 +8,6 @@ import { useData } from '../../context/DataContext';
 import { cn } from '../../lib/utils';
 import { useGetClinicQuery, useUpdateClinicMutation } from '../../redux/api/clientsApi';
 import { PhoneNumberInput, parsePhoneNumber } from '../../components/ui/PhoneNumberInput';
-import timezones from 'timezones-list';
 
 const CLINIC_CURRENCY_STORAGE_KEY = 'clinic_currency_preference';
 const CURRENCY_OPTIONS = [
@@ -80,12 +79,6 @@ export function ClinicDetailsPage() {
     const [cityInput, setCityInput] = useState('');
     const [stateInput, setStateInput] = useState('');
     const [zipInput, setZipInput] = useState('');
-    const [timezoneInput, setTimezoneInput] = useState('');
-
-    const timezoneOptions = timezones.map(tz => ({
-        value: tz.tzCode,
-        label: tz.name,
-    }));
 
     useEffect(() => {
         if (!clinic) return;
@@ -100,7 +93,6 @@ export function ClinicDetailsPage() {
         setZipInput((prev) => (clinicAddress as any).zip ?? prev);
         setTempColor((prev) => clinic.color ?? prev ?? branding.color ?? '#0066FF');
         setTempLogo((prev) => clinic.logo ?? prev ?? branding.logo ?? null);
-        setTimezoneInput((prev) => clinic.timezone ?? prev ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
     }, [clinic?.id, clinic?.updatedAt]);
 
     const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -136,7 +128,6 @@ export function ClinicDetailsPage() {
                     zip: zipInput,
                 },
                 logo: tempLogoFile || undefined,
-                timezone: timezoneInput,
             }).unwrap();
             const updatedClinic = response?.response?.data;
 
@@ -159,7 +150,6 @@ export function ClinicDetailsPage() {
                 setZipInput((updatedAddress as any)?.zip ?? zipInput);
                 setTempColor(updatedClinic.color ?? tempColor);
                 setTempLogo(updatedClinic.logo ?? tempLogo);
-                setTimezoneInput(updatedClinic.timezone ?? timezoneInput);
             }
             localStorage.setItem(CLINIC_CURRENCY_STORAGE_KEY, currencyInput);
             await refetchClinic();
@@ -220,14 +210,6 @@ export function ClinicDetailsPage() {
                                             value={currencyInput}
                                             onChange={(e) => setCurrencyInput(e.target.value)}
                                             options={CURRENCY_OPTIONS}
-                                        />
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                                        <Select
-                                            label="Timezone"
-                                            value={timezoneInput}
-                                            onChange={(e) => setTimezoneInput(e.target.value)}
-                                            options={timezoneOptions}
                                         />
                                     </div>
                                 </>
