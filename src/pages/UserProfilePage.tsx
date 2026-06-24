@@ -253,6 +253,7 @@ export function UserProfilePage() {
         onClose={() => setIsEditProfileOpen(false)}
         firstName={profile?.firstName || ""}
         lastName={profile?.lastName || ""}
+        timezone={profile?.timezone || ""}
         onUpdated={() => {
           refetch();
         }}

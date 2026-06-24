@@ -281,9 +281,11 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
         let daysUntil = targetDay - today.getDay();
         if (daysUntil < 0) daysUntil += 7;
         if (daysUntil === 0) daysUntil = 7;
-        const date = new Date(today);
-        date.setDate(today.getDate() + daysUntil);
-        return date.toISOString().split('T')[0];
+        const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() + daysUntil);
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
     };
 
     const getDayFormatted = (dayName: string) => {
@@ -362,7 +364,9 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
             if (period === 'PM' && hour !== 12) hour += 12;
             if (period === 'AM' && hour === 12) hour = 0;
             const isoTime = `${String(hour).padStart(2, '0')}:${m || '00'}`;
-            const fullIsoDateTime = `${getDayIsoDate(selectedDay!)}T${isoTime}:00.000Z`;
+            const [year, month, day] = getDayIsoDate(selectedDay!).split('-').map(Number);
+            const localDateTime = new Date(year, month - 1, day, hour, parseInt(m || '0'), 0);
+            const fullIsoDateTime = localDateTime.toISOString();
 
             const parsedPhone = parsePhoneNumber(formData.phone || '');
 

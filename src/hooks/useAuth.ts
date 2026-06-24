@@ -23,7 +23,8 @@ export const useAuth = () => {
       dispatch(clearError());
       dispatch(setLoading(true));
       
-      const response = await loginApi({ email, password }).unwrap();
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const response = await loginApi({ email, password, timezone }).unwrap();
       
       if (response.success) {
         dispatch(authApi.util.resetApiState());
@@ -56,6 +57,7 @@ export const useAuth = () => {
         email,
         password,
         role: 'user',
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       }).unwrap();
 
       dispatch(setLoading(false));

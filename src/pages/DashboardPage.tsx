@@ -205,6 +205,8 @@ export function DashboardPage() {
           color: statusColors[apt.status] || statusColors.pending,
           notes: apt.note,
           videoLink: apt.zoomJoinUrl || apt.zoomStartUrl || 'https://zoom.us',
+          clientId: apt.clientId || apt.client?.id,
+          meetingType: apt.meetingType || 'in_person',
         };
       })
       .filter(Boolean)

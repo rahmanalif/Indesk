@@ -3,6 +3,8 @@ import { useDispatch } from 'react-redux';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
+import { Select } from '../ui/Select';
+import timezones from 'timezones-list';
 import { useUpdateSelfProfileMutation } from '../../redux/api/authApi';
 import { updateUser } from '../../redux/slices/authSlice';
 
@@ -11,6 +13,7 @@ interface EditProfileModalProps {
   onClose: () => void;
   firstName?: string;
   lastName?: string;
+  timezone?: string;
   onUpdated?: () => void;
 }
 
@@ -19,6 +22,7 @@ export function EditProfileModal({
   onClose,
   firstName = '',
   lastName = '',
+  timezone = '',
   onUpdated,
 }: EditProfileModalProps) {
   const dispatch = useDispatch();
@@ -26,14 +30,21 @@ export function EditProfileModal({
   const [isLoading, setIsLoading] = useState(false);
   const [nextFirstName, setNextFirstName] = useState(firstName);
   const [nextLastName, setNextLastName] = useState(lastName);
+  const [nextTimezone, setNextTimezone] = useState(timezone || Intl.DateTimeFormat().resolvedOptions().timeZone);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+
+  const timezoneOptions = timezones.map(tz => ({
+    value: tz.tzCode,
+    label: tz.name,
+  }));
 
   useEffect(() => {
     if (!isOpen) return;
     setNextFirstName(firstName);
     setNextLastName(lastName);
+    setNextTimezone(timezone || Intl.DateTimeFormat().resolvedOptions().timeZone);
     setAvatarFile(null);
-  }, [isOpen, firstName, lastName]);
+  }, [isOpen, firstName, lastName, timezone]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +57,7 @@ export function EditProfileModal({
     updateSelfProfile({
       firstName: nextFirstName.trim(),
       lastName: nextLastName.trim(),
+      timezone: nextTimezone,
       avatar: avatarFile,
     })
       .unwrap()
@@ -87,6 +99,13 @@ export function EditProfileModal({
             required
           />
         </div>
+        
+        <Select
+          label="Timezone"
+          options={timezoneOptions}
+          value={nextTimezone}
+          onChange={(e) => setNextTimezone(e.target.value)}
+        />
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-foreground">Avatar</label>

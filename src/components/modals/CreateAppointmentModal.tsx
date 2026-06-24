@@ -290,10 +290,20 @@ export function CreateAppointmentModal({
 
     setIsLoading(true);
 
-    const dateStr = date ? date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+    const targetDate = date || new Date();
+    const [hours, minutes] = (time || '09:00').split(':').map(Number);
+    const localDateTime = new Date(
+      targetDate.getFullYear(),
+      targetDate.getMonth(),
+      targetDate.getDate(),
+      hours,
+      minutes,
+      0
+    );
+    const dateIso = localDateTime.toISOString();
+    const timeIso = localDateTime.toISOString();
+    const dateStr = targetDate.toISOString().split('T')[0];
     const timeStr = time || '09:00';
-    const dateIso = new Date(`${dateStr}T00:00:00.000Z`).toISOString();
-    const timeIso = new Date(`${dateStr}T${timeStr}:00.000Z`).toISOString();
 
     const resolvedClinicianId = effectiveClinicianId;
     const clinicianIdToSend = resolvedClinicianId || null;

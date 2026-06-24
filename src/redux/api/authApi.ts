@@ -4,6 +4,7 @@ import type { RootState } from "../../store";
 interface LoginCredentials {
   email: string;
   password: string;
+  timezone?: string;
 }
 
 interface AuthTokens {
@@ -31,6 +32,7 @@ interface AuthenticatedUser {
   isRestricted: boolean;
   restrictionReason: string | null;
   bio: string | null;
+  timezone: string | null;
   isOnline: boolean;
   lastSeen: string | null;
   lastLoginAt: string | null;
@@ -76,6 +78,7 @@ interface RegisterRequest {
   email: string;
   password: string;
   role: "user";
+  timezone?: string;
 }
 
 interface RegisterResponse {

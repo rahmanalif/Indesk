@@ -161,9 +161,11 @@ export function PublicClinicianPage() {
     let daysUntil = targetDay - todayDay;
     if (daysUntil < 0) daysUntil += 7;
     if (daysUntil === 0) daysUntil = 7;
-    const date = new Date(today);
-    date.setDate(today.getDate() + daysUntil);
-    return date.toISOString().split('T')[0];
+    const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() + daysUntil);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   };
 
   const getDayDate = (dayName: string) => {
