@@ -41,6 +41,24 @@ const meetingLabel = (type?: string) => {
   return { label: 'In Person', icon: Building2 };
 };
 
+const getMeetingJoinUrl = (apt: any) => {
+  const candidates = [
+    apt?.zoomJoinUrl,
+    apt?.zoomStartUrl,
+    apt?.googleMeetJoinUrl,
+    apt?.googleMeetStartUrl,
+    apt?.googleMeetUrl,
+    apt?.googleMeetLink,
+    apt?.meetingLink,
+    apt?.meetingUrl,
+    apt?.joinLink,
+    apt?.joinUrl,
+    apt?.videoLink,
+    apt?.videoUrl,
+  ];
+  return candidates.find((value) => typeof value === 'string' && value.trim()) || '';
+};
+
 const toTitle = (value: string) =>
   value ? value.charAt(0).toUpperCase() + value.slice(1).toLowerCase() : '';
 
@@ -109,6 +127,8 @@ export function AppointmentsPage() {
           duration,
           status: apt.status || 'pending',
           meeting: meetingLabel(apt.meetingType),
+          isVirtual: String(apt.meetingType || '').toLowerCase().replace(/[\s-]+/g, '_') !== 'in_person',
+          meetingUrl: getMeetingJoinUrl(apt),
           note: apt.note || '',
         };
       }),
@@ -476,6 +496,19 @@ export function AppointmentsPage() {
                 <p className="font-medium text-sm break-all">{selectedAppointment.clientEmail || '-'}</p>
               </div>
             </div>
+
+            {selectedAppointment.isVirtual && (
+              <Button
+                className="w-full h-11"
+                disabled={!selectedAppointment.meetingUrl}
+                onClick={() => window.open(selectedAppointment.meetingUrl, '_blank', 'noopener,noreferrer')}
+              >
+                <Video className="h-4 w-4 mr-2" />
+                {selectedAppointment.meetingUrl
+                  ? `Join ${selectedAppointment.meeting.label} Meeting`
+                  : 'Meeting Link Not Available'}
+              </Button>
+            )}
 
             {selectedAppointment.note && (
               <div className="space-y-1.5">
