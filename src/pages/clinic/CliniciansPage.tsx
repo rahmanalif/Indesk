@@ -8,7 +8,7 @@ import {
   MoreHorizontal,
   UserCheck,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { Card, CardContent } from "../../components/ui/Card";
@@ -43,6 +43,7 @@ export function CliniciansPage() {
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const {
     data: clinicMembersResponse,
     isLoading: clinicLoading,
@@ -383,6 +384,33 @@ export function CliniciansPage() {
       c.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.email.toLowerCase().includes(searchTerm.toLowerCase()),
   );
+
+  // Deep-link: open a clinician's profile when arriving with ?clinicianId=...
+  const deepLinkClinicianId = searchParams.get("clinicianId");
+  const handledDeepLinkRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!deepLinkClinicianId) {
+      handledDeepLinkRef.current = null;
+      return;
+    }
+    if (handledDeepLinkRef.current === deepLinkClinicianId) return;
+    if (clinicMembers.length === 0) return; // wait for data to load
+    const match = formattedMembers.find((c) => c.id === deepLinkClinicianId);
+    handledDeepLinkRef.current = deepLinkClinicianId;
+    if (match) {
+      setSelectedClinician(match);
+      setIsProfileOpen(true);
+    }
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("clinicianId");
+        return next;
+      },
+      { replace: true },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deepLinkClinicianId, clinicMembers.length]);
 
   return (
     <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">

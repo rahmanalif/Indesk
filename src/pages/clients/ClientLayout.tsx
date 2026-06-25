@@ -116,7 +116,7 @@ export function ClientLayout() {
     const clientInvoices = (invoicesResponse?.response?.data?.docs || []).filter((invoice: any) => invoice.clientId === client.id);
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500 w-full">
+        <div className="space-y-6 w-full">
             {!isLetterPage && (
                 <>
                     {/* Full Width Header Card */}

@@ -20,6 +20,7 @@ import { ClinicDetailsPage } from './pages/clinic/ClinicDetailsPage';
 import { CliniciansPage } from './pages/clinic/CliniciansPage';
 import { InvoicesPage } from './pages/InvoicesPage';
 import { SessionsPage } from './pages/SessionsPage';
+import { AppointmentsPage } from './pages/AppointmentsPage';
 import { FormsPage } from './pages/FormsPage';
 import { AdminQuestionnairesPage } from './pages/AdminQuestionnairesPage';
 import { FormDetailsPage } from './pages/FormDetailsPage';
@@ -120,6 +121,12 @@ export function App() {
             <Route path="sessions" element={
               <ProtectedRoute permission="clinician_sessions">
                 <SessionsPage />
+              </ProtectedRoute>
+            } />
+
+            <Route path="appointments" element={
+              <ProtectedRoute permission="clinician_clients">
+                <AppointmentsPage />
               </ProtectedRoute>
             } />
 

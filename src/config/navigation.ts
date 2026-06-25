@@ -1,6 +1,7 @@
 import { checkUserPermission } from "@/hooks/permissions";
 import {
   Calendar,
+  CalendarClock,
   Sparkles,
   Users,
   Building2,
@@ -28,6 +29,12 @@ export const navItems: NavItem[] = [
     label: "Calendar",
     path: "/dashboard",
     permission: "clinician_dashboard",
+  },
+  {
+    icon: CalendarClock,
+    label: "Appointments",
+    path: "/appointments",
+    permission: "clinician_clients",
   },
   {
     icon: Shield,

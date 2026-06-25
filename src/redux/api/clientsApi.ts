@@ -1920,6 +1920,18 @@ export const clientsApi = createApi({
       invalidatesTags: ["Clients"],
     }),
 
+    updateAppointmentStatus: builder.mutation<
+      UpdateAppointmentResponse,
+      { id: string; status: string }
+    >({
+      query: ({ id, status }) => ({
+        url: `/appointment/${id}/status`,
+        method: "PATCH",
+        body: { status },
+      }),
+      invalidatesTags: ["Clients"],
+    }),
+
     deleteAppointment: builder.mutation<
       { success: boolean; message: string },
       string
@@ -2076,6 +2088,7 @@ export const {
   useDeleteSessionMutation,
   useCreateAppointmentMutation,
   useUpdateAppointmentMutation,
+  useUpdateAppointmentStatusMutation,
   useDeleteAppointmentMutation,
   useCreateClinicMemberMutation,
   useUpdateClinicMemberMutation,

@@ -137,7 +137,13 @@ export function ClientProfilePage() {
         return candidates.find((value) => typeof value === 'string' && value.trim()) || null;
     };
 
-    const appointments = (clientRaw?.appointments || []).map((apt: any) => {
+    const appointments = [...(clientRaw?.appointments || [])]
+        .sort((a: any, b: any) => {
+            const aTime = a?.startTime ? new Date(a.startTime).getTime() : 0;
+            const bTime = b?.startTime ? new Date(b.startTime).getTime() : 0;
+            return bTime - aTime;
+        })
+        .map((apt: any) => {
         const start = apt?.startTime ? new Date(apt.startTime) : null;
         const end = apt?.endTime ? new Date(apt.endTime) : null;
         const duration = start && end ? Math.round((end.getTime() - start.getTime()) / 60000) : 0;
@@ -235,7 +241,7 @@ export function ClientProfilePage() {
     };
 
     return (
-        <form onSubmit={handleSave} className="space-y-4 animate-in slide-in-from-bottom-4 duration-500">
+        <form onSubmit={handleSave} className="space-y-4">
             <div className="grid grid-cols-1 gap-4 2xl:grid-cols-[minmax(0,2fr)_minmax(320px,0.95fr)]">
                 <div className="min-w-0 space-y-4">
                     {/* Personal Info */}
@@ -342,18 +348,27 @@ export function ClientProfilePage() {
                 <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-3 2xl:block 2xl:space-y-4">
                     {/* Upcoming Appointments Card */}
                     <Card className="border-primary/20 shadow-md shadow-primary/5">
-                        <CardHeader className="pb-3 text-primary/80">
+                        <CardHeader className="pb-3 text-primary/80 flex-row items-center justify-between space-y-0">
                             <CardTitle className="text-lg flex items-center gap-2">
                                 <Clock className="h-5 w-5" />
                                 Upcoming Sessions
                             </CardTitle>
+                            {appointments.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={() => navigate(`/appointments?clientId=${client.id}&clientName=${encodeURIComponent(client.name)}`)}
+                                    className="text-xs font-semibold text-primary hover:underline"
+                                >
+                                    View all
+                                </button>
+                            )}
                         </CardHeader>
                         <CardContent>
                             {appointments.length === 0 ? (
                                 <p className="text-sm text-muted-foreground text-center py-4">No upcoming sessions found.</p>
                             ) : (
                                 <div className="space-y-4">
-                                    {appointments.map(apt => (
+                                    {appointments.slice(0, 3).map(apt => (
                                         <div key={apt.id} className="p-3 rounded-lg border border-border/50 bg-muted/5 space-y-2">
                                             <div className="flex justify-between items-start">
                                                 <div>
@@ -385,6 +400,15 @@ export function ClientProfilePage() {
                                     )}
                                         </div>
                                     ))}
+                                    {appointments.length > 3 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => navigate(`/appointments?clientId=${client.id}&clientName=${encodeURIComponent(client.name)}`)}
+                                            className="w-full text-center text-xs font-semibold text-primary hover:underline pt-1"
+                                        >
+                                            View all {appointments.length} sessions
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </CardContent>

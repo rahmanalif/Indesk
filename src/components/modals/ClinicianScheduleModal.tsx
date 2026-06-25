@@ -35,8 +35,6 @@ export function ClinicianScheduleModal({
   const [selectedSession, setSelectedSession] = useState<any>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
-  if (!clinician) return null;
-
   const selectedDate = toDateKey(currentDate);
   const { data: calendarResponse, isLoading: isCalendarLoading } =
     useGetCalendarAppointmentsQuery(
@@ -45,7 +43,7 @@ export function ClinicianScheduleModal({
         endDate: selectedDate,
         view: 'day',
       },
-      { skip: !isOpen },
+      { skip: !isOpen || !clinician },
     );
 
   const calendarRows = useMemo(() => {
@@ -148,6 +146,8 @@ export function ClinicianScheduleModal({
     month: 'long',
     day: 'numeric',
   });
+
+  if (!clinician) return null;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Schedule: ${clinician.name}`} size="lg">
