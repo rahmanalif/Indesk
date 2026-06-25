@@ -7,9 +7,64 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../..
 import { useData } from '../../context/DataContext';
 import { cn } from '../../lib/utils';
 import { useGetClinicQuery, useUpdateClinicMutation } from '../../redux/api/clientsApi';
-import { PhoneNumberInput, parsePhoneNumber } from '../../components/ui/PhoneNumberInput';
+import { PhoneNumberInput, parsePhoneNumber, isValidPhoneNumber } from '../../components/ui/PhoneNumberInput';
 
 const CLINIC_CURRENCY_STORAGE_KEY = 'clinic_currency_preference';
+
+type ClinicFieldErrors = Partial<Record<
+    'name' | 'email' | 'phone' | 'url' | 'street' | 'city' | 'state', string
+>>;
+
+// Mirrors src/modules/clinic/clinic.validation.ts (updateClinic) on the backend.
+const validateClinicForm = (values: {
+    name: string;
+    email: string;
+    phone: string;
+}): ClinicFieldErrors => {
+    const errors: ClinicFieldErrors = {};
+
+    const name = values.name.trim();
+    if (!name) errors.name = 'Clinic name is required.';
+    else if (name.length < 2) errors.name = 'Clinic name must be at least 2 characters.';
+    else if (name.length > 100) errors.name = 'Clinic name must be at most 100 characters.';
+
+    const email = values.email.trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        errors.email = 'Enter a valid email address.';
+    }
+
+    const phone = values.phone.trim();
+    if (phone && !isValidPhoneNumber(phone)) {
+        errors.phone = 'Enter a valid phone number with country code.';
+    }
+
+    return errors;
+};
+
+// Maps a backend Joi error message (e.g. `"address.street" is not allowed to be
+// empty`) to the matching form field so the right input lights up red.
+const BACKEND_PATH_TO_FIELD: Record<string, keyof ClinicFieldErrors> = {
+    name: 'name',
+    email: 'email',
+    url: 'url',
+    phoneNumber: 'phone',
+    countryCode: 'phone',
+    'address.street': 'street',
+    'address.city': 'city',
+    'address.state': 'state',
+};
+
+const mapBackendErrorToField = (message?: string): ClinicFieldErrors => {
+    if (!message) return {};
+    const match = message.match(/^"([^"]+)"\s+(.*)$/);
+    if (!match) return {};
+    const field = BACKEND_PATH_TO_FIELD[match[1]];
+    if (!field) return {};
+    const label = match[1].split('.').pop() || match[1];
+    const readable = `${label.charAt(0).toUpperCase()}${label.slice(1)} ${match[2]}`;
+    return { [field]: readable } as ClinicFieldErrors;
+};
+
 const CURRENCY_OPTIONS = [
     { value: 'GBP', label: 'British Pound (GBP £)' },
     { value: 'USD', label: 'US Dollar (USD $)' },
@@ -67,6 +122,14 @@ export function ClinicDetailsPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
     const [saveError, setSaveError] = useState<string>('');
+    const [fieldErrors, setFieldErrors] = useState<ClinicFieldErrors>({});
+    const clearFieldError = (field: keyof ClinicFieldErrors) =>
+        setFieldErrors((prev) => {
+            if (!prev[field]) return prev;
+            const next = { ...prev };
+            delete next[field];
+            return next;
+        });
     const [tempLogo, setTempLogo] = useState<string | null>(branding.logo);
     const [tempLogoFile, setTempLogoFile] = useState<File | null>(null);
     const [tempColor, setTempColor] = useState(branding.color || '#0066FF');
@@ -110,23 +173,46 @@ export function ClinicDetailsPage() {
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaveError('');
+
+        const validationErrors = validateClinicForm({
+            name: clinicNameInput,
+            email: clinicEmailInput,
+            phone: clinicPhoneInput,
+        });
+        if (Object.keys(validationErrors).length) {
+            setFieldErrors(validationErrors);
+            return;
+        }
+        setFieldErrors({});
         setIsLoading(true);
 
         try {
             const parsedPhone = parsePhoneNumber(clinicPhoneInput || '');
-            const response = await updateClinicMutation({
-                name: clinicNameInput || clinic?.name || '',
-                email: clinicEmailInput || clinic?.email || '',
-                color: tempColor,
-                phoneNumber: parsedPhone ? parsedPhone.nationalNumber : clinicPhoneInput,
-                countryCode: parsedPhone ? `+${parsedPhone.countryCallingCode}` : undefined,
-                url: clinicWebsiteInput,
-                address: {
+            const trimmedWebsite = clinicWebsiteInput.trim();
+            const trimmedEmail = (clinicEmailInput || '').trim();
+            const trimmedPhone = (clinicPhoneInput || '').trim();
+            const phoneFields = trimmedPhone
+                ? {
+                    phoneNumber: parsedPhone ? parsedPhone.nationalNumber : trimmedPhone,
+                    countryCode: parsedPhone ? `+${parsedPhone.countryCallingCode}` : undefined,
+                }
+                : {};
+            // Backend address schema only allows street/city/state, and Joi
+            // rejects empty strings — so send only the non-empty allowed fields.
+            const address = Object.fromEntries(
+                Object.entries({
                     street: streetInput,
                     city: cityInput,
                     state: stateInput,
-                    zip: zipInput,
-                },
+                }).filter(([, value]) => (value || '').trim() !== '')
+            );
+            const response = await updateClinicMutation({
+                name: clinicNameInput || clinic?.name || '',
+                email: trimmedEmail || clinic?.email || '',
+                color: tempColor,
+                ...phoneFields,
+                ...(trimmedWebsite ? { url: trimmedWebsite } : {}),
+                ...(Object.keys(address).length ? { address } : {}),
                 logo: tempLogoFile || undefined,
             }).unwrap();
             const updatedClinic = response?.response?.data;
@@ -159,7 +245,12 @@ export function ClinicDetailsPage() {
             setTimeout(() => setIsSaved(false), 2000);
         } catch (error: any) {
             setIsLoading(false);
-            setSaveError(error?.data?.message || 'Failed to save clinic details.');
+            const message = error?.data?.message as string | undefined;
+            const mapped = mapBackendErrorToField(message);
+            if (Object.keys(mapped).length) {
+                setFieldErrors(mapped);
+            }
+            setSaveError(message || 'Failed to save clinic details.');
         }
     };
 
@@ -192,19 +283,20 @@ export function ClinicDetailsPage() {
                             )}
                             {!clinicLoading && !clinicError && (
                                 <>
-                                    <Input label="Clinic Name" value={clinicName} onChange={(e) => setClinicNameInput(e.target.value)} />
+                                    <Input label="Clinic Name" value={clinicName} error={fieldErrors.name} onChange={(e) => { setClinicNameInput(e.target.value); clearFieldError('name'); }} />
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-1.5">
                                             <label className="text-[10px] font-bold text-primary uppercase tracking-[0.15em] ml-1 block">Phone Number</label>
                                             <PhoneNumberInput
                                                 value={clinicPhoneInput}
-                                                onChange={(val) => setClinicPhoneInput(val)}
+                                                error={fieldErrors.phone}
+                                                onChange={(val) => { setClinicPhoneInput(val); clearFieldError('phone'); }}
                                             />
                                         </div>
-                                        <Input label="Email Address" value={clinicEmailInput} onChange={(e) => setClinicEmailInput(e.target.value)} icon={<Mail className="h-4 w-4" />} />
+                                        <Input label="Email Address" value={clinicEmailInput} error={fieldErrors.email} onChange={(e) => { setClinicEmailInput(e.target.value); clearFieldError('email'); }} icon={<Mail className="h-4 w-4" />} />
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <Input label="Website URL" value={clinicWebsiteInput} onChange={(e) => setClinicWebsiteInput(e.target.value)} icon={<Globe className="h-4 w-4" />} />
+                                        <Input label="Website URL" value={clinicWebsiteInput} error={fieldErrors.url} onChange={(e) => { setClinicWebsiteInput(e.target.value); clearFieldError('url'); }} icon={<Globe className="h-4 w-4" />} />
                                         <Select
                                             label="Currency"
                                             value={currencyInput}
@@ -225,10 +317,10 @@ export function ClinicDetailsPage() {
                         <CardContent>
                             {!clinicLoading && !clinicError && (
                                 <>
-                                    <Input label="Street Address" value={streetInput} onChange={(e) => setStreetInput(e.target.value)} icon={<MapPin className="h-4 w-4" />} />
+                                    <Input label="Street Address" value={streetInput} error={fieldErrors.street} onChange={(e) => { setStreetInput(e.target.value); clearFieldError('street'); }} icon={<MapPin className="h-4 w-4" />} />
                                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                                        <Input label="City" value={cityInput} onChange={(e) => setCityInput(e.target.value)} />
-                                        <Input label="State" value={stateInput} onChange={(e) => setStateInput(e.target.value)} />
+                                        <Input label="City" value={cityInput} error={fieldErrors.city} onChange={(e) => { setCityInput(e.target.value); clearFieldError('city'); }} />
+                                        <Input label="State" value={stateInput} error={fieldErrors.state} onChange={(e) => { setStateInput(e.target.value); clearFieldError('state'); }} />
                                         <Input label="Postal Code" value={zipInput} onChange={(e) => setZipInput(e.target.value)} />
                                     </div>
                                 </>

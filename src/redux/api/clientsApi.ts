@@ -1819,7 +1819,7 @@ export const clientsApi = createApi({
         if (logo) {
           const formData = new FormData();
           formData.append("name", body.name);
-          formData.append("email", body.email);
+          if (body.email) formData.append("email", body.email);
           if (body.color) formData.append("color", body.color);
           if (body.phoneNumber)
             formData.append("phoneNumber", body.phoneNumber);

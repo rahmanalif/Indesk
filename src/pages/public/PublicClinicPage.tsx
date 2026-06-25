@@ -12,7 +12,14 @@ import {
 } from "lucide-react";
 import { useData } from "../../context/DataContext";
 import { useGetPublicClinicQuery } from "../../redux/api/clientsApi";
-import { brandGradient, brandBg, hexToHslToken } from "../../lib/branding";
+import {
+  brandGradient,
+  brandBg,
+  brandText,
+  brandStrong,
+  readableTextOn,
+  hexToHslToken,
+} from "../../lib/branding";
 
 const DEFAULT_DAY_SLOTS = [
   "09:00 AM",
@@ -68,6 +75,14 @@ export function PublicClinicPage() {
   };
 
   const color = clinic?.color || branding.color || "#0066FF";
+  const textColor = brandText(color);
+  const onBrand = readableTextOn(color);
+  const bio = (clinic?.description || "").trim();
+  // Condense the bio into a short, slogan-style line for the hero badge.
+  const slogan = bio
+    ? bio.split(/\s+/).slice(0, 9).join(" ") +
+      (bio.split(/\s+/).length > 9 ? "…" : "")
+    : "Trusted Mental Health Care";
   const brandStyle = { "--primary": hexToHslToken(color) } as CSSProperties;
   const clinicName = clinic?.name || "Clinic";
   const clinicLogo = resolveImageUrl(clinic?.logo) || branding.logo;
@@ -165,8 +180,8 @@ export function PublicClinicPage() {
               />
             ) : (
               <div
-                className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-md"
-                style={{ background: brandGradient(color) }}
+                className="h-9 w-9 rounded-xl flex items-center justify-center font-black text-lg shadow-md"
+                style={{ background: brandGradient(color), color: onBrand }}
               >
                 {clinicName[0]}
               </div>
@@ -182,8 +197,8 @@ export function PublicClinicPage() {
           </div>
           <a
             href={clinicPhone && clinicPhone !== "-" && clinicPhone !== "Not provided" ? `tel:${clinicPhone}` : undefined}
-            className={`hidden sm:flex items-center gap-2 px-4 py-2 text-white text-sm font-semibold rounded-xl transition-all shadow-sm ${clinicPhone && clinicPhone !== "-" && clinicPhone !== "Not provided" ? "hover:opacity-90" : "opacity-50 pointer-events-none cursor-not-allowed"}`}
-            style={{ background: color }}
+            className={`hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl transition-all shadow-sm ${clinicPhone && clinicPhone !== "-" && clinicPhone !== "Not provided" ? "hover:opacity-90" : "opacity-50 pointer-events-none cursor-not-allowed"}`}
+            style={{ background: brandStrong(color), color: onBrand }}
           >
             <Phone className="h-3.5 w-3.5" />
             Call Us
@@ -198,20 +213,21 @@ export function PublicClinicPage() {
         />
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PHBhdGggZD0iTTM2IDM0di00aDJ2NGg0djJoLTR2NGgtMnYtNGgtNHYtMmg0em0wLTMwVjBoMnY0aDRWNmgtNHY0aC0yVjZoLTRWNGg0eiIvPjwvZz48L2c+PC9zdmc+')] opacity-30" />
         <div className="relative max-w-6xl mx-auto px-6 py-24 text-center">
-          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-1.5 text-white/80 text-xs font-semibold uppercase tracking-widest mb-6">
-            <Shield className="h-3.5 w-3.5" /> Trusted Mental Health Care
+          <div className="inline-flex items-center gap-2 max-w-full bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-1.5 text-white/80 text-xs font-semibold tracking-wide mb-6">
+            <Shield className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{slogan}</span>
           </div>
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-tight mb-6">
             {clinicName}
           </h1>
           <p className="text-lg text-white/80 max-w-2xl mx-auto mb-10 font-medium leading-relaxed">
-            {clinic?.description ||
-              "Expert, compassionate mental health care. Our licensed clinicians are here to help you thrive - book your appointment today."}
+            Expert, compassionate mental health care. Our licensed clinicians
+            are here to help you thrive - book your appointment today.
           </p>
           <a
             href="#clinicians"
             className="px-8 py-4 bg-white font-bold rounded-2xl hover:bg-white/90 transition-all shadow-xl inline-flex items-center gap-2 justify-center"
-            style={{ color }}
+            style={{ color: textColor }}
           >
             Meet Our Clinicians <ArrowRight className="h-4 w-4" />
           </a>
@@ -231,7 +247,7 @@ export function PublicClinicPage() {
             >
               <div
                 className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0"
-                style={{ backgroundColor: brandBg(color, 0.1), color }}
+                style={{ backgroundColor: brandBg(color, 0.1), color: textColor }}
               >
                 <item.icon className="h-5 w-5" />
               </div>
@@ -254,7 +270,7 @@ export function PublicClinicPage() {
             className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-widest mb-4 border"
             style={{
               backgroundColor: brandBg(color, 0.08),
-              color,
+              color: textColor,
               borderColor: brandBg(color, 0.2),
             }}
           >
@@ -286,7 +302,7 @@ export function PublicClinicPage() {
                 <div className="flex items-center gap-4 mb-5">
                   <div
                     className="relative h-16 w-16 rounded-2xl flex items-center justify-center font-black text-2xl shadow-sm shrink-0"
-                    style={{ backgroundColor: brandBg(color, 0.12), color }}
+                    style={{ backgroundColor: brandBg(color, 0.12), color: textColor }}
                   >
                     {clinician.name
                       .split(" ")
@@ -298,7 +314,7 @@ export function PublicClinicPage() {
                     <h3 className="font-bold text-slate-900 text-lg leading-tight">
                       {clinician.name}
                     </h3>
-                    <p className="font-semibold text-sm" style={{ color }}>
+                    <p className="font-semibold text-sm" style={{ color: textColor }}>
                       {clinician.role}
                     </p>
                   </div>
@@ -308,7 +324,7 @@ export function PublicClinicPage() {
                   className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold mb-4 border"
                   style={{
                     backgroundColor: brandBg(color, 0.1),
-                    color,
+                    color: textColor,
                     borderColor: brandBg(color, 0.2),
                   }}
                 >
@@ -337,8 +353,8 @@ export function PublicClinicPage() {
                 </div>
 
                 <button
-                  className="w-full py-3 text-white text-sm font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 hover:opacity-90"
-                  style={{ background: brandGradient(color) }}
+                  className="w-full py-3 text-sm font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 hover:opacity-90"
+                  style={{ background: brandGradient(color), color: onBrand }}
                 >
                   View Profile & Book
                   <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
