@@ -104,9 +104,9 @@ export function CreateAppointmentModal({
       email: c.email || '',
     }));
   }, [clientsResponse]);
-  const { data: clinicMembersResponse } = useGetClinicMembersQuery(
+  const { data: clinicMembersResponse, isFetching: isMembersFetching } = useGetClinicMembersQuery(
     { page: 1, limit: 100 },
-    { skip: !isOpen }
+    { skip: !isOpen, refetchOnMountOrArgChange: true }
   );
   const clinicianOptions = useMemo(() => {
     const members = clinicMembersResponse?.response?.data?.docs || [];
@@ -171,6 +171,7 @@ export function CreateAppointmentModal({
     },
     {
       skip: !effectiveClinicianId || !dateStr || !isOpen,
+      refetchOnMountOrArgChange: true,
     }
   );
 
