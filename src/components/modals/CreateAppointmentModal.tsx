@@ -11,6 +11,7 @@ import { TimePicker } from '../ui/TimePicker';
 import { Textarea } from '../ui/Textarea';
 import { useData } from '../../context/DataContext';
 import { cn } from '../../lib/utils';
+import { notify } from '../ui/ToastHost';
 import { useCreateAppointmentMutation, useUpdateAppointmentMutation, useGetClientByIdQuery, useGetClinicMembersQuery, useGetSessionsQuery, useGetClientsQuery, useGetAvailableSlotsQuery, useGetCalendarAppointmentsQuery } from '../../redux/api/clientsApi';
 import { useGetIntegrationsQuery } from '../../redux/api/integrationApi';
 import type { RootState } from '../../store';
@@ -147,6 +148,12 @@ export function CreateAppointmentModal({
     const schedule = selectedClinicianMember.availabilitySchedule || [];
     return availability.length === 0 && schedule.length === 0;
   }, [selectedClinicianMember]);
+
+  useEffect(() => {
+    if (isOpen && hasNoAvailability) {
+      notify.warning('This clinician has no availability set up. Please update their availability in settings.');
+    }
+  }, [isOpen, hasNoAvailability, effectiveClinicianId]);
 
   const dateStr = useMemo(() => {
     if (!date) return '';
@@ -598,12 +605,6 @@ export function CreateAppointmentModal({
                 label: o.label
               })) : [{ value: '', label: 'No clinicians available' }]}
             />
-
-            {hasNoAvailability && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 text-xs text-amber-800 font-semibold leading-relaxed border-dashed animate-in fade-in slide-in-from-top-2 duration-200">
-                ⚠️ This clinician has no availability set up. Please update their availability in settings.
-              </div>
-            )}
 
             <Select
               label="Session Type"
