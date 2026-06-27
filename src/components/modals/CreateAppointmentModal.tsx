@@ -150,10 +150,10 @@ export function CreateAppointmentModal({
   }, [selectedClinicianMember]);
 
   useEffect(() => {
-    if (isOpen && hasNoAvailability) {
+    if (isOpen && hasNoAvailability && !isMembersFetching) {
       notify.warning('This clinician has no availability set up. Please update their availability in settings.');
     }
-  }, [isOpen, hasNoAvailability, effectiveClinicianId]);
+  }, [isOpen, hasNoAvailability, isMembersFetching, effectiveClinicianId]);
 
   const dateStr = useMemo(() => {
     if (!date) return '';
@@ -178,6 +178,24 @@ export function CreateAppointmentModal({
   const availableSlots = useMemo(() => {
     return slotsResponse?.response?.data || [];
   }, [slotsResponse]);
+
+  // 24h "HH:MM" start times, derived from the backend slot labels, to show only
+  // the available times in the picker instead of the whole day.
+  const availableTimeValues = useMemo(() => {
+    return (availableSlots as any[])
+      .map((slot) => {
+        const label = typeof slot?.timeLabel === 'string' ? slot.timeLabel : '';
+        const [hm, period] = label.split(' ');
+        if (!hm || !period) return null;
+        const [hRaw, mRaw] = hm.split(':').map(Number);
+        if (Number.isNaN(hRaw) || Number.isNaN(mRaw)) return null;
+        let h = hRaw;
+        if (period.toUpperCase() === 'PM' && h !== 12) h += 12;
+        if (period.toUpperCase() === 'AM' && h === 12) h = 0;
+        return `${String(h).padStart(2, '0')}:${String(mRaw).padStart(2, '0')}`;
+      })
+      .filter((value): value is string => Boolean(value));
+  }, [availableSlots]);
 
   const appointmentRange = useMemo(() => {
     const now = new Date();
@@ -281,7 +299,8 @@ export function CreateAppointmentModal({
   };
 
   const isTimeDisabled = (time24: string) => {
-    if (!date || !effectiveClinicianId) return false;
+    // No date/clinician yet: nothing is bookable, so disable every time (pick a date first).
+    if (!date || !effectiveClinicianId) return true;
     if (isSlotsLoading) return false;
     if (availableSlots.length === 0) return true;
 
@@ -618,7 +637,7 @@ export function CreateAppointmentModal({
 
           <div className="space-y-6">
             <DatePicker label="Date" date={date} setDate={setDate} isDateDisabled={isDateDisabled} />
-            <TimePicker label="Start Time" time={time} setTime={setTime} isTimeDisabled={isTimeDisabled} />
+            <TimePicker label="Start Time" time={time} setTime={setTime} availableTimes={availableTimeValues} />
             <Select
               label="Meeting Type"
               value={meetingType}

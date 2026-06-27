@@ -9,7 +9,24 @@ interface TimePickerProps {
   className?: string;
   isTimeDisabled?: (time: string) => boolean;
   compact?: boolean;
+  /**
+   * When provided, the picker lists ONLY these times (24h "HH:MM"), instead of
+   * the full day. Use to show just the available start times.
+   */
+  availableTimes?: string[];
 }
+
+const toOption = (value: string) => {
+  const [hours24, minutes] = value.split(':').map(Number);
+  const period = hours24 >= 12 ? 'PM' : 'AM';
+  let hours12 = hours24 % 12;
+  if (hours12 === 0) hours12 = 12;
+  return {
+    value,
+    label: `${hours12.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`,
+    period,
+  };
+};
 
 export function TimePicker({
   time,
@@ -17,26 +34,18 @@ export function TimePicker({
   label,
   className,
   isTimeDisabled,
-  compact
+  compact,
+  availableTimes
 }: TimePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const selectedOptionRef = useRef<HTMLButtonElement | null>(null);
 
-  const timeOptions = Array.from({ length: 96 }, (_, index) => {
-    const totalMinutes = index * 15;
-    const hours24 = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    const period = hours24 >= 12 ? 'PM' : 'AM';
-    let hours12 = hours24 % 12;
-    if (hours12 === 0) hours12 = 12;
-
-    return {
-      value: `${hours24.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`,
-      label: `${hours12.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`,
-      period
-    };
-  });
+  const timeOptions = availableTimes
+    ? availableTimes.map(toOption)
+    : Array.from({ length: 96 }, (_, index) => toOption(
+        `${Math.floor((index * 15) / 60).toString().padStart(2, '0')}:${((index * 15) % 60).toString().padStart(2, '0')}`
+      ));
 
   const getCurrentValues = () => {
     if (!time) return { h: '09', m: '00', p: 'AM' };
@@ -120,6 +129,11 @@ export function TimePicker({
             </div>
 
             <div className="max-h-[280px] overflow-y-auto rounded-2xl border border-primary/10 bg-secondary/20 p-2">
+              {timeOptions.length === 0 && (
+                <p className="px-4 py-6 text-center text-xs font-semibold text-muted-foreground">
+                  No available times — pick a different date.
+                </p>
+              )}
               {timeOptions.map((option) => {
                 const isSelected = option.value === time;
                 const isDisabled = isTimeDisabled ? isTimeDisabled(option.value) : false;
