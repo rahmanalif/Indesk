@@ -11,9 +11,10 @@ import { TimePicker } from '../ui/TimePicker';
 import { Textarea } from '../ui/Textarea';
 import { useData } from '../../context/DataContext';
 import { cn } from '../../lib/utils';
-import { useCreateAppointmentMutation, useUpdateAppointmentMutation, useGetClientByIdQuery, useGetClinicMembersQuery, useGetSessionsQuery, useGetClientsQuery } from '../../redux/api/clientsApi';
+import { useCreateAppointmentMutation, useUpdateAppointmentMutation, useGetClientByIdQuery, useGetClinicMembersQuery, useGetSessionsQuery, useGetClientsQuery, useGetAvailableSlotsQuery, useGetCalendarAppointmentsQuery } from '../../redux/api/clientsApi';
 import { useGetIntegrationsQuery } from '../../redux/api/integrationApi';
 import type { RootState } from '../../store';
+import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 
 const APPOINTMENT_CLINICIAN_ROLES = new Set(['clinician', 'superadmin', 'admin']);
 
@@ -134,6 +135,170 @@ export function CreateAppointmentModal({
       String(clinicianOptions[0]?.value || '').trim(),
     [clinicianId, currentUserClinicianOption, clinicianOptions],
   );
+
+  const selectedClinicianMember = useMemo(() => {
+    const members = clinicMembersResponse?.response?.data?.docs || [];
+    return members.find((m: any) => String(m.id) === String(effectiveClinicianId));
+  }, [clinicMembersResponse, effectiveClinicianId]);
+
+  const hasNoAvailability = useMemo(() => {
+    if (!selectedClinicianMember) return false;
+    const availability = selectedClinicianMember.availability || [];
+    const schedule = selectedClinicianMember.availabilitySchedule || [];
+    return availability.length === 0 && schedule.length === 0;
+  }, [selectedClinicianMember]);
+
+  const dateStr = useMemo(() => {
+    if (!date) return '';
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }, [date]);
+
+  const { data: slotsResponse, isLoading: isSlotsLoading } = useGetAvailableSlotsQuery(
+    {
+      clinicianId: effectiveClinicianId,
+      date: dateStr,
+      sessionId: sessionType || undefined,
+    },
+    {
+      skip: !effectiveClinicianId || !dateStr || !isOpen,
+    }
+  );
+
+  const availableSlots = useMemo(() => {
+    return slotsResponse?.response?.data || [];
+  }, [slotsResponse]);
+
+  const appointmentRange = useMemo(() => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 3, 0);
+    return {
+      startDate: start.toISOString(),
+      endDate: end.toISOString(),
+    };
+  }, []);
+
+  const { data: appointmentsResponse } = useGetCalendarAppointmentsQuery(
+    {
+      clinicianId: effectiveClinicianId,
+      startDate: appointmentRange.startDate,
+      endDate: appointmentRange.endDate,
+    },
+    {
+      skip: !effectiveClinicianId || !isOpen,
+    }
+  );
+
+  const appointmentsList = useMemo(() => {
+    const raw = appointmentsResponse?.response?.data;
+    if (Array.isArray(raw)) return raw;
+    if (raw && typeof raw === 'object') {
+      return (raw as any).docs || (raw as any).events || [];
+    }
+    return [];
+  }, [appointmentsResponse]);
+
+  const getDayWorkingMinutes = (dayName: string) => {
+    if (!selectedClinicianMember) return 0;
+    const schedule = (selectedClinicianMember as any).availabilitySchedule || [];
+    const availability = (selectedClinicianMember as any).availability || [];
+    
+    let normalized = [];
+    if (Array.isArray(schedule) && schedule.length > 0) {
+      normalized = schedule;
+    } else if (Array.isArray(availability)) {
+      normalized = availability.map((day: string) => ({
+        day: day.toLowerCase(),
+        startTime: "09:00",
+        endTime: "17:00",
+        breakTime: null,
+      }));
+    }
+
+    const dayAvailability = normalized.find((item: any) => item.day?.toLowerCase() === dayName.toLowerCase());
+    if (!dayAvailability) return 0;
+
+    const [startH, startM] = (dayAvailability.startTime || "09:00").split(':').map(Number);
+    const [endH, endM] = (dayAvailability.endTime || "17:00").split(':').map(Number);
+    let totalMin = (endH * 60 + endM) - (startH * 60 + startM);
+
+    if (dayAvailability.breakTime?.startTime && dayAvailability.breakTime?.endTime) {
+      const [breakStartH, breakStartM] = dayAvailability.breakTime.startTime.split(':').map(Number);
+      const [breakEndH, breakEndM] = dayAvailability.breakTime.endTime.split(':').map(Number);
+      const breakMin = (breakEndH * 60 + breakEndM) - (breakStartH * 60 + breakStartM);
+      totalMin -= breakMin;
+    }
+    return totalMin;
+  };
+
+  const isDateDisabled = (d: Date) => {
+    if (!selectedClinicianMember) return false;
+    const tz = (selectedClinicianMember.user as any)?.timezone || 'Europe/London';
+    const dayName = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      weekday: "long"
+    }).format(d).toLowerCase();
+
+    const availability = selectedClinicianMember.availability || [];
+    const schedule = selectedClinicianMember.availabilitySchedule || [];
+
+    const workingDays = Array.isArray(schedule) && schedule.length > 0
+      ? schedule.map((item: any) => item?.day?.toLowerCase())
+      : availability.map((day: any) => day.toLowerCase());
+
+    if (!workingDays.includes(dayName)) {
+      return true; // Not a working day
+    }
+
+    const dateStrInTz = formatInTimeZone(d, tz, 'yyyy-MM-dd');
+    const appointmentsOnDay = appointmentsList.filter((app: any) => {
+      if (app.status === 'cancelled') return false;
+      const appStart = app.startTime || app.start;
+      if (!appStart) return false;
+      
+      const appDateStr = formatInTimeZone(new Date(appStart), tz, 'yyyy-MM-dd');
+      return appDateStr === dateStrInTz;
+    });
+
+    const totalScheduledMin = appointmentsOnDay.reduce((sum: number, app: any) => {
+      const duration = Number(app.duration) || 50;
+      return sum + duration;
+    }, 0);
+
+    const workingMinutes = getDayWorkingMinutes(dayName);
+    return totalScheduledMin >= workingMinutes;
+  };
+
+  const isTimeDisabled = (time24: string) => {
+    if (!date || !effectiveClinicianId) return false;
+    if (isSlotsLoading) return false;
+    if (availableSlots.length === 0) return true;
+
+    const [h, m] = time24.split(':').map(Number);
+    const period = h >= 12 ? 'PM' : 'AM';
+    let h12 = h % 12;
+    if (h12 === 0) h12 = 12;
+    const label12h = `${h12.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')} ${period}`;
+
+    return !availableSlots.some((slot: any) => slot.timeLabel === label12h);
+  };
+
+  useEffect(() => {
+    if (date && isDateDisabled(date)) {
+      setDate(undefined);
+      setTime('');
+    }
+  }, [effectiveClinicianId]);
+
+  useEffect(() => {
+    if (time && isTimeDisabled(time)) {
+      setTime('');
+    }
+  }, [availableSlots]);
+
   const integrationsRaw = integrationsResponse?.response?.data;
   const integrations = Array.isArray(integrationsRaw) ? integrationsRaw : integrationsRaw?.docs || [];
   const zoomIntegration = integrations.find((integration: any) => {
@@ -240,7 +405,7 @@ export function CreateAppointmentModal({
   const filteredClients = useMemo(() => {
     if (!clientNameInput) return [];
     const lower = clientNameInput.toLowerCase();
-    return apiClients.filter(c => c.name.toLowerCase().includes(lower));
+    return apiClients.filter((c: any) => c.name.toLowerCase().includes(lower));
   }, [clientNameInput, apiClients]);
 
   const handleClientSelect = (client: { id: string; name: string; email: string }) => {
@@ -282,28 +447,13 @@ export function CreateAppointmentModal({
       return;
     }
 
-    const selectedClient = apiClients.find(c => String(c.id) === String(selectedClientId));
+    const selectedClient = apiClients.find((c: any) => String(c.id) === String(selectedClientId));
     if (!selectedClient) {
       alert('Selected client is not available in this clinic. Please re-select a client.');
       return;
     }
 
     setIsLoading(true);
-
-    const targetDate = date || new Date();
-    const [hours, minutes] = (time || '09:00').split(':').map(Number);
-    const localDateTime = new Date(
-      targetDate.getFullYear(),
-      targetDate.getMonth(),
-      targetDate.getDate(),
-      hours,
-      minutes,
-      0
-    );
-    const dateIso = localDateTime.toISOString();
-    const timeIso = localDateTime.toISOString();
-    const dateStr = targetDate.toISOString().split('T')[0];
-    const timeStr = time || '09:00';
 
     const resolvedClinicianId = effectiveClinicianId;
     const clinicianIdToSend = resolvedClinicianId || null;
@@ -313,6 +463,22 @@ export function CreateAppointmentModal({
       setIsLoading(false);
       return;
     }
+
+    const members = clinicMembersResponse?.response?.data?.docs || [];
+    const selectedClinicianMember = members.find((m: any) => String(m.id) === String(clinicianIdToSend));
+    const clinicianTimezone = (selectedClinicianMember?.user as any)?.timezone || 'Europe/London';
+
+    const targetDate = date || new Date();
+    const timeStr = time || '09:00';
+    const year = targetDate.getFullYear();
+    const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const day = String(targetDate.getDate()).padStart(2, '0');
+    const localDateTimeStr = `${year}-${month}-${day} ${timeStr}:00`;
+
+    const clinicianDateTime = fromZonedTime(localDateTimeStr, clinicianTimezone);
+    const dateIso = clinicianDateTime.toISOString();
+    const timeIso = clinicianDateTime.toISOString();
+    const dateStr = targetDate.toISOString().split('T')[0];
 
     if (requiresMeetingIntegration && !isSelectedMeetingConnected) {
       alert(`Please connect ${selectedMeetingProviderName} in Integrations before scheduling this meeting type.`);
@@ -405,7 +571,7 @@ export function CreateAppointmentModal({
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setSuggestionBoxOpen(false)} />
                   <div className="absolute top-full left-0 right-0 z-50 bg-white/95 backdrop-blur-md border border-primary/10 rounded-2xl shadow-xl mt-2 max-h-48 overflow-y-auto animate-in fade-in slide-in-from-top-2">
-                    {filteredClients.map(client => (
+                    {filteredClients.map((client: any) => (
                       <div
                         key={client.id}
                         className="px-4 py-3 hover:bg-primary/5 cursor-pointer text-sm transition-colors border-b border-slate-50 last:border-0"
@@ -433,6 +599,12 @@ export function CreateAppointmentModal({
               })) : [{ value: '', label: 'No clinicians available' }]}
             />
 
+            {hasNoAvailability && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 text-xs text-amber-800 font-semibold leading-relaxed border-dashed animate-in fade-in slide-in-from-top-2 duration-200">
+                ⚠️ This clinician has no availability set up. Please update their availability in settings.
+              </div>
+            )}
+
             <Select
               label="Session Type"
               options={sessionOptions}
@@ -443,8 +615,8 @@ export function CreateAppointmentModal({
           </div>
 
           <div className="space-y-6">
-            <DatePicker label="Date" date={date} setDate={setDate} />
-            <TimePicker label="Start Time" time={time} setTime={setTime} />
+            <DatePicker label="Date" date={date} setDate={setDate} isDateDisabled={isDateDisabled} />
+            <TimePicker label="Start Time" time={time} setTime={setTime} isTimeDisabled={isTimeDisabled} />
             <Select
               label="Meeting Type"
               value={meetingType}

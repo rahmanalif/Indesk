@@ -1639,6 +1639,29 @@ export const clientsApi = createApi({
       providesTags: ["Clients"],
     }),
 
+    getAvailableSlots: builder.query<
+      any,
+      { clinicianId: string; date: string; sessionId?: string; duration?: number }
+    >({
+      query: (params) => ({
+        url: "/appointment/available-slots",
+        params,
+      }),
+      providesTags: ["Clients"],
+    }),
+
+    getPublicAvailableSlots: builder.query<
+      any,
+      { clinicianToken: string; date: string; sessionId?: string; duration?: number }
+    >({
+      query: (params) => ({
+        url: "/appointment/available-slots/public",
+        params,
+      }),
+      providesTags: ["Clients"],
+    }),
+
+
     getInvoices: builder.query<
       GetInvoicesResponse,
       { page?: number; limit?: number }
@@ -2063,6 +2086,9 @@ export const {
   useGetCalendarAppointmentsQuery,
   useGetSessionsQuery,
   useGetSessionsByClinicianTokenQuery,
+  useGetAvailableSlotsQuery,
+  useGetPublicAvailableSlotsQuery,
+
   useGetInvoicesQuery,
   useGetInvoiceStatsQuery,
   useGetCurrentSubscriptionQuery,

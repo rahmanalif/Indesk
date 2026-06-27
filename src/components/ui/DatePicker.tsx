@@ -14,6 +14,7 @@ interface DatePickerProps {
   minYear?: number;
   maxYear?: number;
   defaultViewDate?: Date;
+  isDateDisabled?: (date: Date) => boolean;
 }
 
 export function DatePicker({
@@ -25,7 +26,8 @@ export function DatePicker({
   placeholder = "Select Date",
   minYear,
   maxYear,
-  defaultViewDate
+  defaultViewDate,
+  isDateDisabled
 }: DatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -261,22 +263,26 @@ export function DatePicker({
 
               const isSelected = date && d.toDateString() === date.toDateString();
               const isToday = d.toDateString() === new Date().toDateString();
+              const isDisabled = isDateDisabled ? isDateDisabled(d) : false;
 
               return (
                 <button
                   key={i}
                   type="button"
-                  onClick={() => handleSelectDate(d)}
+                  disabled={isDisabled}
+                  onClick={() => !isDisabled && handleSelectDate(d)}
                   className={cn(
                     "h-10 w-10 flex items-center justify-center rounded-xl text-[13px] font-bold transition-all relative group",
                     isSelected
                       ? "bg-primary text-white shadow-lg shadow-primary/30"
-                      : "text-slate-600 hover:bg-primary/10 hover:text-primary",
-                    isToday && !isSelected && "text-primary border border-primary/20"
+                      : isDisabled
+                        ? "text-slate-300 bg-slate-50 cursor-not-allowed opacity-40"
+                        : "text-slate-600 hover:bg-primary/10 hover:text-primary",
+                    isToday && !isSelected && !isDisabled && "text-primary border border-primary/20"
                   )}
                 >
                   {d.getDate()}
-                  {isToday && !isSelected && <div className="absolute bottom-1.5 h-1 w-1 rounded-full bg-primary" />}
+                  {isToday && !isSelected && !isDisabled && <div className="absolute bottom-1.5 h-1 w-1 rounded-full bg-primary" />}
                 </button>
               );
             })}

@@ -2,13 +2,14 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import {
     X, User, Calendar, CheckCircle, ChevronRight, Clock,
-    ArrowLeft, Phone, Mail, Loader2, Layers, Send, Printer, Video
+    ArrowLeft, Mail, Loader2, Layers, Send, Printer, Video
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { MOCK_CLINIC_DETAILS } from '../../lib/mockData';
 import { hexToRgb, brandGradient, brandBg } from '../../lib/branding';
-import { useGetSessionsByClinicianTokenQuery, useApplyAppointmentWithTokenMutation } from '../../redux/api/clientsApi';
+import { useGetSessionsByClinicianTokenQuery, useApplyAppointmentWithTokenMutation, useGetPublicAvailableSlotsQuery } from '../../redux/api/clientsApi';
 import { PhoneNumberInput, isValidPhoneNumber, parsePhoneNumber } from '../ui/PhoneNumberInput';
+import { fromZonedTime } from 'date-fns-tz';
 
 export interface BookAppointmentModalProps {
     isOpen: boolean;
@@ -223,6 +224,7 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
     const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', phone: '' });
     const [selectedDay, setSelectedDay] = useState<string | null>(null);
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+    const [selectedSlotIso, setSelectedSlotIso] = useState<string | null>(null);
     const [selectedSessionId, setSelectedSessionId] = useState<string | number | null>(null);
     const [meetingType, setMeetingType] = useState<"in_person" | "zoom" | "google_meet">("in_person");
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -265,7 +267,7 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
     }, [fallbackSessionTypes]);
 
     const sessionOptions = parsedApiSessions.length > 0 ? parsedApiSessions : parsedFallbackSessions;
-    const selectedSession = sessionOptions.find((s) => String(s.id) === String(selectedSessionId));
+    const selectedSession = sessionOptions.find((s: any) => String(s.id) === String(selectedSessionId));
 
     const availableMeetingTypes = useMemo(() => {
         const types = [{ id: 'in_person', label: 'In-Person', icon: User }];
@@ -292,6 +294,37 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
         const iso = getDayIsoDate(dayName);
         return new Date(iso + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
     };
+
+    const { data: slotsResponse, isLoading: isSlotsLoading } = useGetPublicAvailableSlotsQuery(
+        {
+            clinicianToken,
+            date: selectedDay ? getDayIsoDate(selectedDay) : '',
+            sessionId: selectedSessionId ? String(selectedSessionId) : undefined,
+        },
+        {
+            skip: !clinicianToken || !selectedDay || !isOpen,
+        }
+    );
+
+    const availableSlots = useMemo(() => {
+        return slotsResponse?.response?.data || [];
+    }, [slotsResponse]);
+
+    useEffect(() => {
+        if (availableSlots && availableSlots.length > 0) {
+            const matchedSlot = availableSlots.find((s: any) => s.timeLabel === selectedSlot);
+            if (matchedSlot) {
+                setSelectedSlotIso(matchedSlot.startTime);
+            } else {
+                setSelectedSlot(availableSlots[0].timeLabel);
+                setSelectedSlotIso(availableSlots[0].startTime);
+            }
+        } else if (!isSlotsLoading) {
+            setSelectedSlot(null);
+            setSelectedSlotIso(null);
+        }
+    }, [availableSlots, isSlotsLoading, selectedSlot]);
+
 
     useEffect(() => {
         if (preselectedSlot && isOpen) {
@@ -357,16 +390,20 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
     const handleConfirm = async () => {
         setIsLoading(true);
         try {
+            const clinicianTimezone = clinician?.user?.timezone || 'Europe/London';
             const rawTime = selectedSlot || '09:00 AM';
             const [timePart, period] = rawTime.split(' ');
             const [h, m] = timePart.split(':');
             let hour = parseInt(h);
             if (period === 'PM' && hour !== 12) hour += 12;
             if (period === 'AM' && hour === 12) hour = 0;
-            const isoTime = `${String(hour).padStart(2, '0')}:${m || '00'}`;
-            const [year, month, day] = getDayIsoDate(selectedDay!).split('-').map(Number);
-            const localDateTime = new Date(year, month - 1, day, hour, parseInt(m || '0'), 0);
-            const fullIsoDateTime = localDateTime.toISOString();
+            const timeStr = `${String(hour).padStart(2, '0')}:${m || '00'}`;
+
+            const dateStr = getDayIsoDate(selectedDay!);
+            const localDateTimeStr = `${dateStr} ${timeStr}:00`;
+            const clinicianDateTime = fromZonedTime(localDateTimeStr, clinicianTimezone);
+            const fullIsoDateTime = clinicianDateTime.toISOString();
+            const timeToSend = selectedSlotIso || fullIsoDateTime;
 
             const parsedPhone = parsePhoneNumber(formData.phone || '');
 
@@ -378,7 +415,7 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                 clientPhone: parsedPhone ? parsedPhone.nationalNumber : formData.phone,
                 clientCountryCode: parsedPhone ? `+${parsedPhone.countryCallingCode}` : undefined,
                 sessionId: String(selectedSessionId),
-                time: fullIsoDateTime,
+                time: timeToSend,
                 meetingType: meetingType,
             }).unwrap();
 
@@ -397,7 +434,7 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                 phone: formData.phone,
                 clinicianName: clinician.name,
                 date: getDayIsoDate(selectedDay!),
-                time: isoTime,
+                time: timeStr,
                 sessionType: selectedSession?.name || 'Initial Consultation',
                 duration: resolvedDuration,
                 invoiceNumber: invoiceRef.current,
@@ -547,7 +584,7 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                             <p className="text-slate-500 text-sm mb-4">Choose a day and time slot that works for you.</p>
                             <div className="flex flex-wrap gap-2 mb-4">
                                 {availability.map((avail: any) => (
-                                    <button key={avail.day} onClick={() => { setSelectedDay(avail.day); setSelectedSlot(avail?.slots?.[0] || formatTime(avail?.startTime)); setErrors({}); }}
+                                    <button key={avail.day} onClick={() => { setSelectedDay(avail.day); setSelectedSlot(null); setErrors({}); }}
                                         className="px-3 py-2 rounded-xl text-xs font-bold border transition-all"
                                         style={selectedDay === avail.day
                                             ? { backgroundColor: color, color: '#fff', borderColor: color }
@@ -577,6 +614,46 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                                     </div>
                                 );
                             })()}
+                            
+                            {selectedDay && (
+                                <div className="mt-4 mb-6">
+                                    <p className="text-slate-900 font-bold text-xs mb-3 uppercase tracking-wider">Available Time Slots</p>
+                                    {isSlotsLoading ? (
+                                        <div className="flex items-center gap-2 text-xs text-slate-400 py-2">
+                                            <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                                            <span>Loading available slots...</span>
+                                        </div>
+                                    ) : availableSlots.length > 0 ? (
+                                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                                            {availableSlots.map((slot: any) => {
+                                                const isSelected = selectedSlot === slot.timeLabel;
+                                                return (
+                                                    <button
+                                                        key={slot.startTime}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSelectedSlot(slot.timeLabel);
+                                                            setSelectedSlotIso(slot.startTime);
+                                                            setErrors({});
+                                                        }}
+                                                        className="px-2.5 py-2 rounded-xl text-xs font-bold border transition-all text-center"
+                                                        style={
+                                                            isSelected
+                                                                ? { backgroundColor: color, color: '#fff', borderColor: color }
+                                                                : { backgroundColor: '#f8fafc', color: '#475569', borderColor: '#e2e8f0' }
+                                                        }
+                                                    >
+                                                        {slot.timeLabel}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs text-red-500 font-medium">No available slots on this day. Please try another day.</p>
+                                    )}
+                                </div>
+                            )}
+
                             {!selectedDay && (
                                 <div className="text-center py-8">
                                     <Calendar className="h-10 w-10 mx-auto mb-2 opacity-30" style={{ color }} />
@@ -588,7 +665,7 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                                 <p className="text-xs text-slate-400 mb-3">Loading sessions...</p>
                             )}
                             <div className="space-y-3">
-                                {sessionOptions.map(session => {
+                                {sessionOptions.map((session: any) => {
                                     const isSel = String(selectedSessionId) === String(session.id);
                                     return (
                                         <button key={session.id} onClick={() => { setSelectedSessionId(session.id); setErrors({}); }}

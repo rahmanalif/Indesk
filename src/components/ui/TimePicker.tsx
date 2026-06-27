@@ -7,13 +7,17 @@ interface TimePickerProps {
   setTime: (time: string) => void;
   label?: string;
   className?: string;
+  isTimeDisabled?: (time: string) => boolean;
+  compact?: boolean;
 }
 
 export function TimePicker({
   time,
   setTime,
   label,
-  className
+  className,
+  isTimeDisabled,
+  compact
 }: TimePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -79,23 +83,27 @@ export function TimePicker({
 
       <div
         className={cn(
-          "flex h-14 w-full items-center gap-3 rounded-2xl border border-primary/10 bg-secondary/30 px-5 py-2 text-[15px] font-semibold shadow-inner transition-all hover:bg-secondary/40 cursor-pointer",
+          "flex w-full items-center rounded-2xl border border-primary/10 bg-secondary/30 font-semibold shadow-inner transition-all hover:bg-secondary/40 cursor-pointer",
+          compact ? "h-10 gap-2 rounded-xl px-3 text-[13px]" : "h-14 gap-3 px-5 py-2 text-[15px]",
           isOpen && "ring-2 ring-primary/20 bg-white border-primary/20 shadow-md"
         )}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <Clock className="h-4 w-4 text-primary shrink-0" />
+        <Clock className={cn("text-primary shrink-0", compact ? "h-3.5 w-3.5" : "h-4 w-4")} />
         <span className={cn("flex min-w-0 flex-1 items-center gap-1.5", !time && "text-muted-foreground/50 font-medium")}>
           {time ? (
             <>
-              <span className="truncate tabular-nums">{current.h}:{current.m}</span>
-              <span className="inline-flex min-w-[2.75rem] shrink-0 items-center justify-center rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-black leading-none text-primary">
+              <span className="shrink-0 tabular-nums">{current.h}:{current.m}</span>
+              <span className={cn(
+                "inline-flex shrink-0 items-center justify-center rounded-md bg-primary/10 font-black leading-none text-primary",
+                compact ? "min-w-[2.25rem] px-1 py-0.5 text-[9px]" : "min-w-[2.75rem] px-1.5 py-0.5 text-[10px]"
+              )}>
                 {current.p}
               </span>
             </>
           ) : "Select Time"}
         </span>
-        <ChevronDown className={cn("h-4 w-4 text-primary opacity-40 transition-transform duration-300", isOpen && "rotate-180")} />
+        <ChevronDown className={cn("text-primary opacity-40 transition-transform duration-300", compact ? "h-3.5 w-3.5" : "h-4 w-4", isOpen && "rotate-180")} />
       </div>
 
       {isOpen && (
@@ -114,18 +122,22 @@ export function TimePicker({
             <div className="max-h-[280px] overflow-y-auto rounded-2xl border border-primary/10 bg-secondary/20 p-2">
               {timeOptions.map((option) => {
                 const isSelected = option.value === time;
+                const isDisabled = isTimeDisabled ? isTimeDisabled(option.value) : false;
 
                 return (
                   <button
                     key={option.value}
                     ref={isSelected ? selectedOptionRef : null}
                     type="button"
-                    onClick={() => handleSelect(option.value)}
+                    disabled={isDisabled}
+                    onClick={() => !isDisabled && handleSelect(option.value)}
                     className={cn(
                       "flex w-full items-center justify-between rounded-xl px-4 py-3 text-left transition-colors",
                       isSelected
                         ? "bg-primary text-white shadow-sm"
-                        : "text-slate-700 hover:bg-primary/10 hover:text-primary"
+                        : isDisabled
+                          ? "text-slate-300 bg-slate-50 cursor-not-allowed opacity-40"
+                          : "text-slate-700 hover:bg-primary/10 hover:text-primary"
                     )}
                   >
                     <span className="tabular-nums text-[15px] font-semibold">{option.label}</span>

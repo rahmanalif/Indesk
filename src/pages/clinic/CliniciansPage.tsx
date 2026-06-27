@@ -22,8 +22,6 @@ import {
   useGetCurrentSubscriptionQuery,
 } from "../../redux/api/clientsApi";
 import { CreateClinicianModal } from "../../components/modals/CreateClinicianModal";
-import { ClinicianProfileModal } from "../../components/modals/ClinicianProfileModal";
-import { EditClinicianModal } from "../../components/modals/EditClinicianModal";
 import { ClinicianScheduleModal } from "../../components/modals/ClinicianScheduleModal";
 import { RootState } from "../../store";
 
@@ -35,9 +33,11 @@ export function CliniciansPage() {
   );
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClinician, setSelectedClinician] = useState<any>(null);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+
+  const goToDetails = (clinicianId: string) => {
+    navigate(`/clinic/team/${clinicianId}/details`);
+  };
 
   // Custom Dropdown State
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
@@ -278,15 +278,13 @@ export function CliniciansPage() {
   }, []);
 
   const handleViewProfile = (clinician: any) => {
-    setSelectedClinician(clinician);
-    setIsProfileOpen(true);
     setOpenDropdownId(null);
+    goToDetails(clinician.id);
   };
 
   const handleEdit = (clinician: any) => {
-    setSelectedClinician(clinician);
-    setIsEditModalOpen(true);
     setOpenDropdownId(null);
+    goToDetails(clinician.id);
   };
 
   const handleViewSchedule = (clinician: any) => {
@@ -398,8 +396,7 @@ export function CliniciansPage() {
     const match = formattedMembers.find((c) => c.id === deepLinkClinicianId);
     handledDeepLinkRef.current = deepLinkClinicianId;
     if (match) {
-      setSelectedClinician(match);
-      setIsProfileOpen(true);
+      goToDetails(match.id);
     }
     setSearchParams(
       (prev) => {
@@ -725,21 +722,6 @@ export function CliniciansPage() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         initialRole={pendingSeatType}
-      />
-      <ClinicianProfileModal
-        isOpen={isProfileOpen}
-        onClose={() => setIsProfileOpen(false)}
-        clinician={selectedClinician}
-        onEdit={() => {
-          setIsProfileOpen(false);
-          // Short timeout to allow transition or just seamless switch
-          setIsEditModalOpen(true);
-        }}
-      />
-      <EditClinicianModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        clinician={selectedClinician}
       />
       <ClinicianScheduleModal
         isOpen={isScheduleModalOpen}

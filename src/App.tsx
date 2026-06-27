@@ -18,6 +18,7 @@ import { ClientStatusPage } from './pages/clients/ClientStatusPage';
 import { ClinicLayout } from './pages/clinic/ClinicLayout';
 import { ClinicDetailsPage } from './pages/clinic/ClinicDetailsPage';
 import { CliniciansPage } from './pages/clinic/CliniciansPage';
+import { ClinicianDetailsPage } from './pages/clinic/ClinicianDetailsPage';
 import { InvoicesPage } from './pages/InvoicesPage';
 import { SessionsPage } from './pages/SessionsPage';
 import { AppointmentsPage } from './pages/AppointmentsPage';
@@ -110,6 +111,7 @@ export function App() {
               <Route index element={<Navigate to="details" replace />} />
               <Route path="details" element={<ClinicDetailsPage />} />
               <Route path="team" element={<CliniciansPage />} />
+              <Route path="team/:memberId/details" element={<ClinicianDetailsPage />} />
             </Route>
 
             <Route path="invoices" element={

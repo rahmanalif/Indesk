@@ -2,6 +2,8 @@ import { useMemo, useState, type CSSProperties } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, Mail, Phone, Calendar, Shield, Layers } from 'lucide-react';
 import { BookAppointmentModal } from '@/components/modals/BookAppointmentModal';
+import { WeekAvailabilityTimeline } from '../../components/clinicians/WeekAvailabilityTimeline';
+import { normalizeDay } from '../../lib/clinicianAvailability';
 import { useData } from '../../context/DataContext';
 import { useGetPublicClinicQuery, useGetSessionsByClinicianTokenQuery } from '../../redux/api/clientsApi';
 import { brandGradient, brandBg, hexToHslToken } from '../../lib/branding';
@@ -268,27 +270,34 @@ export function PublicClinicianPage() {
             <div className="bg-white rounded-3xl shadow-lg shadow-slate-200/60 border border-slate-100 p-8">
               <h2 className="text-xl font-black text-slate-900 mb-2 flex items-center gap-2">
                 <Calendar className="h-5 w-5" style={{ color }} />
-                Available Sessions
+                Weekly Availability
               </h2>
-              <p className="text-slate-500 text-sm mb-6">Select a day to see available sessions.</p>
+              <p className="text-slate-500 text-sm mb-6">Tap a working day to see available sessions.</p>
 
-              <div className="flex flex-wrap gap-2 mb-6">
-                {availability.map((avail: any) => (
-                  <button
-                    key={avail.day}
-                    onClick={() => setSelectedDay(selectedDay === avail.day ? null : avail.day)}
-                    className="px-4 py-2 rounded-xl text-sm font-bold transition-all border"
-                    style={
-                      selectedDay === avail.day
-                        ? { backgroundColor: color, color: '#fff', borderColor: color }
-                        : { backgroundColor: '#f8f9fa', color: '#64748b', borderColor: '#e2e8f0' }
-                    }
-                  >
-                    {avail.day}
-                    <span className="ml-2 text-[10px] opacity-60 font-normal">{getDayDate(avail.day).split(',')[0].split(' ').slice(1).join(' ')}</span>
-                  </button>
-                ))}
-              </div>
+              {availability.length > 0 ? (
+                <div className="mb-6">
+                  <WeekAvailabilityTimeline
+                    schedule={availability.map((avail: any) => ({
+                      day: avail.day,
+                      startTime: avail.startTime,
+                      endTime: avail.endTime,
+                      breakStartTime: avail.breakTime?.startTime || '',
+                      breakEndTime: avail.breakTime?.endTime || '',
+                    }))}
+                    accentColor={color}
+                    selectedDay={selectedDay}
+                    onSelectDay={(dayValue) => {
+                      const match = availability.find((item: any) => normalizeDay(item.day) === dayValue);
+                      const label = match?.day || null;
+                      setSelectedDay((current: string | null) => (current === label ? null : label));
+                    }}
+                  />
+                </div>
+              ) : (
+                <p className="mb-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+                  This clinician has not published availability yet.
+                </p>
+              )}
 
               {selectedDay ? (
                 <div>

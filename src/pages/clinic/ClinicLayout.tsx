@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet, NavLink } from 'react-router-dom';
+import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { Building2, Users, Share2, Copy, CheckCheck, ExternalLink, X } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { useGetClinicQuery } from '../../redux/api/clientsApi';
@@ -12,6 +12,18 @@ export function ClinicLayout() {
     const clinicPublicToken = clinicResponse?.response?.data?.publicToken || null;
     const [showSharePopup, setShowSharePopup] = useState(false);
     const [copied, setCopied] = useState(false);
+    const location = useLocation();
+
+    // Full-screen sub-pages (e.g. a single clinician's details) hide the clinic header & tabs.
+    const isFullPage = /^\/clinic\/team\/[^/]+\/details/.test(location.pathname);
+
+    if (isFullPage) {
+        return (
+            <div className="animate-in fade-in duration-500">
+                <Outlet />
+            </div>
+        );
+    }
 
     const handleShare = () => {
         if (!clinicPublicToken && !clinicShareLink) {

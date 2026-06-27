@@ -13,6 +13,7 @@ export type AvailabilityDaySchedule = {
   startTime: string;
   endTime: string;
   breakStartTime?: string;
+  breakEndTime?: string;
 };
 
 export const DEFAULT_AVAILABILITY_SLOT: AvailabilitySlot = {
@@ -24,6 +25,7 @@ export const DEFAULT_AVAILABILITY_DAY: Omit<AvailabilityDaySchedule, 'day'> = {
   startTime: DEFAULT_AVAILABILITY_SLOT.startTime,
   endTime: DEFAULT_AVAILABILITY_SLOT.endTime,
   breakStartTime: '',
+  breakEndTime: '',
 };
 
 const DAY_ALIASES: Record<string, string> = {
@@ -100,19 +102,17 @@ const inferScheduleFromSlots = (slots: AvailabilitySlot[]): Omit<AvailabilityDay
     startTime: firstSlot.startTime,
     endTime: lastSlot.endTime,
     breakStartTime: supportsSingleBreak ? inferredBreakStart : '',
+    breakEndTime: supportsSingleBreak ? inferredBreakEnd : '',
   };
 };
 
 const isValidBreakWindow = (
   startTime: string,
   endTime: string,
-  breakStartTime?: string
+  breakStartTime?: string,
+  breakEndTime?: string
 ) => {
-  if (!breakStartTime) return false;
-
-  const breakEndTime = addHour(breakStartTime);
-  if (!breakEndTime) return false;
-
+  if (!breakStartTime || !breakEndTime) return false;
   return startTime < breakStartTime && breakStartTime < breakEndTime && breakEndTime < endTime;
 };
 
@@ -129,6 +129,7 @@ export const ensureScheduleForDays = (
       startTime: existing?.startTime || DEFAULT_AVAILABILITY_DAY.startTime,
       endTime: existing?.endTime || DEFAULT_AVAILABILITY_DAY.endTime,
       breakStartTime: existing?.breakStartTime || '',
+      breakEndTime: existing?.breakEndTime || '',
     };
   })
 );
@@ -154,6 +155,9 @@ export const normalizeAvailabilitySchedule = (
           breakStartTime: typeof item?.breakTime?.startTime === 'string'
             ? item.breakTime.startTime
             : (typeof item?.breakStartTime === 'string' ? item.breakStartTime : ''),
+          breakEndTime: typeof item?.breakTime?.endTime === 'string'
+            ? item.breakTime.endTime
+            : (typeof item?.breakEndTime === 'string' ? item.breakEndTime : ''),
         };
       }
 
@@ -181,11 +185,11 @@ export const buildAvailabilitySchedulePayload = (
   schedule: AvailabilityDaySchedule[]
 ) => (
   ensureScheduleForDays(selectedDays, schedule).map((item) => {
-    const hasBreak = isValidBreakWindow(item.startTime, item.endTime, item.breakStartTime);
+    const hasBreak = isValidBreakWindow(item.startTime, item.endTime, item.breakStartTime, item.breakEndTime);
     const breakTime: AvailabilityBreakTime | undefined = hasBreak
       ? {
           startTime: item.breakStartTime!,
-          endTime: addHour(item.breakStartTime!),
+          endTime: item.breakEndTime!,
         }
       : undefined;
 

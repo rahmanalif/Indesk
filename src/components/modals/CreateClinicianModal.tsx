@@ -107,7 +107,7 @@ export function CreateClinicianModal({
         setIsLoading(false);
       });
   };
-  return <Modal isOpen={isOpen} onClose={onClose} title="Add New Clinician" description="Onboard a new team member" size="xl">
+  return <Modal isOpen={isOpen} onClose={onClose} title="Add New Clinician" description="Onboard a new team member" size="xl" className="lg:max-w-5xl xl:max-w-6xl">
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.95fr)]">
         <div className="space-y-5">
