@@ -367,7 +367,7 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
 
     const validateStep1 = () => {
         const e: Record<string, string> = {};
-        const nameRegex = /^[\p{L}\s\-\'.,]+$/u;
+        const nameRegex = /^[\p{L}\s\-.,']+$/u;
         if (!formData.firstName.trim()) e.firstName = 'First name is required.';
         else if (!nameRegex.test(formData.firstName.trim())) e.firstName = 'Invalid characters in name.';
         if (!formData.lastName.trim()) e.lastName = 'Last name is required.';

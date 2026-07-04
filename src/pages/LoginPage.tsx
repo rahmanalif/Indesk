@@ -191,7 +191,7 @@ export function LoginPage() {
     };
     let isValid = true;
 
-    const nameRegex = /^[\p{L}\s\-\'.,]+$/u;
+    const nameRegex = /^[\p{L}\s\-.,']+$/u;
     if (!signupData.firstName.trim()) {
       errors.firstName = 'First name is required';
       isValid = false;

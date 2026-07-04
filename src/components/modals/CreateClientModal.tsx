@@ -160,7 +160,7 @@ export function CreateClientModal({
       return;
     }
 
-    const nameRegex = /^[\p{L}\s\-\'.,]+$/u;
+    const nameRegex = /^[\p{L}\s\-.,']+$/u;
     if (!nameRegex.test(firstName) || !nameRegex.test(lastName)) {
       alert("Name must contain only letters, spaces, and basic punctuation.");
       return;
