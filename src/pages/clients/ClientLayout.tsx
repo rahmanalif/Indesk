@@ -123,13 +123,13 @@ export function ClientLayout() {
                     <Card className="border-none shadow-sm bg-white overflow-hidden">
                         <CardContent className="p-4 sm:p-6 xl:p-8">
                             <div className="flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-6">
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-                                    <div className="flex items-center gap-3">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 flex-1 min-w-0 w-full">
+                                    <div className="flex items-center gap-3 shrink-0">
                                         <Button variant="ghost" size="icon" onClick={() => navigate('/clients')} className="shrink-0 rounded-xl hover:bg-primary/5">
                                             <ArrowLeft className="h-5 w-5" />
                                         </Button>
                                         <Avatar
-                                            fallback={client.name.split(' ').map(n => n[0]).join('')}
+                                            fallback={client.name.split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join('').toUpperCase()}
                                             size="lg"
                                             className="h-14 w-14 sm:h-20 sm:w-20 text-lg sm:text-xl font-bold bg-primary/10 text-primary border-4 border-white shadow-md shrink-0"
                                         />
@@ -159,7 +159,7 @@ export function ClientLayout() {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="grid w-full grid-cols-1 gap-2 border-t border-border/40 pt-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 2xl:flex 2xl:w-auto 2xl:items-center 2xl:gap-3 2xl:border-none 2xl:pt-0">
+                                <div className="grid w-full shrink-0 grid-cols-1 gap-2 border-t border-border/40 pt-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 2xl:flex 2xl:w-auto 2xl:items-center 2xl:gap-3 2xl:border-none 2xl:pt-0">
                                     <Button
                                         variant="outline"
                                         onClick={() => setIsHistoryOpen(true)}
