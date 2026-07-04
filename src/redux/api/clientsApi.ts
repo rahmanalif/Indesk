@@ -352,6 +352,7 @@ export interface UpdateClinicAddress {
 export interface UpdateClinicRequest {
   name: string;
   email: string;
+  description?: string;
   color?: string;
   phoneNumber?: string;
   countryCode?: string;

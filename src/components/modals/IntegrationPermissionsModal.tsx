@@ -72,7 +72,7 @@ export function IntegrationPermissionsModal({
           <AlertCircle className="h-5 w-5 shrink-0" />
           <p>
             {isDisconnectMode
-              ? `Disconnecting ${integrationName} will remove this account connection from Inkind Suite until you authorize it again.`
+              ? `Disconnecting ${integrationName} will remove this account connection from Inkind Suite until you authorise it again.`
               : `Connecting this integration will allow Inkind Suite to access data from your ${integrationName} account.`}
           </p>
         </div>
@@ -131,7 +131,7 @@ export function IntegrationPermissionsModal({
             {isDisconnectMode ? 'Close' : 'Cancel'}
           </Button>
           <Button onClick={handlePrimaryAction} isLoading={onPrimaryAction ? isPrimaryLoading : isLoading} variant={isDisconnectMode ? 'destructive' : 'default'}>
-            {primaryLabel || (isDisconnectMode ? 'Disconnect' : 'Authorize & Connect')}
+            {primaryLabel || (isDisconnectMode ? 'Disconnect' : 'Authorise & Connect')}
           </Button>
         </div>
       </div>

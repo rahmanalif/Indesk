@@ -1,8 +1,11 @@
 export function LogoBar() {
   const logos = [
-  'Inkind Psychology UK',
-  'Psychologist Newcastle',
-  'EGW North Psychology'];
+    'Psychologist Newcastle',
+    'EGW North Psychology',
+    'Inkind Psychology UK',
+    'Psychologist Newcastle',
+    'EGW',
+  ];
 
   // Duplicate for seamless infinite loop
   const scrollLogos = [...logos, ...logos];

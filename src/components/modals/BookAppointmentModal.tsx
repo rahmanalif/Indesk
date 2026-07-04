@@ -200,7 +200,7 @@ function openPrintInvoice(opts: {
     // Small delay so fonts load before auto-showing print dialog
     // Remove the line below if you don't want auto-print
     // setTimeout(() => window.print(), 800);
-  <\/script>
+  </script>
 </body>
 </html>`;
 
@@ -478,37 +478,37 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
         { n: 3, label: 'Confirm', icon: CheckCircle },
     ];
 
-    const inputBase = 'w-full h-11 px-3 text-sm border rounded-xl focus:outline-none transition-colors';
-    const inputWithIcon = 'w-full h-11 pl-10 pr-3 text-sm border rounded-xl focus:outline-none transition-colors';
+    const inputBase = 'w-full h-11 px-3 text-sm border rounded-xl bg-card focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors';
+    const inputWithIcon = 'w-full h-11 pl-10 pr-3 text-sm border rounded-xl bg-card focus:outline-none focus:ring-2 focus:ring-primary/20 transition-colors';
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6">
+            <div className="absolute inset-0 bg-foreground/35 backdrop-blur-sm" onClick={onClose} />
+            <div className="relative flex max-h-[calc(100dvh-1.5rem)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border/70 bg-background shadow-2xl animate-in fade-in zoom-in-95 duration-200 sm:max-h-[92vh]">
 
                 {/* Header */}
-                <div className="p-6 pb-8" style={{ background: brandGradient(color) }}>
-                    <div className="flex items-center justify-between mb-4">
+                <div className="p-6 pb-8 sm:p-8 sm:pb-10" style={{ background: brandGradient(color) }}>
+                    <div className="flex items-center justify-between mb-5">
                         <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center text-white font-black text-lg">
+                            <div className="h-12 w-12 rounded-xl bg-white/20 flex items-center justify-center text-white font-black text-lg shadow-sm ring-1 ring-white/20">
                                 {clinician?.name?.split(' ').map((n: string) => n[0]).join('') || 'C'}
                             </div>
                             <div>
-                                <p className="text-white font-bold text-sm">{clinician?.name}</p>
-                                <p className="text-white/70 text-xs">{clinician?.specialty}</p>
+                                <p className="text-white font-bold text-base">{clinician?.name}</p>
+                                <p className="text-white/75 text-sm">{clinician?.specialty}</p>
                             </div>
                         </div>
-                        <button onClick={onClose} className="h-8 w-8 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
+                        <button onClick={onClose} className="h-9 w-9 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
                             <X className="h-4 w-4" />
                         </button>
                     </div>
-                    <h2 className="text-xl font-black text-white">Book an Appointment</h2>
-                    <p className="text-white/70 text-sm mt-1">Fill in your details to get started</p>
+                    <h2 className="text-2xl font-black text-white sm:text-3xl">Book an Appointment</h2>
+                    <p className="text-white/75 text-sm mt-2">Fill in your details to get started</p>
                 </div>
 
                 {/* Step indicators */}
                 {step < 4 && (
-                    <div className="bg-white border-b border-slate-100 px-6 py-4 -mt-2">
+                    <div className="border-b border-border bg-card/95 px-6 py-4 -mt-2 sm:px-8">
                         <div className="flex items-center justify-between">
                             {steps.map((s, i) => (
                                 <div key={s.n} className="flex items-center">
@@ -535,13 +535,13 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                 )}
 
                 {/* Body */}
-                <div className="p-6 max-h-[58vh] overflow-y-auto">
+                <div className="flex-1 overflow-y-auto p-6 sm:p-8">
 
                     {/* Step 1 - Personal Info */}
                     {step === 1 && (
                         <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-200">
-                            <p className="text-slate-500 text-sm">Your contact information so we can confirm your appointment.</p>
-                            <div className="grid grid-cols-2 gap-3">
+                            <p className="text-muted-foreground text-sm">Your contact information so we can confirm your appointment.</p>
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <div>
                                     <label className="block text-xs font-bold text-slate-700 mb-1.5">First Name *</label>
                                     <div className="relative">
@@ -581,7 +581,7 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                     {/* Step 2 - Session */}
                     {step === 2 && (
                         <div className="animate-in fade-in slide-in-from-right-4 duration-200">
-                            <p className="text-slate-500 text-sm mb-4">Choose a day and time slot that works for you.</p>
+                            <p className="text-muted-foreground text-sm mb-4">Choose a day and time slot that works for you.</p>
                             <div className="flex flex-wrap gap-2 mb-4">
                                 {availability.map((avail: any) => (
                                     <button key={avail.day} onClick={() => { setSelectedDay(avail.day); setSelectedSlot(null); setErrors({}); }}
@@ -598,7 +598,7 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                                 if (!selectedAvailability) return null;
 
                                 return (
-                                    <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                                    <div className="mb-4 rounded-2xl border px-4 py-3 text-sm text-slate-600" style={{ borderColor: brandBg(color, 0.18), backgroundColor: brandBg(color, 0.05) }}>
                                         <div className="flex flex-col gap-1">
                                             <p>
                                                 <strong className="text-slate-900">Working hours:</strong>{' '}
@@ -624,7 +624,7 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                                             <span>Loading available slots...</span>
                                         </div>
                                     ) : availableSlots.length > 0 ? (
-                                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-5">
                                             {availableSlots.map((slot: any) => {
                                                 const isSelected = selectedSlot === slot.timeLabel;
                                                 return (
@@ -660,7 +660,7 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                                     <p className="text-slate-400 text-sm">Select a day to continue</p>
                                 </div>
                             )}
-                            <p className="text-slate-500 text-sm mt-6 mb-4">Choose the type of session you'd like to book.</p>
+                            <p className="text-muted-foreground text-sm mt-6 mb-4">Choose the type of session you'd like to book.</p>
                             {isSessionsLoading && (
                                 <p className="text-xs text-slate-400 mb-3">Loading sessions...</p>
                             )}
@@ -698,7 +698,7 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                             {availableMeetingTypes.length > 1 && (
                                 <div className="mt-6">
                                     <p className="text-slate-500 text-sm mb-3">Preferred Meeting Type</p>
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                         {availableMeetingTypes.map((type) => {
                                             const isSelected = meetingType === type.id;
                                             return (
@@ -836,7 +836,7 @@ export function BookAppointmentModal({ isOpen, onClose, clinician, preselectedSl
                 </div>
 
                 {/* Footer Actions */}
-                <div className="p-5 border-t border-slate-100">
+                <div className="border-t border-border bg-card/95 p-5 sm:px-8">
                     {step === 4 ? (
                         <div className="flex gap-2">
                             <button

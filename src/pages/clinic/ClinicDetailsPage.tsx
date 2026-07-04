@@ -3,6 +3,7 @@ import { MapPin, Globe, Mail, Upload, Check } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
+import { Textarea } from '../../components/ui/Textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
 import { useData } from '../../context/DataContext';
 import { cn } from '../../lib/utils';
@@ -137,6 +138,7 @@ export function ClinicDetailsPage() {
     const [clinicEmailInput, setClinicEmailInput] = useState('');
     const [clinicPhoneInput, setClinicPhoneInput] = useState('');
     const [clinicWebsiteInput, setClinicWebsiteInput] = useState('');
+    const [clinicDescriptionInput, setClinicDescriptionInput] = useState('');
     const [currencyInput, setCurrencyInput] = useState(() => localStorage.getItem(CLINIC_CURRENCY_STORAGE_KEY) || 'GBP');
     const [streetInput, setStreetInput] = useState('');
     const [cityInput, setCityInput] = useState('');
@@ -150,6 +152,7 @@ export function ClinicDetailsPage() {
         setClinicEmailInput((prev) => clinic.email ?? prev);
         setClinicPhoneInput((prev) => clinic.phoneNumber ? `${clinic.countryCode || ''}${clinic.phoneNumber}` : prev);
         setClinicWebsiteInput((prev) => (clinic as any).url ?? prev);
+        setClinicDescriptionInput((prev) => clinic.description ?? prev);
         setStreetInput((prev) => (clinicAddress as any).street ?? prev);
         setCityInput((prev) => (clinicAddress as any).city ?? prev);
         setStateInput((prev) => (clinicAddress as any).state ?? prev);
@@ -209,6 +212,7 @@ export function ClinicDetailsPage() {
             const response = await updateClinicMutation({
                 name: clinicNameInput || clinic?.name || '',
                 email: trimmedEmail || clinic?.email || '',
+                description: clinicDescriptionInput.trim(),
                 color: tempColor,
                 ...phoneFields,
                 ...(trimmedWebsite ? { url: trimmedWebsite } : {}),
@@ -230,6 +234,7 @@ export function ClinicDetailsPage() {
                 setClinicEmailInput(updatedClinic.email ?? clinicEmailInput);
                 setClinicPhoneInput(updatedClinic.phoneNumber ? `${updatedClinic.countryCode || ''}${updatedClinic.phoneNumber}` : clinicPhoneInput);
                 setClinicWebsiteInput((updatedClinic as any).url ?? clinicWebsiteInput);
+                setClinicDescriptionInput(updatedClinic.description ?? clinicDescriptionInput);
                 setStreetInput((updatedAddress as any)?.street ?? streetInput);
                 setCityInput((updatedAddress as any)?.city ?? cityInput);
                 setStateInput((updatedAddress as any)?.state ?? stateInput);
@@ -304,6 +309,13 @@ export function ClinicDetailsPage() {
                                             options={CURRENCY_OPTIONS}
                                         />
                                     </div>
+                                    <Textarea
+                                        label="Slogan"
+                                        value={clinicDescriptionInput}
+                                        onChange={(e) => setClinicDescriptionInput(e.target.value)}
+                                        placeholder="Add a short public slogan for your clinic page."
+                                        rows={5}
+                                    />
                                 </>
                             )}
                         </CardContent>

@@ -1,7 +1,32 @@
 import { Check, Video, CreditCard, Calendar, Mail, MessageSquare, Shield, Zap, FileText, BarChart3, Users } from 'lucide-react';
+import { useGetPublicIntegrationsQuery } from '../../redux/api/integrationApi';
+import React from 'react';
 
 export function IntegrationsSection() {
-  const integrations = [
+  const { data } = useGetPublicIntegrationsQuery();
+  const integrationsList = data?.response?.data || [];
+
+  const iconMap: Record<string, React.ElementType> = {
+    zoom: Video,
+    google_meet: Video,
+    stripe: CreditCard,
+    mailchimp: Mail,
+    twilio: MessageSquare,
+    calendar: Calendar,
+    xero: BarChart3,
+    healthcode: Shield,
+    emdr: FileText
+  };
+
+  const integrations = integrationsList.length > 0 ? integrationsList
+    .filter((item: any) => item.type !== 'emdr')
+    .slice(0, 8)
+    .map((item: any) => ({
+      name: item.name,
+      icon: iconMap[item.icon] || Zap,
+      description: item.description,
+      comingSoon: item.availability === 'coming_soon'
+    })) : [
     { name: 'Zoom', icon: Video, description: 'Direct integration for telehealth sessions' },
     { name: 'Google Meet', icon: Video, description: 'Seamless video conferencing' },
     { name: 'Stripe', icon: CreditCard, description: 'Secure payment processing and billing' },

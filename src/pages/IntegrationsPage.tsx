@@ -280,7 +280,7 @@ export function IntegrationsPage() {
       } else if (oauthType && SUPPORTED_OAUTH_TYPES.has(oauthType)) {
         setOauthErrorState({
           title: `${integration.name} Connection Error`,
-          message: `${integration.name} authorization URL was not returned. Please try again.`,
+          message: `${integration.name} authorisation URL was not returned. Please try again.`,
         });
       }
     } catch (err) {
@@ -368,11 +368,11 @@ export function IntegrationsPage() {
             const isConnecting = connectingType === connectKey;
             const Icon = LUCIDE_ICON_BY_KEY[integration.iconKey] || Plug;
             const label = isConnecting
-              ? 'Authorize & Connect'
+              ? 'Authorise & Connect'
               : isConnected
                 ? 'Disconnect'
                 : hasOAuth
-                ? 'Authorize & Connect'
+                ? 'Authorise & Connect'
                   : 'Upcoming';
             const isDisabled = isConnecting || (!hasOAuth && !isConnected);
 
@@ -465,7 +465,7 @@ export function IntegrationsPage() {
         isOpen={!!oauthErrorState}
         onClose={() => setOauthErrorState(null)}
         title={oauthErrorState?.title || 'Integration Connection Error'}
-        description="There was a problem while authorizing this integration"
+        description="There was a problem while authorising this integration"
         size="sm"
       >
         <div className="space-y-4">
