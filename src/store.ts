@@ -1,4 +1,4 @@
-import { configureStore } from '@reduxjs/toolkit';
+import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { authApi } from './redux/api/authApi';
 import authReducer from './redux/slices/authSlice';
 import { clientsApi } from './redux/api/clientsApi';
@@ -8,21 +8,34 @@ import { analyticsApi } from './redux/api/analyticsApi';
 import { integrationApi } from './redux/api/integrationApi';
 import { aiAssistantApi } from './redux/api/aiAssistantApi';
 import { notificationApi } from './redux/api/notificationApi';
-// If you have multiple reducers, you can combine them:
-// import counterReducer from '../features/counter/counterSlice';
+
+const appReducer = combineReducers({
+  auth: authReducer,
+  [authApi.reducerPath]: authApi.reducer,
+  [clientsApi.reducerPath]: clientsApi.reducer,
+  [invoiceApi.reducerPath]: invoiceApi.reducer,
+  [assessmentApi.reducerPath]: assessmentApi.reducer,
+  [analyticsApi.reducerPath]: analyticsApi.reducer,
+  [integrationApi.reducerPath]: integrationApi.reducer,
+  [aiAssistantApi.reducerPath]: aiAssistantApi.reducer,
+  [notificationApi.reducerPath]: notificationApi.reducer,
+});
+
+const rootReducer = (state: any, action: any) => {
+  if (action.type === 'auth/logout') {
+    // Clear all state (including RTK query caches) on logout
+    state = undefined;
+  } else if (action.type === 'auth/setCredentials') {
+    // Clear all RTK query caches on login, but preserve auth state to be updated
+    if (state) {
+      state = { auth: state.auth };
+    }
+  }
+  return appReducer(state, action);
+};
 
 export const store = configureStore({
-  reducer: {
-    auth: authReducer,
-    [authApi.reducerPath]: authApi.reducer,
-    [clientsApi.reducerPath]: clientsApi.reducer,
-    [invoiceApi.reducerPath]: invoiceApi.reducer,
-    [assessmentApi.reducerPath]: assessmentApi.reducer,
-    [analyticsApi.reducerPath]: analyticsApi.reducer,
-    [integrationApi.reducerPath]: integrationApi.reducer,
-    [aiAssistantApi.reducerPath]: aiAssistantApi.reducer,
-    [notificationApi.reducerPath]: notificationApi.reducer,
-  },
+  reducer: rootReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
       authApi.middleware,

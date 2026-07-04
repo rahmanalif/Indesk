@@ -74,6 +74,12 @@ export function CreateClinicianModal({
     if (nextPhoneError) {
       return;
     }
+    const nameRegex = /^[\p{L}\s\-\'.,]+$/u;
+    if (!nameRegex.test(firstName.trim()) || !nameRegex.test(lastName.trim())) {
+      setSubmitError('Name must contain only letters, spaces, and basic punctuation.');
+      return;
+    }
+
     setIsLoading(true);
 
     const specialization = specializationText

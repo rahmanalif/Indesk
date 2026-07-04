@@ -191,12 +191,19 @@ export function LoginPage() {
     };
     let isValid = true;
 
+    const nameRegex = /^[\p{L}\s\-\'.,]+$/u;
     if (!signupData.firstName.trim()) {
       errors.firstName = 'First name is required';
+      isValid = false;
+    } else if (!nameRegex.test(signupData.firstName.trim())) {
+      errors.firstName = 'First name contains invalid characters';
       isValid = false;
     }
     if (!signupData.lastName.trim()) {
       errors.lastName = 'Last name is required';
+      isValid = false;
+    } else if (!nameRegex.test(signupData.lastName.trim())) {
+      errors.lastName = 'Last name contains invalid characters';
       isValid = false;
     }
     if (!signupData.email) {
