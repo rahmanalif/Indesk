@@ -261,12 +261,14 @@ export function ClientProfilePage() {
                                 value={formData.firstName} 
                                 onChange={(e) => handleInputChange('firstName', e.target.value)}
                                 className="h-11 rounded-xl bg-secondary/30" 
+                                maxLength={50}
                             />
                             <Input 
                                 label="Last Name" 
                                 value={formData.lastName} 
                                 onChange={(e) => handleInputChange('lastName', e.target.value)}
                                 className="h-11 rounded-xl bg-secondary/30" 
+                                maxLength={50}
                             />
                             <DatePicker label="Date of Birth" date={dob} setDate={setDob} triggerClassName="h-11 rounded-xl" />
                             <Select
@@ -294,6 +296,7 @@ export function ClientProfilePage() {
                                 value={formData.address.street} 
                                 onChange={(e) => handleAddressChange('street', e.target.value)}
                                 className="h-11 rounded-xl bg-secondary/30" 
+                                maxLength={200}
                             />
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Input 
@@ -301,12 +304,14 @@ export function ClientProfilePage() {
                                     value={formData.address.city} 
                                     onChange={(e) => handleAddressChange('city', e.target.value)}
                                     className="h-11 rounded-xl bg-secondary/30" 
+                                    maxLength={100}
                                 />
                                 <Input 
                                     label="State/Province" 
                                     value={formData.address.state} 
                                     onChange={(e) => handleAddressChange('state', e.target.value)}
                                     className="h-11 rounded-xl bg-secondary/30" 
+                                    maxLength={100}
                                 />
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -315,6 +320,7 @@ export function ClientProfilePage() {
                                     value={formData.address.zip} 
                                     onChange={(e) => handleAddressChange('zip', e.target.value)}
                                     className="h-11 rounded-xl bg-secondary/30" 
+                                    maxLength={30}
                                 />
                                 <Select 
                                     label="Country" 
@@ -340,6 +346,7 @@ export function ClientProfilePage() {
                         placeholder="List any critical allergies, conditions, or risks here..."
                         value={formData.medicalAlerts}                       
                         onChange={(e) => handleInputChange('medicalAlerts', e.target.value)}
+                        maxLength={500}
                     />
                 </CardContent>
             </Card>
@@ -428,18 +435,21 @@ export function ClientProfilePage() {
                                 value={formData.insuranceProvider} 
                                 onChange={(e) => handleInputChange('insuranceProvider', e.target.value)}
                                 className="h-11 rounded-xl" 
+                                maxLength={200}
                             />
                             <Input 
                                 label="Member ID" 
                                 value={formData.insuranceNumber} 
                                 onChange={(e) => handleInputChange('insuranceNumber', e.target.value)}
                                 className="h-11 rounded-xl" 
+                                maxLength={100}
                             />
                             <Input 
                                 label="Authorisation Code" 
                                 value={formData.insuranceAuthorizationNumber} 
                                 onChange={(e) => handleInputChange('insuranceAuthorizationNumber', e.target.value)}
                                 className="h-11 rounded-xl" 
+                                maxLength={100}
                             />
                         </CardContent>
                     </Card>
@@ -460,18 +470,21 @@ export function ClientProfilePage() {
                                 value={formData.gpName}
                                 onChange={(e) => handleInputChange('gpName', e.target.value)}
                                 className="h-11 rounded-xl"
+                                maxLength={200}
                             />
                             <Input
                                 label="Surgery Name"
                                 value={formData.surgeryName}
                                 onChange={(e) => handleInputChange('surgeryName', e.target.value)}
                                 className="h-11 rounded-xl"
+                                maxLength={200}
                             />
                             <Input
                                 label="Surgery Street Address"
                                 value={formData.surgeryStreet}
                                 onChange={(e) => handleInputChange('surgeryStreet', e.target.value)}
                                 className="h-11 rounded-xl"
+                                maxLength={200}
                             />
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <Input
@@ -479,12 +492,14 @@ export function ClientProfilePage() {
                                     value={formData.surgeryCity}
                                     onChange={(e) => handleInputChange('surgeryCity', e.target.value)}
                                     className="h-11 rounded-xl"
+                                    maxLength={100}
                                 />
                                 <Input
                                     label="Postcode"
                                     value={formData.surgeryPostcode}
                                     onChange={(e) => handleInputChange('surgeryPostcode', e.target.value)}
                                     className="h-11 rounded-xl"
+                                    maxLength={30}
                                 />
                             </div>
                         </CardContent>
