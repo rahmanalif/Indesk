@@ -53,42 +53,19 @@ interface AuthState {
   error: string | null;
 }
 
-// Load initial state from localStorage
 const loadAuthState = (): AuthState => {
   try {
-    const accessToken = localStorage.getItem('accessToken');
-    const refreshToken = localStorage.getItem('refreshToken');
     const userJson = localStorage.getItem('user');
     
-    if (accessToken && refreshToken && userJson) {
+    if (userJson) {
       const user = JSON.parse(userJson);
-      
-      // Check if access token is expired
-      const accessExpiry = localStorage.getItem('accessTokenExpiry');
-      if (accessExpiry && new Date(accessExpiry) > new Date()) {
-        return {
-          user,
-          tokens: {
-            access: {
-              token: accessToken,
-              expiresAt: accessExpiry,
-            },
-            refresh: {
-              token: refreshToken,
-              expiresAt: localStorage.getItem('refreshTokenExpiry') || '',
-            },
-          },
-          isAuthenticated: true,
-          isLoading: false,
-          error: null,
-        };
-      }
-      // Expired token: clear persisted auth to avoid sending stale credentials
-      localStorage.removeItem('user');
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('accessTokenExpiry');
-      localStorage.removeItem('refreshTokenExpiry');
+      return {
+        user,
+        tokens: null,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
+      };
     }
   } catch (error) {
     console.error('Error loading auth state from localStorage:', error);
@@ -109,18 +86,13 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    setCredentials: (state, action: PayloadAction<{ user: User; tokens: Tokens }>) => {
+    setCredentials: (state, action: PayloadAction<{ user: User }>) => {
       state.user = action.payload.user;
-      state.tokens = action.payload.tokens;
       state.isAuthenticated = true;
       state.error = null;
       
       // Persist to localStorage
       localStorage.setItem('user', JSON.stringify(action.payload.user));
-      localStorage.setItem('accessToken', action.payload.tokens.access.token);
-      localStorage.setItem('refreshToken', action.payload.tokens.refresh.token);
-      localStorage.setItem('accessTokenExpiry', action.payload.tokens.access.expiresAt);
-      localStorage.setItem('refreshTokenExpiry', action.payload.tokens.refresh.expiresAt);
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload;
@@ -144,16 +116,11 @@ const authSlice = createSlice({
     },
     logout: (state) => {
       state.user = null;
-      state.tokens = null;
       state.isAuthenticated = false;
       state.error = null;
       
       // Clear localStorage
       localStorage.removeItem('user');
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('accessTokenExpiry');
-      localStorage.removeItem('refreshTokenExpiry');
     },
     clearError: (state) => {
       state.error = null;

@@ -223,10 +223,11 @@ export const invoiceApi = createApi({
   reducerPath: "invoiceApi",
   baseQuery: fetchBaseQuery({
     baseUrl: import.meta.env.VITE_API_BASE_URL,
+    credentials: "include",
     prepareHeaders: (headers) => {
-      const token = localStorage.getItem("accessToken");
-      if (token) {
-        headers.set("Authorization", `Bearer ${token}`);
+      const skipContentType = headers.get("x-skip-content-type") === "true";
+      if (skipContentType) {
+        headers.delete("x-skip-content-type");
       }
       return headers;
     },

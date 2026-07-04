@@ -14,7 +14,7 @@ export const useAuth = () => {
   const [verifyAccountApi, { isLoading: verifyLoading }] = useVerifyAccountMutation();
   const [logoutApi] = useLogoutMutation();
 
-  const { user, tokens, isAuthenticated, isLoading, error } = useSelector(
+  const { user, isAuthenticated, isLoading, error } = useSelector(
     (state: RootState) => state.auth
   );
 
@@ -31,7 +31,6 @@ export const useAuth = () => {
         // setCredentials now handles localStorage persistence
         dispatch(setCredentials({
           user: response.response.data,
-          tokens: response.response.tokens,
         }));
         
         dispatch(setLoading(false));
@@ -80,7 +79,6 @@ export const useAuth = () => {
         dispatch(authApi.util.resetApiState());
         dispatch(setCredentials({
           user: response.response.data,
-          tokens: response.response.tokens,
         }));
         dispatch(setLoading(false));
         return { success: true, data: response };
@@ -97,10 +95,7 @@ export const useAuth = () => {
 
   const logoutUser = async () => {
     try {
-      const refreshToken = tokens?.refresh?.token;
-      if (refreshToken) {
-        await logoutApi({ refreshToken }).unwrap();
-      }
+      await logoutApi({}).unwrap();
     } catch (error) {
       // Ignore logout errors and still clear local auth state
     } finally {
@@ -117,7 +112,6 @@ export const useAuth = () => {
 
   return {
     user,
-    tokens,
     isAuthenticated,
     isLoading: isLoading || apiLoading || registerLoading || verifyLoading,
     error,
