@@ -25,7 +25,7 @@ export function AdminLayout() {
 
       {/* Main Content Wrapper */}
       <div className={cn(
-        'flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out',
+        'flex-1 min-w-0 flex flex-col min-h-screen transition-all duration-300 ease-in-out',
         isSidebarCollapsed ? 'md:pl-20' : 'md:pl-64'
       )}>
         <Header isSidebarCollapsed={isSidebarCollapsed} />

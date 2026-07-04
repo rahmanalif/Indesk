@@ -136,7 +136,7 @@ export function ClientLayout() {
                                     </div>
                                     <div className="flex-1 min-w-0 space-y-0.5">
                                         <div className="flex flex-wrap items-center gap-2 max-w-full">
-                                            <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight truncate max-w-full" title={client.name}>
+                                            <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight truncate max-w-full min-w-0" title={client.name}>
                                                 {client.name}
                                             </h1>
                                             <Badge variant={client.status === 'Active' ? 'success' : 'secondary'} className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shrink-0">
