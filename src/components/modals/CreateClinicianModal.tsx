@@ -8,6 +8,7 @@ import { PhoneNumberInput, isValidPhoneNumber, parsePhoneNumber } from '../ui/Ph
 import { useCreateClinicMemberMutation } from '../../redux/api/clientsApi';
 import {
   buildAvailabilitySchedulePayload,
+  DEFAULT_AVAILABILITY_DAY,
   ensureScheduleForDays,
   type AvailabilityDaySchedule,
 } from '../../lib/clinicianAvailability';
