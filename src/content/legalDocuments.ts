@@ -197,7 +197,13 @@ export const legalDocuments: LegalDocument[] = [
         ],
       },
       {
-        heading: '1.12 Policy Updates',
+        heading: '1.12 Google API Services User Data Policy',
+        paragraphs: [
+          'The use and transfer of raw or derived user data received from Google Workspace APIs will adhere to the Google API Services User Data Policy, including the Limited Use requirements.',
+        ],
+      },
+      {
+        heading: '1.13 Policy Updates',
         paragraphs: [
           'We review this policy at least annually. For significant changes, we will notify you by email at least 30 days before they take effect. The current version is always available at www.myindesk.com.',
         ],
