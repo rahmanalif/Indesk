@@ -374,7 +374,7 @@ export function LoginPage() {
         }));
         setSignupError('');
         setSignupSuccess('');
-        setFormErrors((prev) => ({ ...prev, email: '', password: '' }));
+        setFormErrors((prev) => ({ ...prev, email: 'An account with this email already exists. Please log in.', password: '' }));
         return;
       }
 

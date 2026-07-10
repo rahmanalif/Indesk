@@ -20,7 +20,7 @@ export function getFriendlyErrorMessage(error: any, defaultMessage: string = 'So
   }
 
   if (status === 404) {
-    return 'The requested information could not be found.';
+    return 'We could not find any account with that email address.';
   }
 
   if (status === 429) {
