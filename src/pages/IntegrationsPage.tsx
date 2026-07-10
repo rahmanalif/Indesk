@@ -1,8 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   CalendarDays,
   CreditCard,
-  ExternalLink,
   Mail,
   MessageSquare,
   Plug,
@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { notify } from '../components/ui/ToastHost';
 import { Card, CardContent } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
@@ -175,18 +176,105 @@ const resolveOAuthMeta = (integration: any) => {
   return { oauthType, requiresOAuth, hasOAuth, connectKey };
 };
 
+
+const INTEGRATION_DISPLAY_NAMES: Record<string, string> = {
+  google_calendar: 'Google Calendar',
+  google_meet: 'Google Meet',
+  stripe: 'Stripe',
+  mailchimp: 'Mailchimp',
+  zoom: 'Zoom',
+  twilio: 'Twilio',
+  xero: 'Xero',
+  healthcode: 'Healthcode',
+};
+
+const formatIntegrationName = (type?: string | null) => {
+  if (!type) return 'Integration';
+  const normalized = mapOAuthType(type) || type.toLowerCase();
+  return (
+    INTEGRATION_DISPLAY_NAMES[normalized] ||
+    normalized
+      .split('_')
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ')
+  );
+};
+
 export function IntegrationsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedIntegration, setSelectedIntegration] = useState<IntegrationCardItem | null>(null);
   const [selectedIntegrationMode, setSelectedIntegrationMode] = useState<'connect' | 'disconnect'>('connect');
   const [connectingType, setConnectingType] = useState<string | null>(null);
   const [oauthErrorState, setOauthErrorState] = useState<{ title: string; message: string } | null>(null);
   const [disconnectFeedback, setDisconnectFeedback] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
   const [healthState, setHealthState] = useState<{ summary: string; details: string | null; tone: 'default' | 'success' | 'error' } | null>(null);
+  const [connectionBanner, setConnectionBanner] = useState<{
+    tone: 'success' | 'error';
+    title: string;
+    message: string;
+  } | null>(null);
+  const oauthCallbackHandledRef = useRef(false);
 
   const { data: integrationsResponse, isLoading, isError, error, refetch } = useGetIntegrationsQuery();
   const [getOAuthUrl] = useLazyGetIntegrationOAuthUrlQuery();
   const [disconnectIntegration, { isLoading: isDisconnecting }] = useDisconnectIntegrationMutation();
   const [checkIntegrationHealth, { isFetching: isCheckingHealth }] = useLazyCheckIntegrationHealthQuery();
+
+  // OAuth callback lands here with ?status=success|error&type=... (also supports legacy success/error params)
+  useEffect(() => {
+    if (oauthCallbackHandledRef.current) return;
+
+    const statusParam = (searchParams.get('status') || '').toLowerCase();
+    const successParam = searchParams.get('success');
+    const errorParam = searchParams.get('error');
+    const typeParam = searchParams.get('type');
+    const messageParam = searchParams.get('message');
+
+    const isSuccess =
+      statusParam === 'success' ||
+      successParam === 'true' ||
+      successParam === '1';
+    const isError =
+      statusParam === 'error' ||
+      statusParam === 'failed' ||
+      Boolean(errorParam);
+
+    if (!isSuccess && !isError) return;
+
+    oauthCallbackHandledRef.current = true;
+    const integrationName = formatIntegrationName(typeParam);
+
+    if (isSuccess) {
+      const message =
+        messageParam?.trim() ||
+        `${integrationName} was connected successfully.`;
+      setConnectionBanner({
+        tone: 'success',
+        title: `${integrationName} connected`,
+        message,
+      });
+      notify.success(message);
+      void refetch();
+    } else {
+      const message =
+        messageParam?.trim() ||
+        errorParam?.trim() ||
+        `Could not connect ${integrationName}. Please try again.`;
+      setConnectionBanner({
+        tone: 'error',
+        title: `${integrationName} connection failed`,
+        message,
+      });
+      notify.error(message);
+    }
+
+    // Clear OAuth query params so refresh/share doesn't re-show the banner
+    const nextParams = new URLSearchParams(searchParams);
+    ['status', 'success', 'error', 'type', 'message'].forEach((key) => nextParams.delete(key));
+    setSearchParams(nextParams, { replace: true });
+  }, [searchParams, setSearchParams, refetch]);
+
 
   const apiListRaw = integrationsResponse?.response?.data;
   const apiIntegrations = Array.isArray(apiListRaw) ? apiListRaw : apiListRaw?.docs || [];
@@ -345,6 +433,31 @@ export function IntegrationsPage() {
           Connect your favorite tools to Inkind Suite.
         </p>
       </div>
+
+      {connectionBanner && (
+        <div
+          className={`flex items-start justify-between gap-4 rounded-lg border px-4 py-3 text-sm ${
+            connectionBanner.tone === 'success'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+              : 'border-red-200 bg-red-50 text-red-700'
+          }`}
+          role="status"
+          aria-live="polite"
+        >
+          <div className="min-w-0">
+            <p className="font-semibold">{connectionBanner.title}</p>
+            <p className="mt-0.5 opacity-90">{connectionBanner.message}</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => setConnectionBanner(null)}
+          >
+            Dismiss
+          </Button>
+        </div>
+      )}
 
       {isError && (
         <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
