@@ -209,11 +209,6 @@ export function IntegrationsPage() {
   const [oauthErrorState, setOauthErrorState] = useState<{ title: string; message: string } | null>(null);
   const [disconnectFeedback, setDisconnectFeedback] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
   const [healthState, setHealthState] = useState<{ summary: string; details: string | null; tone: 'default' | 'success' | 'error' } | null>(null);
-  const [connectionBanner, setConnectionBanner] = useState<{
-    tone: 'success' | 'error';
-    title: string;
-    message: string;
-  } | null>(null);
   const oauthCallbackHandledRef = useRef(false);
 
   const { data: integrationsResponse, isLoading, isError, error, refetch } = useGetIntegrationsQuery();
@@ -249,11 +244,7 @@ export function IntegrationsPage() {
       const message =
         messageParam?.trim() ||
         `${integrationName} was connected successfully.`;
-      setConnectionBanner({
-        tone: 'success',
-        title: `${integrationName} connected`,
-        message,
-      });
+
       notify.success(message);
       void refetch();
     } else {
@@ -261,11 +252,6 @@ export function IntegrationsPage() {
         messageParam?.trim() ||
         errorParam?.trim() ||
         `Could not connect ${integrationName}. Please try again.`;
-      setConnectionBanner({
-        tone: 'error',
-        title: `${integrationName} connection failed`,
-        message,
-      });
       notify.error(message);
     }
 
@@ -433,31 +419,6 @@ export function IntegrationsPage() {
           Connect your favorite tools to Inkind Suite.
         </p>
       </div>
-
-      {connectionBanner && (
-        <div
-          className={`flex items-start justify-between gap-4 rounded-lg border px-4 py-3 text-sm ${
-            connectionBanner.tone === 'success'
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-              : 'border-red-200 bg-red-50 text-red-700'
-          }`}
-          role="status"
-          aria-live="polite"
-        >
-          <div className="min-w-0">
-            <p className="font-semibold">{connectionBanner.title}</p>
-            <p className="mt-0.5 opacity-90">{connectionBanner.message}</p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="shrink-0"
-            onClick={() => setConnectionBanner(null)}
-          >
-            Dismiss
-          </Button>
-        </div>
-      )}
 
       {isError && (
         <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
