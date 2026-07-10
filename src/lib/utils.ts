@@ -5,7 +5,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function getFriendlyErrorMessage(error: any, defaultMessage: string = 'Something went wrong. Please try again.') {
+export function getFriendlyErrorMessage(error: any, defaultMessage = 'Something went wrong. Please try again.') {
   if (!error) return defaultMessage;
 
   const status = error.status;

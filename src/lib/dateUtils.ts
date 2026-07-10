@@ -7,7 +7,7 @@ import { formatInTimeZone } from 'date-fns-tz';
  */
 export const formatTimezoneDate = (
   dateString: string | Date | number,
-  formatStr: string = 'PPpp',
+  formatStr = 'PPpp',
   userTimezone?: string | null
 ) => {
   const targetTimezone = userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
