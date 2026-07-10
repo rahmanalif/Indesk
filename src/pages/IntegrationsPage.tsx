@@ -19,7 +19,6 @@ import { IntegrationPermissionsModal } from '../components/modals/IntegrationPer
 import {
   useDisconnectIntegrationMutation,
   useGetIntegrationsQuery,
-  useLazyCheckIntegrationHealthQuery,
   useLazyGetIntegrationOAuthUrlQuery,
 } from '../redux/api/integrationApi';
 
@@ -36,8 +35,6 @@ type IntegrationCardItem = {
   requiresOAuth?: boolean;
   oauthUrl?: string;
   isConfigured?: boolean;
-  healthStatus?: string | null;
-  lastHealthCheck?: string | null;
 };
 
 // const COMING_SOON_INTEGRATION = {
@@ -204,17 +201,14 @@ const formatIntegrationName = (type?: string | null) => {
 export function IntegrationsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedIntegration, setSelectedIntegration] = useState<IntegrationCardItem | null>(null);
-  const [selectedIntegrationMode, setSelectedIntegrationMode] = useState<'connect' | 'disconnect'>('connect');
   const [connectingType, setConnectingType] = useState<string | null>(null);
   const [oauthErrorState, setOauthErrorState] = useState<{ title: string; message: string } | null>(null);
-  const [disconnectFeedback, setDisconnectFeedback] = useState<{ tone: 'success' | 'error'; message: string } | null>(null);
-  const [healthState, setHealthState] = useState<{ summary: string; details: string | null; tone: 'default' | 'success' | 'error' } | null>(null);
+  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
   const oauthCallbackHandledRef = useRef(false);
 
   const { data: integrationsResponse, isLoading, isError, error, refetch } = useGetIntegrationsQuery();
   const [getOAuthUrl] = useLazyGetIntegrationOAuthUrlQuery();
   const [disconnectIntegration, { isLoading: isDisconnecting }] = useDisconnectIntegrationMutation();
-  const [checkIntegrationHealth, { isFetching: isCheckingHealth }] = useLazyCheckIntegrationHealthQuery();
 
   // OAuth callback lands here with ?status=success|error&type=... (also supports legacy success/error params)
   useEffect(() => {
@@ -279,45 +273,16 @@ export function IntegrationsPage() {
       requiresOAuth: integration.requiresOAuth,
       oauthUrl: integration.oauthUrl,
       isConfigured: integration.isConfigured,
-      healthStatus: integration.healthStatus ?? null,
-      lastHealthCheck: integration.lastHealthCheck ?? null,
     }));
   }, [apiIntegrations]);
 
   const resetModalState = () => {
     setSelectedIntegration(null);
-    setDisconnectFeedback(null);
-    setHealthState(null);
+    setShowDisconnectModal(false);
   };
 
   const extractErrorMessage = (err: any, fallback: string) =>
     err?.data?.message || err?.error || fallback;
-
-  const buildHealthSummary = (response: any, integrationName: string) => {
-    const data = response?.response?.data || {};
-    const rawStatus =
-      data.healthStatus ||
-      data.status ||
-      (typeof data.isHealthy === 'boolean' ? (data.isHealthy ? 'healthy' : 'unhealthy') : null);
-    const normalizedStatus = String(rawStatus || '').toLowerCase();
-    const isHealthy = normalizedStatus
-      ? ['healthy', 'connected', 'ok', 'pass', 'active'].includes(normalizedStatus)
-      : data.isHealthy === true;
-    const summary = rawStatus
-      ? `${integrationName} health: ${String(rawStatus)}`
-      : response?.message || `${integrationName} health check completed.`;
-    const detailParts = [
-      data.message,
-      data.details,
-      data.lastHealthCheck ? `Last checked: ${new Date(data.lastHealthCheck).toLocaleString()}` : null,
-    ].filter(Boolean);
-
-    return {
-      summary,
-      details: detailParts.length ? detailParts.join(' ') : null,
-      tone: rawStatus ? (isHealthy ? 'success' : 'error') : 'default' as 'default' | 'success' | 'error',
-    };
-  };
 
   const handleAction = async (integration: IntegrationCardItem) => {
     const { oauthType, hasOAuth, connectKey } = resolveOAuthMeta(integration);
@@ -325,10 +290,8 @@ export function IntegrationsPage() {
     const isUpcoming = !hasOAuth && !isConnected;
 
     if (isConnected) {
-      setSelectedIntegrationMode('disconnect');
-      setDisconnectFeedback(null);
-      setHealthState(null);
       setSelectedIntegration(integration);
+      setShowDisconnectModal(true);
       return;
     }
 
@@ -377,35 +340,11 @@ export function IntegrationsPage() {
     if (!selectedIntegration) return;
 
     try {
-      const response = await disconnectIntegration(selectedIntegration.type).unwrap();
-      setDisconnectFeedback({
-        tone: 'success',
-        message: response?.message || `${selectedIntegration.name} was disconnected successfully.`,
-      });
-      setHealthState(null);
-      window.setTimeout(() => {
-        resetModalState();
-      }, 900);
+      await disconnectIntegration(selectedIntegration.type).unwrap();
+      resetModalState();
+      void refetch();
     } catch (err) {
-      setDisconnectFeedback({
-        tone: 'error',
-        message: extractErrorMessage(err, `${selectedIntegration.name} could not be disconnected right now.`),
-      });
-    }
-  };
-
-  const handleCheckHealth = async () => {
-    if (!selectedIntegration) return;
-
-    try {
-      const response = await checkIntegrationHealth(selectedIntegration.type).unwrap();
-      setHealthState(buildHealthSummary(response, selectedIntegration.name));
-    } catch (err) {
-      setHealthState({
-        summary: `${selectedIntegration.name} health check failed.`,
-        details: extractErrorMessage(err, 'Unable to verify the current integration status.'),
-        tone: 'error',
-      });
+      notify.error(extractErrorMessage(err, `${selectedIntegration.name} could not be disconnected right now.`));
     }
   };
 
@@ -519,20 +458,11 @@ export function IntegrationsPage() {
       )}
 
       <IntegrationPermissionsModal
-        isOpen={!!selectedIntegration}
+        isOpen={showDisconnectModal}
         onClose={resetModalState}
         integrationName={selectedIntegration?.name || ''}
-        mode={selectedIntegrationMode}
-        onPrimaryAction={selectedIntegrationMode === 'disconnect' ? handleDisconnect : undefined}
-        primaryLabel={selectedIntegrationMode === 'disconnect' ? 'Disconnect Integration' : undefined}
-        isPrimaryLoading={isDisconnecting}
-        onCheckHealth={selectedIntegrationMode === 'disconnect' ? handleCheckHealth : undefined}
-        isCheckingHealth={isCheckingHealth}
-        healthSummary={healthState?.summary || null}
-        healthDetails={healthState?.details || null}
-        healthTone={healthState?.tone || 'default'}
-        feedbackMessage={disconnectFeedback?.message || null}
-        feedbackTone={disconnectFeedback?.tone || 'success'}
+        onConfirm={handleDisconnect}
+        isLoading={isDisconnecting}
       />
 
       <Modal
