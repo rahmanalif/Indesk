@@ -3,7 +3,7 @@ import { useNavigate, Link, Navigate, useLocation } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
-import { Eye, EyeOff, ArrowRight, AlertCircle, Mail, KeyRound } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight, AlertCircle, Mail, KeyRound, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { getFriendlyErrorMessage } from '../lib/utils';
 import { PhoneNumberInput, isValidPhoneNumber, parsePhoneNumber } from '../components/ui/PhoneNumberInput';
@@ -29,7 +29,13 @@ export function LoginPage() {
   const [verifyPlanOnboardingEmail, { isLoading: isVerifyingEmail }] = useVerifyPlanOnboardingEmailMutation();
   const [createPlanCheckout, { isLoading: isCreatingCheckout }] = useCreatePlanCheckoutMutation();
   const [cancelPlanOnboarding, { isLoading: isCancellingOnboarding }] = useCancelPlanOnboardingMutation();
-  const fromPath = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
+  const stateFrom = (location.state as any)?.from;
+  let fromPath = stateFrom?.pathname;
+  const isFromPaymentSuccess = fromPath === '/internal/payment-status' && stateFrom?.search?.includes('status=success');
+  const isFromPaymentFailed = fromPath === '/internal/payment-status' && stateFrom?.search?.includes('status=failed');
+  if (fromPath === '/internal/payment-status') {
+    fromPath = '/dashboard';
+  }
   const searchParams = new URLSearchParams(location.search);
   const isSignupMode = searchParams.get('mode') === 'signup';
   const requestedPlanId = searchParams.get('planId');
@@ -642,6 +648,18 @@ export function LoginPage() {
       <div className="w-full lg:w-[54%] h-full overflow-y-auto flex flex-col justify-start px-8 py-10 sm:px-12 lg:px-16 xl:px-20 relative bg-white">
         <div className="w-full max-w-xl mx-auto">
         <div className="mb-8">
+          {isFromPaymentSuccess && (
+            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3 text-green-800">
+              <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-green-600" />
+              <div className="text-sm font-medium">Your payment was successful! Please log in to your account.</div>
+            </div>
+          )}
+          {isFromPaymentFailed && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-800">
+              <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-600" />
+              <div className="text-sm font-medium">Your payment failed. Please log in and try again, or contact support.</div>
+            </div>
+          )}
           <div className="mb-4">
             <Button asChild variant="outline" size="sm">
               <Link to="/">Go to Home</Link>

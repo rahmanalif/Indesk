@@ -61,10 +61,7 @@ export function ClinicianDetailsPage() {
     const lastName = member.user?.lastName || '';
     const name = `${firstName} ${lastName}`.trim() || member.user?.email || 'Unknown';
     const specialization = Array.isArray(member.specialization) ? member.specialization : [];
-    const availability = Array.isArray(member.availability)
-      ? member.availability.map((day: string) => day.toLowerCase())
-      : [];
-    const availabilitySchedule = normalizeAvailabilitySchedule(member.availabilitySchedule, availability);
+    const availabilitySchedule = normalizeAvailabilitySchedule(member.availabilitySchedule);
 
     setFormData({
       id: member.id,
@@ -75,7 +72,6 @@ export function ClinicianDetailsPage() {
       role: member.role || 'clinician',
       clients: member._count?.assignedClients ?? '-',
       sessions: member._count?.appointments ?? '-',
-      availability,
       availabilitySchedule,
       specializationText: specialization.join(', '),
       bio: member.user?.bio || '',
@@ -101,7 +97,6 @@ export function ClinicianDetailsPage() {
     updateClinicMember({
       memberId: formData.id,
       availabilitySchedule: buildAvailabilitySchedulePayload(
-        Array.isArray(formData.availability) ? formData.availability : [],
         Array.isArray(formData.availabilitySchedule) ? formData.availabilitySchedule : []
       ),
       specialization,
@@ -235,10 +230,9 @@ export function ClinicianDetailsPage() {
         <div className="rounded-2xl border border-border/50 bg-white p-6 shadow-sm">
           <AvailabilityScheduleEditor
             days={DAYS}
-            selectedDays={Array.isArray(formData.availability) ? formData.availability : []}
             schedule={Array.isArray(formData.availabilitySchedule) ? formData.availabilitySchedule : []}
-            onChange={(nextDays, nextSchedule) => {
-              setFormData({ ...formData, availability: nextDays, availabilitySchedule: nextSchedule });
+            onChange={(nextSchedule) => {
+              setFormData({ ...formData, availabilitySchedule: nextSchedule });
             }}
           />
         </div>

@@ -12,9 +12,8 @@ import {
 
 type AvailabilityScheduleEditorProps = {
   days: string[];
-  selectedDays: string[];
   schedule: AvailabilityDaySchedule[];
-  onChange: (selectedDays: string[], schedule: AvailabilityDaySchedule[]) => void;
+  onChange: (schedule: AvailabilityDaySchedule[]) => void;
 };
 
 const summaryText = (day: AvailabilityDaySchedule) => {
@@ -25,24 +24,29 @@ const summaryText = (day: AvailabilityDaySchedule) => {
 
 export function AvailabilityScheduleEditor({
   days,
-  selectedDays,
   schedule,
   onChange,
 }: AvailabilityScheduleEditorProps) {
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
 
-  const updateSchedule = (nextDays: string[], nextSchedule: AvailabilityDaySchedule[]) => {
-    onChange(nextDays, ensureScheduleForDays(nextDays, nextSchedule));
+  const selectedDays = schedule.map((item) => normalizeDay(item.day));
+
+  const updateSchedule = (nextSchedule: AvailabilityDaySchedule[]) => {
+    onChange(nextSchedule);
   };
 
   const toggleDay = (day: string, checked: boolean) => {
     const dayValue = normalizeDay(day);
-    const nextDays = checked
-      ? Array.from(new Set([...selectedDays, dayValue]))
-      : selectedDays.filter((item) => item !== dayValue);
+
+    let nextSchedule: AvailabilityDaySchedule[];
+    if (checked) {
+      nextSchedule = [...schedule, { day: dayValue, ...DEFAULT_AVAILABILITY_DAY }];
+    } else {
+      nextSchedule = schedule.filter((item) => normalizeDay(item.day) !== dayValue);
+    }
 
     setExpandedDay(checked ? dayValue : (current) => (current === dayValue ? null : current));
-    updateSchedule(nextDays, schedule);
+    updateSchedule(nextSchedule);
   };
 
   const updateDay = (
@@ -51,19 +55,19 @@ export function AvailabilityScheduleEditor({
     value: string
   ) => {
     const dayValue = normalizeDay(day);
-    const nextSchedule = ensureScheduleForDays(selectedDays, schedule).map((item) =>
-      item.day === dayValue ? { ...item, [field]: value } : item
+    const nextSchedule = schedule.map((item) =>
+      normalizeDay(item.day) === dayValue ? { ...item, [field]: value } : item
     );
 
-    updateSchedule(selectedDays, nextSchedule);
+    updateSchedule(nextSchedule);
   };
 
   const copyToAll = (day: string) => {
     const dayValue = normalizeDay(day);
-    const source = ensureScheduleForDays(selectedDays, schedule).find((item) => item.day === dayValue);
+    const source = schedule.find((item) => normalizeDay(item.day) === dayValue);
     if (!source) return;
 
-    const nextSchedule = ensureScheduleForDays(selectedDays, schedule).map((item) => ({
+    const nextSchedule = schedule.map((item) => ({
       ...item,
       startTime: source.startTime,
       endTime: source.endTime,
@@ -71,7 +75,7 @@ export function AvailabilityScheduleEditor({
       breakEndTime: source.breakEndTime,
     }));
 
-    updateSchedule(selectedDays, nextSchedule);
+    updateSchedule(nextSchedule);
   };
 
   const applyPreset = (presetDays: string[]) => {
@@ -81,15 +85,15 @@ export function AvailabilityScheduleEditor({
       return existing ? { ...existing, day } : { day, ...DEFAULT_AVAILABILITY_DAY };
     });
     setExpandedDay(null);
-    updateSchedule(nextDays, nextSchedule);
+    updateSchedule(nextSchedule);
   };
 
   const clearAll = () => {
     setExpandedDay(null);
-    updateSchedule([], []);
+    updateSchedule([]);
   };
 
-  const normalizedSchedule = ensureScheduleForDays(selectedDays, schedule);
+  const normalizedSchedule = schedule;
   const weekdays = days.filter((day) => {
     const value = normalizeDay(day);
     return value !== 'saturday' && value !== 'sunday';

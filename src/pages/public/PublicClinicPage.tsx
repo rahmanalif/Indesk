@@ -111,9 +111,14 @@ export function PublicClinicPage() {
         const lastName = member?.user?.lastName || "";
         const fullName =
           [firstName, lastName].filter(Boolean).join(" ") || "Clinician";
-        const availabilityDays = Array.isArray(member?.availability)
-          ? member.availability
-          : [];
+        const rawSchedule = Array.isArray(member?.availabilitySchedule) ? member.availabilitySchedule : [];
+        const daysSet = new Set<string>();
+        rawSchedule.forEach((item: any) => {
+          if (item?.day && typeof item.day === 'string') {
+            daysSet.add(item.day.toLowerCase());
+          }
+        });
+        const availabilityDays = Array.from(daysSet);
         const specialization = Array.isArray(member?.specialization)
           ? member.specialization
           : [];
@@ -305,9 +310,6 @@ export function PublicClinicPage() {
         {clinicians.length === 1 ? (
           <div
             className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden cursor-pointer hover:shadow-md transition-shadow max-w-3xl mx-auto flex flex-col sm:flex-row"
-            onClick={() =>
-              navigate(`/clinic-portal/${linkId}/clinician/${clinicians[0].id}`)
-            }
           >
             <div className="p-8 sm:w-1/3 flex flex-col items-center justify-center border-b sm:border-b-0 sm:border-r border-slate-100 bg-slate-50/50">
               <div
@@ -348,20 +350,29 @@ export function PublicClinicPage() {
                   <Clock className="h-4 w-4 text-slate-400" /> Available Days
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {clinicians[0].availability.map((a: any) => (
-                    <span
-                      key={a.day}
-                      className="px-3 py-1 bg-slate-100 text-slate-700 text-sm rounded-lg border border-slate-200/60"
-                    >
-                      {a.day}
+                  {clinicians[0].availability.length > 0 ? (
+                    clinicians[0].availability.map((a: any) => (
+                      <span
+                        key={a.day}
+                        className="px-3 py-1 bg-slate-100 text-slate-700 text-sm rounded-lg border border-slate-200/60"
+                      >
+                        {a.day}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-slate-400 text-sm italic">
+                      No schedule available
                     </span>
-                  ))}
+                  )}
                 </div>
               </div>
 
               <button
                 className="w-full sm:w-auto px-6 py-2.5 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 hover:opacity-90"
                 style={{ backgroundColor: color, color: onBrand }}
+                onClick={() =>
+                  navigate(`/clinic-portal/${linkId}/clinician/${clinicians[0].id}`)
+                }
               >
                 View Profile & Book
                 <ArrowRight className="h-4 w-4" />
@@ -431,14 +442,20 @@ export function PublicClinicPage() {
                       <Clock className="h-3 w-3" /> Available Days
                     </p>
                     <div className="flex flex-wrap gap-1.5">
-                      {clinician.availability.map((a: any) => (
-                        <span
-                          key={a.day}
-                          className="px-2.5 py-1 bg-white border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg shadow-sm"
-                        >
-                          {a.day.slice(0, 3)}
+                      {clinician.availability.length > 0 ? (
+                        clinician.availability.map((a: any) => (
+                          <span
+                            key={a.day}
+                            className="px-2.5 py-1 bg-white border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg shadow-sm"
+                          >
+                            {a.day.slice(0, 3)}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-slate-400 text-xs italic">
+                          No schedule available
                         </span>
-                      ))}
+                      )}
                     </div>
                   </div>
 

@@ -16,6 +16,7 @@ import { useCreateAppointmentMutation, useUpdateAppointmentMutation, useGetClien
 import { useGetIntegrationsQuery } from '../../redux/api/integrationApi';
 import type { RootState } from '../../store';
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
+import { AvailabilityDaySchedule } from '../../lib/clinicianAvailability';
 
 const APPOINTMENT_CLINICIAN_ROLES = new Set(['clinician', 'superadmin', 'admin']);
 
@@ -144,9 +145,8 @@ export function CreateAppointmentModal({
 
   const hasNoAvailability = useMemo(() => {
     if (!selectedClinicianMember) return false;
-    const availability = selectedClinicianMember.availability || [];
     const schedule = selectedClinicianMember.availabilitySchedule || [];
-    return availability.length === 0 && schedule.length === 0;
+    return schedule.length === 0;
   }, [selectedClinicianMember]);
 
   useEffect(() => {
@@ -229,22 +229,14 @@ export function CreateAppointmentModal({
 
   const getDayWorkingMinutes = (dayName: string) => {
     if (!selectedClinicianMember) return 0;
-    const schedule = (selectedClinicianMember as any).availabilitySchedule || [];
-    const availability = (selectedClinicianMember as any).availability || [];
+    const schedule: AvailabilityDaySchedule[] = selectedClinicianMember.availabilitySchedule || [];
     
-    let normalized = [];
+    let normalized: AvailabilityDaySchedule[] = [];
     if (Array.isArray(schedule) && schedule.length > 0) {
       normalized = schedule;
-    } else if (Array.isArray(availability)) {
-      normalized = availability.map((day: string) => ({
-        day: day.toLowerCase(),
-        startTime: "09:00",
-        endTime: "17:00",
-        breakTime: null,
-      }));
     }
 
-    const dayAvailability = normalized.find((item: any) => item.day?.toLowerCase() === dayName.toLowerCase());
+    const dayAvailability = normalized.find((item) => item.day?.toLowerCase() === dayName.toLowerCase());
     if (!dayAvailability) return 0;
 
     const [startH, startM] = (dayAvailability.startTime || "09:00").split(':').map(Number);
@@ -268,12 +260,11 @@ export function CreateAppointmentModal({
       weekday: "long"
     }).format(d).toLowerCase();
 
-    const availability = selectedClinicianMember.availability || [];
-    const schedule = selectedClinicianMember.availabilitySchedule || [];
+    const schedule: AvailabilityDaySchedule[] = selectedClinicianMember.availabilitySchedule || [];
 
     const workingDays = Array.isArray(schedule) && schedule.length > 0
-      ? schedule.map((item: any) => item?.day?.toLowerCase())
-      : availability.map((day: any) => day.toLowerCase());
+      ? schedule.map((item) => item?.day?.toLowerCase())
+      : [];
 
     if (!workingDays.includes(dayName)) {
       return true; // Not a working day

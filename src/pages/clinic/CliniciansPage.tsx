@@ -360,9 +360,6 @@ export function CliniciansPage() {
       avatar,
       phoneNumber: phone,
       bio: member.user?.bio || "",
-      availability: Array.isArray(member.availability)
-        ? member.availability
-        : [],
       availabilitySchedule: Array.isArray(member.availabilitySchedule)
         ? member.availabilitySchedule
         : [],

@@ -39,10 +39,13 @@ export function CreateClinicianModal({
   const [email, setEmail] = useState('');
   const [role, setRole] = useState(initialRole);
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [availability, setAvailability] = useState<string[]>(['monday', 'tuesday', 'wednesday', 'thursday', 'friday']);
-  const [availabilitySchedule, setAvailabilitySchedule] = useState<AvailabilityDaySchedule[]>(
-    ensureScheduleForDays(['monday', 'tuesday', 'wednesday', 'thursday', 'friday'], [])
-  );
+  const [availabilitySchedule, setAvailabilitySchedule] = useState<AvailabilityDaySchedule[]>([
+    { day: 'monday', ...DEFAULT_AVAILABILITY_DAY },
+    { day: 'tuesday', ...DEFAULT_AVAILABILITY_DAY },
+    { day: 'wednesday', ...DEFAULT_AVAILABILITY_DAY },
+    { day: 'thursday', ...DEFAULT_AVAILABILITY_DAY },
+    { day: 'friday', ...DEFAULT_AVAILABILITY_DAY },
+  ]);
   const [bio, setBio] = useState('');
   const [specializationText, setSpecializationText] = useState('');
 
@@ -54,8 +57,13 @@ export function CreateClinicianModal({
     setPhoneError('');
     setSubmitError('');
     setRole(initialRole);
-    setAvailability(['monday', 'tuesday', 'wednesday', 'thursday', 'friday']);
-    setAvailabilitySchedule(ensureScheduleForDays(['monday', 'tuesday', 'wednesday', 'thursday', 'friday'], []));
+    setAvailabilitySchedule([
+      { day: 'monday', ...DEFAULT_AVAILABILITY_DAY },
+      { day: 'tuesday', ...DEFAULT_AVAILABILITY_DAY },
+      { day: 'wednesday', ...DEFAULT_AVAILABILITY_DAY },
+      { day: 'thursday', ...DEFAULT_AVAILABILITY_DAY },
+      { day: 'friday', ...DEFAULT_AVAILABILITY_DAY },
+    ]);
     setBio('');
     setSpecializationText('');
   };
@@ -98,7 +106,7 @@ export function CreateClinicianModal({
       countryCode: parsedPhone ? `+${parsedPhone.countryCallingCode}` : undefined,
       bio: bio.trim() || undefined,
       specialization: specialization.length > 0 ? specialization : undefined,
-      availabilitySchedule: buildAvailabilitySchedulePayload(availability, availabilitySchedule),
+      availabilitySchedule: buildAvailabilitySchedulePayload(availabilitySchedule),
     })
       .unwrap()
       .then(() => {
@@ -169,10 +177,8 @@ export function CreateClinicianModal({
 
         <AvailabilityScheduleEditor
           days={DAYS}
-          selectedDays={availability}
           schedule={availabilitySchedule}
-          onChange={(nextDays, nextSchedule) => {
-            setAvailability(nextDays);
+          onChange={(nextSchedule) => {
             setAvailabilitySchedule(nextSchedule);
           }}
         />

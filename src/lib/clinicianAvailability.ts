@@ -135,11 +135,10 @@ export const ensureScheduleForDays = (
 );
 
 export const normalizeAvailabilitySchedule = (
-  rawSchedule: unknown,
-  fallbackDays: string[]
+  rawSchedule: unknown
 ): AvailabilityDaySchedule[] => {
   if (!Array.isArray(rawSchedule)) {
-    return ensureScheduleForDays(fallbackDays, []);
+    return [];
   }
 
   const schedule = rawSchedule
@@ -177,14 +176,13 @@ export const normalizeAvailabilitySchedule = (
     })
     .filter((item): item is AvailabilityDaySchedule => Boolean(item));
 
-  return ensureScheduleForDays(fallbackDays, schedule);
+  return schedule;
 };
 
 export const buildAvailabilitySchedulePayload = (
-  selectedDays: string[],
   schedule: AvailabilityDaySchedule[]
 ) => (
-  ensureScheduleForDays(selectedDays, schedule).map((item) => {
+  schedule.map((item) => {
     const hasBreak = isValidBreakWindow(item.startTime, item.endTime, item.breakStartTime, item.breakEndTime);
     const breakTime: AvailabilityBreakTime | undefined = hasBreak
       ? {

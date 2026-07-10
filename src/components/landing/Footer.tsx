@@ -51,7 +51,7 @@ export function Footer() {
             </Link>
             <p className="max-w-sm text-sm leading-relaxed text-white/60">
               Practice management software for psychologists and therapists.
-              
+
             </p>
           </div>
 
@@ -113,14 +113,8 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="flex flex-col items-center justify-between gap-4 pt-2 md:flex-row">
+        <div className="flex flex-col items-center">
           <p className="text-xs text-white/40">© 2026 InDesk Inc. All rights reserved.</p>
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
-            <span className="text-xs font-medium text-white/60">
-              All systems operational
-            </span>
-          </div>
         </div>
       </div>
     </footer>
