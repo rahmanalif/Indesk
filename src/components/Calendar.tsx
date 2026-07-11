@@ -294,6 +294,16 @@ function isSameLocalDay(left: Date | null, right: Date | null) {
   );
 }
 
+function paymentLabel(status?: string, price?: number) {
+  if (price === 0) return 'Free';
+  if (!status) return 'Unpaid';
+  const s = status.toLowerCase();
+  if (s === 'completed') return 'Paid';
+  if (s === 'refunded') return 'Refunded';
+  if (s === 'failed') return 'Failed';
+  return 'Unpaid';
+}
+
 function WeekView({ currentDate, appointments, onSlotClick, onAppointmentClick }: any) {
   const hours = Array.from({ length: 24 }, (_, i) => i);
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -414,7 +424,7 @@ function WeekView({ currentDate, appointments, onSlotClick, onAppointmentClick }
                         </div>
                         {height > 40 && (
                           <div className="hidden sm:block text-[10px] truncate opacity-80 mt-0.5">
-                            {appt.type}
+                            {appt.type} • {paymentLabel(appt.paymentStatus, appt.sessionPrice)}
                           </div>
                         )}
                       </div>
@@ -470,8 +480,13 @@ function DayView({ currentDate, appointments, onSlotClick, onAppointmentClick }:
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <div className="bg-blue-200 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">
-                        {appt.status}
+                      <div className="flex gap-2">
+                        <div className="bg-blue-200 text-blue-800 text-xs px-2 py-1 rounded-full font-medium capitalize">
+                          {appt.status}
+                        </div>
+                        <div className="bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded-full font-medium">
+                          {paymentLabel(appt.paymentStatus, appt.sessionPrice)}
+                        </div>
                       </div>
                       <Button
                         size="sm"
@@ -560,8 +575,13 @@ function DayViewFixed({ currentDate, appointments, onSlotClick, onAppointmentCli
                 </div>
 
                 <div className="flex flex-col items-end gap-2 shrink-0">
-                  <div className="bg-white/50 text-xs px-2 py-1 rounded-full font-medium capitalize">
-                    {appt.status}
+                  <div className="flex flex-col sm:flex-row gap-1">
+                    <div className="bg-white/50 text-xs px-2 py-1 rounded-full font-medium capitalize">
+                      {appt.status}
+                    </div>
+                    <div className="bg-white/50 text-xs px-2 py-1 rounded-full font-medium">
+                      {paymentLabel(appt.paymentStatus, appt.sessionPrice)}
+                    </div>
                   </div>
                   {height > 70 && (
                     <Button
@@ -652,6 +672,7 @@ function MonthView({ currentDate, appointments, onSlotClick, onAppointmentClick 
                     onClick={(e) => onAppointmentClick(appt, e)}
                   >
                     {getAppointmentTimeLabel(appt)} {appt.clientName.split(' ')[0][0]}. {appt.clientName.split(' ')[1]}
+                    <span className="opacity-70 ml-1 font-semibold">({paymentLabel(appt.paymentStatus, appt.sessionPrice)})</span>
                   </div>
                 ))}
               </div>

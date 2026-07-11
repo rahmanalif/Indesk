@@ -202,6 +202,8 @@ export function DashboardPage() {
           duration: getDurationMinutes(startValue, endValue, apt.session?.duration),
           type: apt.session?.name || apt.title || 'Session',
           status: apt.status || 'pending',
+          paymentStatus: apt.transaction?.status ?? null,
+          sessionPrice: apt.session?.price ?? 0,
           color: statusColors[apt.status] || statusColors.pending,
           notes: apt.note,
           videoLink: apt.zoomJoinUrl || apt.zoomStartUrl || 'https://zoom.us',

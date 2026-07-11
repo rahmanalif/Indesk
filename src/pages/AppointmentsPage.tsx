@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, X, Video, Building2, User, Eye, Calendar, Clock, FileText, Mail, Stethoscope, Trash2 } from 'lucide-react';
+import { Search, X, Video, Building2, User, Eye, Calendar, Clock, FileText, Mail, Stethoscope, Trash2, CreditCard } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -32,6 +32,25 @@ const statusVariant = (status: string) => {
   if (s === 'cancelled') return 'destructive';
   if (s === 'scheduled') return 'default';
   return 'warning';
+};
+
+const paymentVariant = (status?: string) => {
+  if (!status) return 'secondary';
+  const s = status.toLowerCase();
+  if (s === 'completed') return 'success';
+  if (s === 'failed' || s === 'refunded') return 'destructive';
+  if (s === 'pending') return 'warning';
+  return 'secondary';
+};
+
+const paymentLabel = (status?: string, price?: number) => {
+  if (!price || price === 0) return 'Free';
+  if (!status) return 'Unpaid';
+  const s = status.toLowerCase();
+  if (s === 'completed') return 'Paid';
+  if (s === 'refunded') return 'Refunded';
+  if (s === 'failed') return 'Failed';
+  return 'Unpaid';
 };
 
 const meetingLabel = (type?: string) => {
@@ -120,6 +139,7 @@ export function AppointmentsPage() {
           clientEmail: apt.client?.email || '',
           clinician: clinicianUser ? `Dr. ${clinicianUser.firstName} ${clinicianUser.lastName}`.trim() : 'Unassigned',
           sessionName: apt.session?.name || 'Session',
+          sessionPrice: apt.session?.price ?? 0,
           date: start
             ? start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
             : '-',
@@ -130,6 +150,7 @@ export function AppointmentsPage() {
           isVirtual: String(apt.meetingType || '').toLowerCase().replace(/[\s-]+/g, '_') !== 'in_person',
           meetingUrl: getMeetingJoinUrl(apt),
           note: apt.note || '',
+          paymentStatus: apt.transaction?.status ?? null,
         };
       }),
     [appointments],
@@ -305,6 +326,7 @@ export function AppointmentsPage() {
                       <th className="px-6 py-4">Date &amp; Time</th>
                       <th className="px-6 py-4">Type</th>
                       <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4">Payment</th>
                       <th className="px-6 py-4 text-right">Actions</th>
                     </tr>
                   </thead>
@@ -351,6 +373,11 @@ export function AppointmentsPage() {
                           <td className="px-6 py-4">
                             <Badge variant={statusVariant(row.status) as any}>{toTitle(row.status)}</Badge>
                           </td>
+                          <td className="px-6 py-4">
+                            <Badge variant={paymentVariant(row.paymentStatus) as any}>
+                              {paymentLabel(row.paymentStatus, row.sessionPrice)}
+                            </Badge>
+                          </td>
                           <td className="px-6 py-4 text-right">
                             <Button
                               variant="ghost"
@@ -377,7 +404,7 @@ export function AppointmentsPage() {
                 return (
                   <Card key={row.id} className="p-4 flex flex-col gap-3">
                     <div className="flex justify-between items-start">
-                      <div>
+                       <div>
                         <button
                           type="button"
                           onClick={() => goToClient(row.clientId)}
@@ -388,7 +415,12 @@ export function AppointmentsPage() {
                         </button>
                         <div className="text-xs text-muted-foreground">{row.clientEmail}</div>
                       </div>
-                      <Badge variant={statusVariant(row.status) as any}>{toTitle(row.status)}</Badge>
+                      <div className="flex flex-col items-end gap-1">
+                        <Badge variant={statusVariant(row.status) as any}>{toTitle(row.status)}</Badge>
+                        <Badge variant={paymentVariant(row.paymentStatus) as any}>
+                          {paymentLabel(row.paymentStatus, row.sessionPrice)}
+                        </Badge>
+                      </div>
                     </div>
                     <div className="flex items-center justify-between py-2 border-t border-b border-border/50 text-sm">
                       <div>
@@ -462,7 +494,7 @@ export function AppointmentsPage() {
               </Badge>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-xl border border-border/50">
+              <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-xl border border-border/50">
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Calendar className="h-3.5 w-3.5" /> Date
@@ -489,7 +521,15 @@ export function AppointmentsPage() {
                 </div>
                 <p className="font-medium text-sm">{selectedAppointment.meeting.label}</p>
               </div>
-              <div className="space-y-1 col-span-2">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <CreditCard className="h-3.5 w-3.5" /> Payment
+                </div>
+                <Badge variant={paymentVariant(selectedAppointment.paymentStatus) as any}>
+                  {paymentLabel(selectedAppointment.paymentStatus, selectedAppointment.sessionPrice)}
+                </Badge>
+              </div>
+              <div className="space-y-1">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Mail className="h-3.5 w-3.5" /> Client Email
                 </div>
