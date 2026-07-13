@@ -7,17 +7,6 @@ interface LoginCredentials {
   timezone?: string;
 }
 
-interface AuthTokens {
-  access: {
-    token: string;
-    expiresAt: string;
-  };
-  refresh: {
-    token: string;
-    expiresAt: string;
-  };
-}
-
 interface AuthenticatedUser {
   id: string;
   firstName: string;
@@ -68,7 +57,6 @@ interface LoginResponse {
   message: string;
   response: {
     data: AuthenticatedUser;
-    tokens: AuthTokens;
   };
 }
 
@@ -132,7 +120,6 @@ interface VerifyAccountResponse {
       permissions?: Record<string, boolean>;
       lastPasswordChangedAt?: string | null;
     };
-    tokens: AuthTokens;
   };
 }
 

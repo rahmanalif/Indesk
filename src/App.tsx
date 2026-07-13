@@ -43,6 +43,7 @@ import { RootState } from './store';
 import { SmartRedirect } from './components/SmartRedirect';
 import { NoPermissionsPage } from './pages/NoPermissionsPage';
 import { ToastHost } from './components/ui/ToastHost';
+import { SessionBootstrap } from './components/SessionBootstrap';
 
 function HomeRedirect() {
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
@@ -57,8 +58,9 @@ function HomeRedirect() {
 export function App() {
   return (
     <DataProvider>
-      <ToastHost />
-      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <SessionBootstrap>
+        <ToastHost />
+        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<HomeRedirect />} />
@@ -201,7 +203,8 @@ export function App() {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
-      </Router>
+        </Router>
+      </SessionBootstrap>
     </DataProvider>
   );
 }

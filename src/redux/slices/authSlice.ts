@@ -34,20 +34,8 @@ interface User {
   } | null;
 }
 
-interface Tokens {
-  access: {
-    token: string;
-    expiresAt: string;
-  };
-  refresh: {
-    token: string;
-    expiresAt: string;
-  };
-}
-
 interface AuthState {
   user: User | null;
-  tokens: Tokens | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -61,7 +49,6 @@ const loadAuthState = (): AuthState => {
       const user = JSON.parse(userJson);
       return {
         user,
-        tokens: null,
         isAuthenticated: true,
         isLoading: false,
         error: null,
@@ -73,7 +60,6 @@ const loadAuthState = (): AuthState => {
   
   return {
     user: null,
-    tokens: null,
     isAuthenticated: false,
     isLoading: false,
     error: null,
