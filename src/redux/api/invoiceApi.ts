@@ -220,6 +220,20 @@ export interface ExportInvoiceToXeroResponse {
   };
 }
 
+interface ConfirmAppointmentPaymentResponse {
+  success: boolean;
+  status: number;
+  message: string;
+  response: {
+    data: {
+      id: string;
+      status: string;
+      invoiceId: string | null;
+      transaction: { status: string | null } | null;
+    };
+  };
+}
+
 export const invoiceApi = createApi({
   reducerPath: "invoiceApi",
   baseQuery: baseQueryWithReauth,
@@ -267,6 +281,18 @@ export const invoiceApi = createApi({
         return `appointment?${queryParams.toString()}`;
       },
       providesTags: ["Invoice"],
+    }),
+
+    confirmAppointmentPayment: builder.mutation<
+      ConfirmAppointmentPaymentResponse,
+      string
+    >({
+      query: (sessionId) => ({
+        url: "appointment/payment/confirm",
+        method: "POST",
+        body: { sessionId },
+      }),
+      invalidatesTags: ["Invoice"],
     }),
 
     createInvoice: builder.mutation<Invoice, CreateInvoiceData>({
@@ -346,4 +372,5 @@ export const {
   useDeleteInvoiceMutation,
   useSendInvoiceMutation,
   useExportInvoiceToXeroMutation,
+  useConfirmAppointmentPaymentMutation,
 } = invoiceApi;

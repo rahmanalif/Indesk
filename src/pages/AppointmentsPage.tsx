@@ -106,15 +106,18 @@ export function AppointmentsPage() {
     return () => clearTimeout(handle);
   }, [searchInput]);
 
-  const { data, isLoading, isError, refetch } = useGetAppointmentsQuery({
-    page: currentPage,
-    limit: itemsPerPage,
-    ...(search ? { search } : {}),
-    ...(statusFilter !== 'All' ? { status: statusFilter } : {}),
-    ...(clientId ? { clientId } : {}),
-    ...(startDate ? { startDate } : {}),
-    ...(endDate ? { endDate } : {}),
-  });
+  const { data, isLoading, isError, refetch } = useGetAppointmentsQuery(
+    {
+      page: currentPage,
+      limit: itemsPerPage,
+      ...(search ? { search } : {}),
+      ...(statusFilter !== 'All' ? { status: statusFilter } : {}),
+      ...(clientId ? { clientId } : {}),
+      ...(startDate ? { startDate } : {}),
+      ...(endDate ? { endDate } : {}),
+    },
+    { pollingInterval: 15000, refetchOnMountOrArgChange: true },
+  );
 
   const [updateAppointmentStatus, { isLoading: isUpdatingStatus }] = useUpdateAppointmentStatusMutation();
   const [deleteAppointment, { isLoading: isDeleting }] = useDeleteAppointmentMutation();

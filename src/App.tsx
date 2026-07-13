@@ -44,6 +44,7 @@ import { SmartRedirect } from './components/SmartRedirect';
 import { NoPermissionsPage } from './pages/NoPermissionsPage';
 import { ToastHost } from './components/ui/ToastHost';
 import { SessionBootstrap } from './components/SessionBootstrap';
+import { AppointmentPaymentSuccessPage } from './pages/AppointmentPaymentSuccessPage';
 
 function HomeRedirect() {
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
@@ -67,6 +68,7 @@ export function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/appointments/payment-success" element={<AppointmentPaymentSuccessPage />} />
           <Route path="/legal/:slug" element={<LegalDocumentPage />} />
           <Route path="/client-intake-form" element={<PublicClientIntakePage />} />
           <Route path="/assessment-portal/:token" element={<PublicAssessmentPage />} />
