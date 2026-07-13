@@ -1,5 +1,5 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import type { RootState } from "../../store";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { baseQueryWithReauth } from "./baseQuery";
 
 interface LoginCredentials {
   email: string;
@@ -221,17 +221,7 @@ interface UpdateSelfProfileResponse {
 
 export const authApi = createApi({
   reducerPath: "authApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_API_BASE_URL,
-    credentials: "include",
-    prepareHeaders: (headers) => {
-      const skipContentType = headers.get("x-skip-content-type") === "true";
-      if (skipContentType) {
-        headers.delete("x-skip-content-type");
-      }
-      return headers;
-    },
-  }),
+  baseQuery: baseQueryWithReauth,
   endpoints: (builder) => ({
     login: builder.mutation<LoginResponse, LoginCredentials>({
       query: (credentials) => ({

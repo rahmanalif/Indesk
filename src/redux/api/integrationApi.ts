@@ -1,5 +1,5 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import type { RootState } from "../../store";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { baseQueryWithReauth } from "./baseQuery";
 
 export interface IntegrationItem {
   id?: string | number;
@@ -78,17 +78,7 @@ export interface IntegrationActionResponse {
 
 export const integrationApi = createApi({
   reducerPath: "integrationApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_API_BASE_URL,
-    credentials: "include",
-    prepareHeaders: (headers) => {
-      const skipContentType = headers.get("x-skip-content-type") === "true";
-      if (skipContentType) {
-        headers.delete("x-skip-content-type");
-      }
-      return headers;
-    },
-  }),
+  baseQuery: baseQueryWithReauth,
   tagTypes: ["Integrations"],
   endpoints: (builder) => ({
     getIntegrations: builder.query<GetIntegrationsResponse, void>({

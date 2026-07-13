@@ -1,4 +1,5 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { createApi } from "@reduxjs/toolkit/query/react";
+import { baseQueryWithReauth } from "./baseQuery";
 
 export interface ClientAddress {
   street?: string;
@@ -221,17 +222,7 @@ export interface ExportInvoiceToXeroResponse {
 
 export const invoiceApi = createApi({
   reducerPath: "invoiceApi",
-  baseQuery: fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_API_BASE_URL,
-    credentials: "include",
-    prepareHeaders: (headers) => {
-      const skipContentType = headers.get("x-skip-content-type") === "true";
-      if (skipContentType) {
-        headers.delete("x-skip-content-type");
-      }
-      return headers;
-    },
-  }),
+  baseQuery: baseQueryWithReauth,
   tagTypes: ["Invoice"],
   endpoints: (builder) => ({
     getInvoices: builder.query<InvoiceResponse, InvoiceParams>({
