@@ -17,7 +17,6 @@ import {
   useMarkAsReadMutation,
   useMarkAllAsReadMutation,
 } from '../redux/api/notificationApi';
-import type { FetchBaseQueryError } from '@reduxjs/toolkit/query';
 
 interface HeaderProps {
   isSidebarCollapsed: boolean;
@@ -29,25 +28,13 @@ export function Header({
 }: HeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, tokens, isAuthenticated, logout } = useAuth();
-  const hasValidAccessToken = Boolean(
-    tokens?.access?.token &&
-    (!tokens.access.expiresAt || new Date(tokens.access.expiresAt) > new Date())
-  );
+  const { user, isAuthenticated, logout } = useAuth();
   const {
     data: selfProfileResponse,
-    error: selfProfileError,
-    isFetching: isSelfProfileFetching,
   } = useGetSelfProfileQuery(undefined, {
-    skip: !isAuthenticated || !hasValidAccessToken,
+    skip: !isAuthenticated,
     refetchOnMountOrArgChange: true,
   });
-  const selfProfileStatus =
-    typeof selfProfileError === 'object' &&
-    selfProfileError !== null &&
-    'status' in selfProfileError
-      ? (selfProfileError as FetchBaseQueryError).status
-      : undefined;
   const profile = selfProfileResponse?.response?.data;
   const effectiveUser = profile ?? user;
   const displayName =
@@ -84,22 +71,20 @@ export function Header({
   // --- Notification State ---
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
-  const hasHandledUnauthorizedRef = useRef(false);
   const [locallyReadIds, setLocallyReadIds] = useState<Set<string>>(new Set());
   const [notificationPage, setNotificationPage] = useState(1);
   const [notificationList, setNotificationList] = useState<NotificationItem[]>([]);
   const [markAllAsRead] = useMarkAllAsReadMutation();
   const [markAsRead] = useMarkAsReadMutation();
-  const shouldSkipProtectedQueries = selfProfileStatus === 401;
   const notificationsLimit = 10;
 
   const { data: notificationsResponse, isFetching: isNotificationsFetching } = useGetNotificationsQuery(
     { page: notificationPage, limit: notificationsLimit },
-    { pollingInterval: 30000, skip: shouldSkipProtectedQueries }
+    { pollingInterval: 30000, skip: !isAuthenticated }
   );
   const { data: unreadCountResponse } = useGetUnreadCountQuery(undefined, {
     pollingInterval: 30000,
-    skip: shouldSkipProtectedQueries,
+    skip: !isAuthenticated,
   });
 
   const getRelativeTime = (dateString?: string) => {
@@ -179,17 +164,6 @@ export function Header({
       console.error('Failed to mark single notification as read:', err);
     }
   };
-
-  // Click outside handler
-  useEffect(() => {
-    if (selfProfileStatus === 401 && !isSelfProfileFetching && !hasHandledUnauthorizedRef.current) {
-      hasHandledUnauthorizedRef.current = true;
-      logout();
-    }
-    if (selfProfileStatus !== 401) {
-      hasHandledUnauthorizedRef.current = false;
-    }
-  }, [isSelfProfileFetching, selfProfileStatus, logout]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
