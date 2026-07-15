@@ -90,7 +90,8 @@ export interface Invoice {
   tax?: number;
   totalAmount: number;
   status: "paid" | "pending" | "overdue" | "draft" | "sent" | string;
-  issueDate: string;
+  invoiceDate: string;
+  issueDate?: string;
   dueDate: string;
   publicToken: string;
   createdAt: string;
@@ -185,13 +186,12 @@ export interface AppointmentsResponse {
 
 export interface CreateInvoiceData {
   clientId: string;
-  appointmentIds: string[];
   items: InvoiceItem[];
   subtotal: number;
   tax: number;
   total: number;
   dueDate: string;
-  issueDate: string;
+  invoiceDate: string;
   notes?: string;
   status?: string;
 }

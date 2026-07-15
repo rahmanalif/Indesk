@@ -13,6 +13,17 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { useGetIntegrationsQuery } from '../redux/api/integrationApi';
 import { useExportInvoiceToXeroMutation, useGetInvoiceStatsQuery, useGetInvoicesQuery } from '../redux/api/invoiceApi';
 
+const formatInvoiceDate = (value?: string) => {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
 export function InvoicesPage() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
@@ -64,7 +75,7 @@ export function InvoicesPage() {
       id: inv.id,
       client: clientName,
       clientEmail: inv.client?.email || '',
-      date: inv.issueDate,
+      date: inv.invoiceDate || inv.issueDate || inv.createdAt,
       amount: `£${(inv.totalAmount ?? 0).toFixed(2)}`,
       status: normalizeStatus(inv.status),
     };
@@ -98,7 +109,7 @@ export function InvoicesPage() {
     setIsPreviewOpen(true);
   };
 
-  const handleSaveInvoice = (newInvoice: any) => {
+  const handleSaveInvoice = () => {
     setIsPreviewOpen(false);
     setSelectedInvoice(null);
     refetch();
@@ -279,11 +290,7 @@ export function InvoicesPage() {
             </thead>
             <tbody className="divide-y divide-border/50 bg-white">
               {displayedInvoices.map(invoice => {
-                const formattedDate = new Date(invoice.date).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric',
-                });
+                const formattedDate = formatInvoiceDate(invoice.date);
                 return (
                   <tr key={invoice.id} className="hover:bg-muted/5 transition-colors">
                     <td className="px-6 py-4 font-medium">{invoice.id}</td>
@@ -337,11 +344,7 @@ export function InvoicesPage() {
       {/* Mobile Card View */}
       <div className="md:hidden space-y-4">
         {displayedInvoices.map(invoice => {
-          const formattedDate = new Date(invoice.date).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-          });
+          const formattedDate = formatInvoiceDate(invoice.date);
           return (
             <Card key={invoice.id} className="p-4 flex flex-col gap-3">
               <div className="flex justify-between items-start">

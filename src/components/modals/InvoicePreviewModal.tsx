@@ -40,6 +40,14 @@ interface InvoicePreviewModalProps {
 
 const formatInvoiceCurrency = (value: number) => `£${Number(value || 0).toFixed(2)}`;
 
+const validDateOr = (value: unknown, fallback: Date) => {
+  if (!value) return fallback;
+  const date = value instanceof Date
+    ? new Date(value.getTime())
+    : new Date(value as string | number);
+  return Number.isNaN(date.getTime()) ? fallback : date;
+};
+
 export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = 'view', fixedClientId }: InvoicePreviewModalProps) {
   const { branding } = useData();
   const { data: clinicResponse } = useGetClinicQuery();
@@ -121,8 +129,8 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
       if (invoice) {
         // If editing existing invoice
         setSelectedClientId(fixedClientId || invoice.clientId || invoice.client?.id || '');
-        setInvoiceDate(invoice.issueDate ? new Date(invoice.issueDate) : new Date());
-        setDueDate(invoice.dueDate ? new Date(invoice.dueDate) : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000));
+        setInvoiceDate(validDateOr(invoice.invoiceDate || invoice.issueDate, new Date()));
+        setDueDate(validDateOr(invoice.dueDate, new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)));
         setTaxRate(invoice.tax || 0);
         setNotes(invoice.notes || '');
         setInvoiceStatus(invoice.status || 'draft');
@@ -276,11 +284,6 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
       return;
     }
 
-    // Prepare appointment IDs (only include valid ones)
-    const validAppointmentIds = items
-      .map(item => item.appointmentId)
-      .filter((id): id is string => !!id && selectedAppointmentIds.includes(id));
-
     const invoiceData = {
       clientId: selectedClientId,
       items: items.map(item => ({
@@ -373,6 +376,7 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
     if (typeof date === 'string') {
       date = new Date(date);
     }
+    if (Number.isNaN(date.getTime())) return 'N/A';
     return date.toLocaleDateString('en-US', { 
       year: 'numeric', 
       month: 'short', 
