@@ -37,7 +37,7 @@ export function InvoicesPage() {
   const [endDate, setEndDate] = useState('');
   const [exportingInvoiceId, setExportingInvoiceId] = useState<string | null>(null);
   const [sendingInvoiceId, setSendingInvoiceId] = useState<string | null>(null);
-  const [emailConfirmInvoice, setEmailConfirmInvoice] = useState<{ id: string, email: string } | null>(null);
+  const [emailConfirmInvoice, setEmailConfirmInvoice] = useState<{ id: string, email: string, status: string } | null>(null);
 
   const itemsPerPage = 10;
   const { data: invoicesResponse, isLoading, isError, refetch } = useGetInvoicesQuery({
@@ -119,25 +119,26 @@ export function InvoicesPage() {
     refetch();
   };
 
-  const handleSendEmail = (invoiceId: string, clientEmail: string) => {
+  const handleSendEmail = (invoiceId: string, clientEmail: string, status: string) => {
     if (!clientEmail) {
       notify.error('Client email is missing.');
       return;
     }
-    setEmailConfirmInvoice({ id: invoiceId, email: clientEmail });
+    setEmailConfirmInvoice({ id: invoiceId, email: clientEmail, status });
   };
 
   const handleConfirmSendEmail = async () => {
     if (!emailConfirmInvoice) return;
-    const { id: invoiceId, email: clientEmail } = emailConfirmInvoice;
+    const { id: invoiceId, email: clientEmail, status } = emailConfirmInvoice;
+    const isReceipt = status === 'Paid';
     
     try {
       setSendingInvoiceId(invoiceId);
       setEmailConfirmInvoice(null);
-      await sendInvoiceMutation({ id: invoiceId, email: clientEmail }).unwrap();
-      notify.success(`Invoice ${invoiceId} has been sent to ${clientEmail}`);
+      await sendInvoiceMutation({ id: invoiceId, email: clientEmail, isReceipt }).unwrap();
+      notify.success(`${isReceipt ? 'Receipt' : 'Invoice'} ${invoiceId} has been sent to ${clientEmail}`);
     } catch (error: any) {
-      notify.error(error?.data?.message || error?.message || 'Failed to send invoice email.');
+      notify.error(error?.data?.message || error?.message || `Failed to send ${isReceipt ? 'receipt' : 'invoice'} email.`);
     } finally {
       setSendingInvoiceId(null);
     }
@@ -352,8 +353,8 @@ export function InvoicesPage() {
                           variant="ghost"
                           size="icon"
                           className="text-primary hover:text-primary hover:bg-primary/10"
-                          title="Send via Email"
-                          onClick={() => handleSendEmail(invoice.id, invoice.clientEmail)}
+                          title={invoice.status === 'Paid' ? 'Send Receipt via Email' : 'Send via Email'}
+                          onClick={() => handleSendEmail(invoice.id, invoice.clientEmail, invoice.status)}
                           isLoading={sendingInvoiceId === invoice.id}
                         >
                           {sendingInvoiceId !== invoice.id ? <Mail className="h-4 w-4" /> : null}
@@ -414,7 +415,7 @@ export function InvoicesPage() {
                   variant="outline"
                   size="sm"
                   className="h-8 text-xs text-primary border-primary/20 bg-primary/5"
-                  onClick={() => handleSendEmail(invoice.id, invoice.clientEmail)}
+                  onClick={() => handleSendEmail(invoice.id, invoice.clientEmail, invoice.status)}
                   isLoading={sendingInvoiceId === invoice.id}
                 >
                   {sendingInvoiceId !== invoice.id ? <Mail className="h-3 w-3 mr-2" /> : null}
@@ -445,8 +446,10 @@ export function InvoicesPage() {
     <Modal
       isOpen={!!emailConfirmInvoice}
       onClose={() => setEmailConfirmInvoice(null)}
-      title="Send Invoice"
-      description={`Are you sure you want to send this invoice to ${emailConfirmInvoice?.email}?`}
+      title={emailConfirmInvoice?.status === 'Paid' ? "Send Receipt" : "Send Invoice"}
+      description={emailConfirmInvoice?.status === 'Paid' 
+        ? `Are you sure you want to send the payment and appointment details to ${emailConfirmInvoice?.email}?`
+        : `Are you sure you want to send this invoice to ${emailConfirmInvoice?.email}?`}
       size="sm"
     >
       <div className="flex justify-end gap-3 mt-6">

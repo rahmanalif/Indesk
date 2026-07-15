@@ -338,11 +338,11 @@ export const invoiceApi = createApi({
       invalidatesTags: ["Invoice"],
     }),
 
-    sendInvoice: builder.mutation<void, { id: string; email: string }>({
-      query: ({ id, email }) => ({
+    sendInvoice: builder.mutation<void, { id: string; email: string; isReceipt?: boolean }>({
+      query: ({ id, email, isReceipt }) => ({
         url: `invoice/${id}/send`,
         method: "POST",
-        body: { email },
+        body: { email, isReceipt },
       }),
     }),
     exportInvoiceToXero: builder.mutation<
