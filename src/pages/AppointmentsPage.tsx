@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, X, Video, Building2, User, Eye, Calendar, Clock, FileText, Mail, Stethoscope, Trash2, CreditCard } from 'lucide-react';
+import { Search, X, Video, Building2, User, Eye, Calendar, Clock, FileText, Mail, Stethoscope, Trash2, CreditCard, Send } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -16,6 +16,7 @@ import { useGetAppointmentsQuery } from '../redux/api/invoiceApi';
 import {
   useUpdateAppointmentStatusMutation,
   useDeleteAppointmentMutation,
+  useResendAppointmentPaymentLinkMutation,
 } from '../redux/api/clientsApi';
 
 const STATUS_OPTIONS = [
@@ -121,6 +122,7 @@ export function AppointmentsPage() {
 
   const [updateAppointmentStatus, { isLoading: isUpdatingStatus }] = useUpdateAppointmentStatusMutation();
   const [deleteAppointment, { isLoading: isDeleting }] = useDeleteAppointmentMutation();
+  const [resendPaymentLink, { isLoading: isSendingPaymentLink }] = useResendAppointmentPaymentLinkMutation();
 
   const appointments = data?.response?.data?.docs || [];
   const totalPages = data?.response?.data?.totalPages || 1;
@@ -192,6 +194,15 @@ export function AppointmentsPage() {
       refetch();
     } catch (error: any) {
       notify.error(error?.data?.message || 'Failed to delete appointment.');
+    }
+  };
+
+  const handleResendPaymentLink = async (id: string) => {
+    try {
+      await resendPaymentLink(id).unwrap();
+      notify.success('A new payment link was sent to the client.');
+    } catch (error: any) {
+      notify.error(error?.data?.message || 'Failed to send payment link.');
     }
   };
 
@@ -528,9 +539,26 @@ export function AppointmentsPage() {
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <CreditCard className="h-3.5 w-3.5" /> Payment
                 </div>
-                <Badge variant={paymentVariant(selectedAppointment.paymentStatus) as any}>
-                  {paymentLabel(selectedAppointment.paymentStatus, selectedAppointment.sessionPrice)}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant={paymentVariant(selectedAppointment.paymentStatus) as any}>
+                    {paymentLabel(selectedAppointment.paymentStatus, selectedAppointment.sessionPrice)}
+                  </Badge>
+                  {selectedAppointment.sessionPrice > 0 &&
+                    !['completed', 'refunded'].includes(String(selectedAppointment.paymentStatus || '').toLowerCase()) &&
+                    !['cancelled', 'completed'].includes(String(selectedAppointment.status).toLowerCase()) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        isLoading={isSendingPaymentLink}
+                        onClick={() => handleResendPaymentLink(selectedAppointment.id)}
+                        aria-label="Send payment link again"
+                        title="Send payment link again"
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    )}
+                </div>
               </div>
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">

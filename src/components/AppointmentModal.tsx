@@ -1,9 +1,10 @@
-import React from 'react';
-import { Calendar, Clock, User, FileText, Trash2, Edit2, X } from 'lucide-react';
+import { Calendar, Clock, User, FileText, Trash2, Edit2, CreditCard, Send } from 'lucide-react';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
 import { Avatar } from './ui/Avatar';
+import { notify } from './ui/ToastHost';
+import { useResendAppointmentPaymentLinkMutation } from '../redux/api/clientsApi';
 
 interface AppointmentModalProps {
   isOpen: boolean;
@@ -22,7 +23,35 @@ export function AppointmentModal({
   onDelete,
   isDeleting
 }: AppointmentModalProps) {
+  const [resendPaymentLink, { isLoading: isSendingPaymentLink }] =
+    useResendAppointmentPaymentLinkMutation();
   if (!appointment) return null;
+
+  const paymentStatus = String(appointment.paymentStatus || '').toLowerCase();
+  const isFree = !appointment.sessionPrice || appointment.sessionPrice <= 0;
+  const canResendPaymentLink =
+    !isFree &&
+    !['completed', 'refunded'].includes(paymentStatus) &&
+    !['cancelled', 'completed'].includes(String(appointment.status).toLowerCase());
+  const paymentLabel = isFree
+    ? 'Free'
+    : paymentStatus === 'completed'
+      ? 'Paid'
+      : paymentStatus === 'refunded'
+        ? 'Refunded'
+        : paymentStatus === 'failed'
+          ? 'Failed'
+          : 'Unpaid';
+
+  const handleResendPaymentLink = async () => {
+    try {
+      await resendPaymentLink(String(appointment.id)).unwrap();
+      notify.success('A new payment link was sent to the client.');
+    } catch (error: any) {
+      notify.error(error?.data?.message || 'Failed to send payment link.');
+    }
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Appointment Details">
       <div className="space-y-6">
@@ -73,6 +102,30 @@ export function AppointmentModal({
               <span>Type</span>
             </div>
             <p className="font-medium">{appointment.type}</p>
+          </div>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <CreditCard className="h-4 w-4" />
+              <span>Payment</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant={paymentLabel === 'Paid' ? 'success' : 'warning'}>
+                {paymentLabel}
+              </Badge>
+              {canResendPaymentLink && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  isLoading={isSendingPaymentLink}
+                  onClick={handleResendPaymentLink}
+                  aria-label="Send payment link again"
+                  title="Send payment link again"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 

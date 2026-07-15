@@ -1925,6 +1925,16 @@ export const clientsApi = createApi({
       invalidatesTags: ["Clients"],
     }),
 
+    resendAppointmentPaymentLink: builder.mutation<
+      { success: boolean; message: string; response: { data: { sent: boolean } } },
+      string
+    >({
+      query: (id) => ({
+        url: `/appointment/${id}/payment-link`,
+        method: "POST",
+      }),
+    }),
+
     deleteAppointment: builder.mutation<
       { success: boolean; message: string },
       string
@@ -2085,6 +2095,7 @@ export const {
   useCreateAppointmentMutation,
   useUpdateAppointmentMutation,
   useUpdateAppointmentStatusMutation,
+  useResendAppointmentPaymentLinkMutation,
   useDeleteAppointmentMutation,
   useCreateClinicMemberMutation,
   useUpdateClinicMemberMutation,
