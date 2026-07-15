@@ -187,8 +187,8 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
   const tax = subtotal * (taxRate / 100);
   const total = subtotal + tax;
 
-  // Get selected client
-  const selectedClient = clients.find(client => client.id === selectedClientId);
+  // Get selected client (fallback to invoice.client if not in the loaded clients list)
+  const selectedClient = clients.find(client => client.id === selectedClientId) || (invoice?.client?.id === selectedClientId ? invoice.client : invoice?.client);
 
   // Handle appointment selection
   const handleAppointmentToggle = (appointmentId: string, appointment: Appointment) => {
@@ -432,9 +432,12 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={isEditing ? "Create Invoice" : "Invoice Preview"} size="xl">
-      <div className="flex flex-col gap-6 mt-4">
-        <div id="invoice-content" className="bg-white border text-slate-800 p-8 rounded-sm shadow-sm min-h-[600px] flex flex-col relative overflow-hidden">
-          <div className="flex justify-between items-start border-b pb-8 mb-8">
+      <div className="flex flex-col gap-6 mt-4 font-sans">
+        <div id="invoice-content" className="bg-white text-slate-800 p-12 rounded-lg shadow-sm border border-slate-100 min-h-[700px] flex flex-col relative overflow-hidden max-w-4xl mx-auto w-full">
+          {/* Decorative Top Accent */}
+          <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-primary/80 to-primary/40" style={{ backgroundImage: `linear-gradient(to right, ${branding.color}CC, ${branding.color}66)` }}></div>
+          
+          <div className="flex justify-between items-start pb-10 mb-10 border-b border-slate-100">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-4">
                 {clinicLogo ? (
@@ -450,8 +453,8 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
                 </div>
               </div>
             </div>
-            <div className="text-right">
-              <h1 className="text-3xl font-light text-slate-300 uppercase tracking-widest">Invoice</h1>
+            <div className="text-right flex flex-col items-end">
+              <h1 className="text-4xl font-semibold tracking-tight text-slate-900 mb-2">INVOICE</h1>
               <div className="text-sm font-medium mt-1">
                 #{invoice?.id?.substring(0, 8).toUpperCase() || 'NEW-INVOICE'}
               </div>
@@ -474,9 +477,9 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
             </div>
           </div>
 
-          <div className="flex justify-between mb-8">
-            <div className="w-1/3">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Bill To</label>
+          <div className="flex justify-between mb-12">
+            <div className="w-1/2 pr-8">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 block">Billed To</label>
               {fixedClientId ? (
                 selectedClient ? (
                   <div className="space-y-3">
@@ -513,39 +516,39 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
                 </div>
               ) : (
                 selectedClient ? (
-                  <div>
-                    <div className="font-bold text-lg">{selectedClient.firstName} {selectedClient.lastName}</div>
-                    <div className="text-sm text-slate-500">
-                      {selectedClient.email}<br />
-                      {formatPhone(selectedClient)}<br />
-                      {formatAddress(selectedClient)}
+                  <div className="bg-slate-50/50 rounded-xl p-5 border border-slate-100">
+                    <div className="font-semibold text-slate-900 text-lg mb-1">{selectedClient.firstName} {selectedClient.lastName}</div>
+                    <div className="text-sm text-slate-600 leading-relaxed">
+                      {selectedClient.email && <div>{selectedClient.email}</div>}
+                      {formatPhone(selectedClient) && <div>{formatPhone(selectedClient)}</div>}
+                      {formatAddress(selectedClient) && <div>{formatAddress(selectedClient)}</div>}
                     </div>
                   </div>
                 ) : (
-                  <div className="text-gray-400 italic">No client selected</div>
+                  <div className="text-slate-400 italic bg-slate-50/50 p-5 rounded-xl border border-slate-100">No client selected</div>
                 )
               )}
             </div>
             
-            <div className="text-right space-y-2">
-              <div className="flex justify-end items-center gap-4">
-                <span className="text-sm font-medium text-muted-foreground mr-2">Invoice Date:</span>
+            <div className="text-right space-y-4">
+              <div className="flex justify-end items-center gap-6">
+                <span className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Invoice Date</span>
                 {isEditing ? (
                   <div className="w-[180px]">
                     <DatePicker date={invoiceDate} setDate={setInvoiceDate} />
                   </div>
                 ) : (
-                  <span className="font-medium">{invoiceDate ? formatDate(invoiceDate) : 'N/A'}</span>
+                  <span className="text-sm font-medium text-slate-900">{invoiceDate ? formatDate(invoiceDate) : 'N/A'}</span>
                 )}
               </div>
-              <div className="flex justify-end items-center gap-4">
-                <span className="text-sm font-medium text-muted-foreground mr-2">Due Date:</span>
+              <div className="flex justify-end items-center gap-6">
+                <span className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Due Date</span>
                 {isEditing ? (
                   <div className="w-[180px]">
                     <DatePicker date={dueDate} setDate={setDueDate} />
                   </div>
                 ) : (
-                  <span className="font-medium">{dueDate ? formatDate(dueDate) : 'N/A'}</span>
+                  <span className="text-sm font-medium text-slate-900">{dueDate ? formatDate(dueDate) : 'N/A'}</span>
                 )}
               </div>
             </div>
@@ -619,31 +622,31 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
           )}
 
           {/* Invoice Items Table */}
-          <div className="mb-8">
+          <div className="mb-10 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
             <table className="w-full">
-              <thead className="bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider border-y">
+              <thead className="bg-slate-50 text-xs font-bold text-slate-500 uppercase tracking-wider">
                 <tr>
-                  <th className="text-left py-3 px-2">Description</th>
-                  <th className="text-center py-3 px-2 w-20">Qty</th>
-                  <th className="text-right py-3 px-2 w-32">Unit Price</th>
-                  <th className="text-right py-3 px-2 w-32">Total</th>
-                  {isEditing && <th className="w-10"></th>}
+                  <th className="text-left py-4 px-6 font-semibold">Description</th>
+                  <th className="text-center py-4 px-4 w-24 font-semibold">Qty</th>
+                  <th className="text-right py-4 px-4 w-36 font-semibold">Unit Price</th>
+                  <th className="text-right py-4 px-6 w-36 font-semibold">Total</th>
+                  {isEditing && <th className="w-12"></th>}
                 </tr>
               </thead>
-              <tbody className="divide-y">
+              <tbody className="divide-y divide-slate-100 bg-white">
                 {items.map((item) => (
                   <tr key={item.id}>
-                    <td className="py-3 px-2">
+                    <td className="py-4 px-6">
                       {isEditing ? (
                         <div className="space-y-1">
                           <Input
                             value={item.description}
                             onChange={(e) => updateItem(item.id, 'description', e.target.value)}
-                            className="h-9"
+                            className="h-10 border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white transition-colors"
                             placeholder="Item description"
                           />
                           {item.appointmentId && (
-                            <div className="text-xs text-blue-600 flex items-center gap-1">
+                            <div className="text-[11px] font-medium text-blue-600 flex items-center gap-1 mt-1">
                               <Calendar className="h-3 w-3" />
                               Linked to appointment
                             </div>
@@ -651,27 +654,27 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
                         </div>
                       ) : (
                         <div>
-                          <div className="font-medium text-sm">{item.description}</div>
+                          <div className="font-semibold text-slate-800">{item.description}</div>
                           {item.appointmentId && (
-                            <div className="text-xs text-blue-600">Linked to appointment</div>
+                            <div className="text-[11px] font-medium text-slate-400 mt-1 uppercase tracking-wide">Linked to appointment</div>
                           )}
                         </div>
                       )}
                     </td>
-                    <td className="py-3 px-2 text-center">
+                    <td className="py-4 px-4 text-center">
                       {isEditing ? (
                         <Input
                           type="number"
                           min="1"
                           value={item.quantity}
                           onChange={(e) => updateItem(item.id, 'quantity', parseInt(e.target.value) || 1)}
-                          className="h-9 text-center"
+                          className="h-10 text-center border-slate-200 bg-slate-50/50"
                         />
                       ) : (
-                        <div className="font-medium text-sm">{item.quantity}</div>
+                        <div className="font-medium text-slate-700">{item.quantity}</div>
                       )}
                     </td>
-                    <td className="py-3 px-2 text-right">
+                    <td className="py-4 px-4 text-right">
                       {isEditing ? (
                         <Input
                           type="number"
@@ -679,15 +682,15 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
                           step="0.01"
                           value={item.unitPrice}
                           onChange={(e) => updateItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)}
-                          className="h-9 text-right"
+                          className="h-10 text-right border-slate-200 bg-slate-50/50"
                           placeholder="0.00"
                         />
                       ) : (
-                        <div className="font-medium text-sm">{formatInvoiceCurrency(item.unitPrice)}</div>
+                        <div className="font-medium text-slate-700">{formatInvoiceCurrency(item.unitPrice)}</div>
                       )}
                     </td>
-                    <td className="py-3 px-2 text-right">
-                      <div className="font-medium text-sm">{formatInvoiceCurrency(item.total)}</div>
+                    <td className="py-4 px-6 text-right">
+                      <div className="font-semibold text-slate-900">{formatInvoiceCurrency(item.total)}</div>
                     </td>
                     {isEditing && (
                       <td className="text-center">
@@ -714,32 +717,32 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
           </div>
 
           {/* Tax and Notes Section */}
-          <div className="flex gap-8 mb-8">
+          <div className="flex gap-12 mb-8 items-start">
             <div className="w-1/2">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 block">Notes</label>
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 block">Notes & Terms</label>
               {isEditing ? (
                 <Textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Add any notes or terms here..."
-                  className="min-h-[100px]"
+                  placeholder="Add any notes, payment terms, or instructions here..."
+                  className="min-h-[120px] border-slate-200 bg-slate-50/50"
                 />
               ) : (
-                <div className="text-sm text-slate-700 whitespace-pre-wrap">
-                  {notes || 'No notes'}
+                <div className="text-sm text-slate-600 whitespace-pre-wrap bg-slate-50/50 p-5 rounded-xl border border-slate-100 min-h-[120px]">
+                  {notes || 'Thank you for your business.'}
                 </div>
               )}
             </div>
             
             <div className="w-1/2 flex justify-end">
-              <div className="w-64 space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span>{formatInvoiceCurrency(subtotal)}</span>
+              <div className="w-72 bg-slate-50/80 p-6 rounded-2xl border border-slate-100 space-y-4">
+                <div className="flex justify-between text-sm font-medium">
+                  <span className="text-slate-500">Subtotal</span>
+                  <span className="text-slate-900">{formatInvoiceCurrency(subtotal)}</span>
                 </div>
                 {isEditing ? (
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Tax (%)</span>
+                  <div className="flex justify-between items-center text-sm font-medium">
+                    <span className="text-slate-500">Tax (%)</span>
                     <Input
                       type="number"
                       min="0"
@@ -747,25 +750,30 @@ export function InvoicePreviewModal({ isOpen, onClose, onSave, invoice, mode = '
                       step="0.1"
                       value={taxRate}
                       onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
-                      className="w-20 h-8 text-right"
+                      className="w-24 h-9 text-right border-slate-200 bg-white"
                     />
                   </div>
                 ) : (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Tax ({taxRate}%)</span>
-                    <span>{formatInvoiceCurrency(tax)}</span>
+                  <div className="flex justify-between text-sm font-medium">
+                    <span className="text-slate-500">Tax ({taxRate}%)</span>
+                    <span className="text-slate-900">{formatInvoiceCurrency(tax)}</span>
                   </div>
                 )}
-                <div className="flex justify-between text-lg font-bold border-t border-dashed pt-3 mt-2">
-                  <span>Total</span>
-                  <span>{formatInvoiceCurrency(total)}</span>
+                <div className="h-px bg-slate-200 w-full my-4"></div>
+                <div className="flex justify-between items-center">
+                  <span className="text-base font-bold text-slate-900">Total Due</span>
+                  <span className="text-2xl font-bold" style={{ color: branding.color || '#1e293b' }}>
+                    {formatInvoiceCurrency(total)}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="mt-12 pt-8 text-center text-xs text-muted-foreground">
-            <p>Thank you for your business. Please make checks payable to Inkind Wellness Center.</p>
+          <div className="mt-auto pt-10 text-center">
+            <p className="text-[11px] font-medium text-slate-400 uppercase tracking-widest">
+              Please make checks payable to {clinicName}
+            </p>
           </div>
         </div>
 
