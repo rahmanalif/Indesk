@@ -10,6 +10,7 @@ import { Pagination } from '../components/ui/Pagination';
 import { DatePicker } from '../components/ui/DatePicker';
 import { notify } from '../components/ui/ToastHost';
 import { EmptyState } from '../components/ui/EmptyState';
+import { Modal } from '../components/ui/Modal';
 import { useGetIntegrationsQuery } from '../redux/api/integrationApi';
 import { useExportInvoiceToXeroMutation, useGetInvoiceStatsQuery, useGetInvoicesQuery, useSendInvoiceMutation } from '../redux/api/invoiceApi';
 
@@ -36,6 +37,7 @@ export function InvoicesPage() {
   const [endDate, setEndDate] = useState('');
   const [exportingInvoiceId, setExportingInvoiceId] = useState<string | null>(null);
   const [sendingInvoiceId, setSendingInvoiceId] = useState<string | null>(null);
+  const [emailConfirmInvoice, setEmailConfirmInvoice] = useState<{ id: string, email: string } | null>(null);
 
   const itemsPerPage = 10;
   const { data: invoicesResponse, isLoading, isError, refetch } = useGetInvoicesQuery({
@@ -117,16 +119,21 @@ export function InvoicesPage() {
     refetch();
   };
 
-  const handleSendEmail = async (invoiceId: string, clientEmail: string) => {
+  const handleSendEmail = (invoiceId: string, clientEmail: string) => {
     if (!clientEmail) {
       notify.error('Client email is missing.');
       return;
     }
-    const shouldSend = window.confirm(`Are you sure you want to send this invoice to ${clientEmail}?`);
-    if (!shouldSend) return;
+    setEmailConfirmInvoice({ id: invoiceId, email: clientEmail });
+  };
 
+  const handleConfirmSendEmail = async () => {
+    if (!emailConfirmInvoice) return;
+    const { id: invoiceId, email: clientEmail } = emailConfirmInvoice;
+    
     try {
       setSendingInvoiceId(invoiceId);
+      setEmailConfirmInvoice(null);
       await sendInvoiceMutation({ id: invoiceId, email: clientEmail }).unwrap();
       notify.success(`Invoice ${invoiceId} has been sent to ${clientEmail}`);
     } catch (error: any) {
@@ -434,5 +441,22 @@ export function InvoicesPage() {
       invoice={selectedInvoice}
       mode={modalMode}
     />
+
+    <Modal
+      isOpen={!!emailConfirmInvoice}
+      onClose={() => setEmailConfirmInvoice(null)}
+      title="Send Invoice"
+      description={`Are you sure you want to send this invoice to ${emailConfirmInvoice?.email}?`}
+      size="sm"
+    >
+      <div className="flex justify-end gap-3 mt-6">
+        <Button variant="outline" onClick={() => setEmailConfirmInvoice(null)}>
+          Cancel
+        </Button>
+        <Button onClick={handleConfirmSendEmail}>
+          Send Email
+        </Button>
+      </div>
+    </Modal>
   </div>;
 }
