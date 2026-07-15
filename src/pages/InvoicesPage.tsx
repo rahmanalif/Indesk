@@ -11,7 +11,7 @@ import { DatePicker } from '../components/ui/DatePicker';
 import { notify } from '../components/ui/ToastHost';
 import { EmptyState } from '../components/ui/EmptyState';
 import { useGetIntegrationsQuery } from '../redux/api/integrationApi';
-import { useExportInvoiceToXeroMutation, useGetInvoiceStatsQuery, useGetInvoicesQuery } from '../redux/api/invoiceApi';
+import { useExportInvoiceToXeroMutation, useGetInvoiceStatsQuery, useGetInvoicesQuery, useSendInvoiceMutation } from '../redux/api/invoiceApi';
 
 const formatInvoiceDate = (value?: string) => {
   if (!value) return 'N/A';
@@ -35,6 +35,7 @@ export function InvoicesPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [exportingInvoiceId, setExportingInvoiceId] = useState<string | null>(null);
+  const [sendingInvoiceId, setSendingInvoiceId] = useState<string | null>(null);
 
   const itemsPerPage = 10;
   const { data: invoicesResponse, isLoading, isError, refetch } = useGetInvoicesQuery({
@@ -44,6 +45,7 @@ export function InvoicesPage() {
   const { data: statsResponse } = useGetInvoiceStatsQuery();
   const { data: integrationsResponse } = useGetIntegrationsQuery();
   const [exportInvoiceToXero] = useExportInvoiceToXeroMutation();
+  const [sendInvoiceMutation] = useSendInvoiceMutation();
   const apiInvoices = invoicesResponse?.response?.data?.docs || [];
   const stats = statsResponse?.response?.data;
   const monthlySalesAmount = Number(stats?.monthlySales?.amount ?? 0);
@@ -113,6 +115,25 @@ export function InvoicesPage() {
     setIsPreviewOpen(false);
     setSelectedInvoice(null);
     refetch();
+  };
+
+  const handleSendEmail = async (invoiceId: string, clientEmail: string) => {
+    if (!clientEmail) {
+      notify.error('Client email is missing.');
+      return;
+    }
+    const shouldSend = window.confirm(`Are you sure you want to send this invoice to ${clientEmail}?`);
+    if (!shouldSend) return;
+
+    try {
+      setSendingInvoiceId(invoiceId);
+      await sendInvoiceMutation({ id: invoiceId, email: clientEmail }).unwrap();
+      notify.success(`Invoice ${invoiceId} has been sent to ${clientEmail}`);
+    } catch (error: any) {
+      notify.error(error?.data?.message || error?.message || 'Failed to send invoice email.');
+    } finally {
+      setSendingInvoiceId(null);
+    }
   };
 
   const handleExportToXero = async (invoiceId: string) => {
@@ -325,11 +346,10 @@ export function InvoicesPage() {
                           size="icon"
                           className="text-primary hover:text-primary hover:bg-primary/10"
                           title="Send via Email"
-                          onClick={() => {
-                            notify.success(`Invoice ${invoice.id} has been sent to ${invoice.clientEmail}`);
-                          }}
+                          onClick={() => handleSendEmail(invoice.id, invoice.clientEmail)}
+                          isLoading={sendingInvoiceId === invoice.id}
                         >
-                          <Mail className="h-4 w-4" />
+                          {sendingInvoiceId !== invoice.id ? <Mail className="h-4 w-4" /> : null}
                         </Button>
                       </div>
                     </td>
@@ -383,8 +403,15 @@ export function InvoicesPage() {
                   {exportingInvoiceId !== invoice.id ? <Webhook className="h-3 w-3 mr-2" /> : null}
                   Xero
                 </Button>
-                <Button variant="outline" size="sm" className="h-8 text-xs text-primary border-primary/20 bg-primary/5" onClick={() => notify.success(`Sent to ${invoice.clientEmail}`)}>
-                  <Mail className="h-3 w-3 mr-2" /> Email
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs text-primary border-primary/20 bg-primary/5"
+                  onClick={() => handleSendEmail(invoice.id, invoice.clientEmail)}
+                  isLoading={sendingInvoiceId === invoice.id}
+                >
+                  {sendingInvoiceId !== invoice.id ? <Mail className="h-3 w-3 mr-2" /> : null}
+                  Email
                 </Button>
               </div>
             </Card>
