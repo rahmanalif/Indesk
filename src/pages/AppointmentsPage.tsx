@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, X, Video, Building2, User, Eye, Calendar, Clock, FileText, Mail, Stethoscope, Trash2, CreditCard, Send, Settings2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
@@ -89,6 +89,7 @@ export function AppointmentsPage() {
   const clientName = searchParams.get('clientName') || '';
   const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
   const [isManagingAppointment, setIsManagingAppointment] = useState(false);
+  const manageMenuRef = useRef<HTMLDivElement>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
@@ -111,6 +112,17 @@ export function AppointmentsPage() {
   useEffect(() => {
     setIsManagingAppointment(false);
   }, [selectedAppointment?.id]);
+
+  useEffect(() => {
+    if (!isManagingAppointment) return;
+    const closeMenu = (event: MouseEvent) => {
+      if (!manageMenuRef.current?.contains(event.target as Node)) {
+        setIsManagingAppointment(false);
+      }
+    };
+    document.addEventListener('mousedown', closeMenu);
+    return () => document.removeEventListener('mousedown', closeMenu);
+  }, [isManagingAppointment]);
 
   const { data, isLoading, isError, refetch } = useGetAppointmentsQuery(
     {
@@ -488,16 +500,51 @@ export function AppointmentsPage() {
         title="Appointment Details"
         size="md"
         headerActions={
-          <Button
-            variant={isManagingAppointment ? 'secondary' : 'ghost'}
-            size="icon"
-            className="h-8 w-8 rounded-full"
-            onClick={() => setIsManagingAppointment((value) => !value)}
-            aria-label="Manage appointment"
-            title="Manage appointment"
-          >
-            <Settings2 className="h-4 w-4" />
-          </Button>
+          <div ref={manageMenuRef} className="relative">
+            <Button
+              variant={isManagingAppointment ? 'secondary' : 'ghost'}
+              size="icon"
+              className="h-8 w-8 rounded-full"
+              onClick={() => setIsManagingAppointment((value) => !value)}
+              aria-label="Manage appointment"
+              title="Manage appointment"
+            >
+              <Settings2 className="h-4 w-4" />
+            </Button>
+            {isManagingAppointment && selectedAppointment && (
+              <div className="absolute right-0 top-10 z-50 w-72 space-y-3 rounded-lg border border-border bg-background p-4 shadow-xl">
+                <p className="text-sm font-semibold">Manage Appointment</p>
+                <Select
+                  label="Status"
+                  value={selectedAppointment.status}
+                  disabled={busy}
+                  triggerClassName="h-10"
+                  options={STATUS_OPTIONS.filter((option) => option.value !== 'All')}
+                  onChange={(event) => handleStatusChange(selectedAppointment.id, event.target.value)}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-amber-700 border-amber-200 bg-amber-50 hover:bg-amber-100"
+                    disabled={busy || selectedAppointment.status === 'cancelled'}
+                    onClick={() => handleCancel(selectedAppointment.id)}
+                  >
+                    <X className="h-4 w-4 mr-1.5" /> Cancel
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 text-destructive border-destructive/20 bg-destructive/5 hover:bg-destructive/10"
+                    disabled={busy}
+                    onClick={() => handleDelete(selectedAppointment.id)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1.5" /> Delete
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
         }
       >
         {selectedAppointment && (() => {
@@ -607,40 +654,6 @@ export function AppointmentsPage() {
                   {selectedAppointment.note}
                 </p>
               </div>
-            )}
-
-            {isManagingAppointment && (
-            <div className="rounded-xl border border-border/50 p-4 space-y-3">
-              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                Manage Appointment
-              </p>
-              <Select
-                label="Status"
-                value={selectedAppointment.status}
-                disabled={busy}
-                triggerClassName="h-11 rounded-xl"
-                options={STATUS_OPTIONS.filter((o) => o.value !== 'All')}
-                onChange={(e) => handleStatusChange(selectedAppointment.id, e.target.value)}
-              />
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="flex-1 h-11 text-amber-700 border-amber-200 bg-amber-50 hover:bg-amber-100"
-                  disabled={busy || selectedAppointment.status === 'cancelled'}
-                  onClick={() => handleCancel(selectedAppointment.id)}
-                >
-                  <X className="h-4 w-4 mr-2" /> Cancel
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1 h-11 text-destructive border-destructive/20 bg-destructive/5 hover:bg-destructive/10"
-                  disabled={busy}
-                  onClick={() => handleDelete(selectedAppointment.id)}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" /> Delete
-                </Button>
-              </div>
-            </div>
             )}
 
             <div className="flex flex-col sm:flex-row gap-2 pt-2">
