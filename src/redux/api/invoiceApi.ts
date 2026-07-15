@@ -340,7 +340,7 @@ export const invoiceApi = createApi({
 
     sendInvoice: builder.mutation<void, { id: string; email: string; isReceipt?: boolean }>({
       query: ({ id, email, isReceipt }) => ({
-        url: `invoice/${id}/send`,
+        url: `invoice/${id}/send-email`,
         method: "POST",
         body: { email, isReceipt },
       }),
