@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, X, Video, Building2, User, Eye, Calendar, Clock, FileText, Mail, Stethoscope, Trash2, CreditCard, Send } from 'lucide-react';
+import { Search, X, Video, Building2, User, Eye, Calendar, Clock, FileText, Mail, Stethoscope, Trash2, CreditCard, Send, Settings2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
@@ -88,6 +88,7 @@ export function AppointmentsPage() {
   const clientId = searchParams.get('clientId') || '';
   const clientName = searchParams.get('clientName') || '';
   const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
+  const [isManagingAppointment, setIsManagingAppointment] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
@@ -106,6 +107,10 @@ export function AppointmentsPage() {
     }, 350);
     return () => clearTimeout(handle);
   }, [searchInput]);
+
+  useEffect(() => {
+    setIsManagingAppointment(false);
+  }, [selectedAppointment?.id]);
 
   const { data, isLoading, isError, refetch } = useGetAppointmentsQuery(
     {
@@ -482,6 +487,18 @@ export function AppointmentsPage() {
         onClose={() => setSelectedAppointment(null)}
         title="Appointment Details"
         size="md"
+        headerActions={
+          <Button
+            variant={isManagingAppointment ? 'secondary' : 'ghost'}
+            size="icon"
+            className="h-8 w-8 rounded-full"
+            onClick={() => setIsManagingAppointment((value) => !value)}
+            aria-label="Manage appointment"
+            title="Manage appointment"
+          >
+            <Settings2 className="h-4 w-4" />
+          </Button>
+        }
       >
         {selectedAppointment && (() => {
           const ModalMeetingIcon = selectedAppointment.meeting.icon;
@@ -592,7 +609,7 @@ export function AppointmentsPage() {
               </div>
             )}
 
-            {/* Status management */}
+            {isManagingAppointment && (
             <div className="rounded-xl border border-border/50 p-4 space-y-3">
               <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                 Manage Appointment
@@ -624,6 +641,7 @@ export function AppointmentsPage() {
                 </Button>
               </div>
             </div>
+            )}
 
             <div className="flex flex-col sm:flex-row gap-2 pt-2">
               <Button

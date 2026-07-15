@@ -10,6 +10,7 @@ interface ModalProps {
   children: React.ReactNode;
   className?: string;
   bodyClassName?: string;
+  headerActions?: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
 }
 export function Modal({
@@ -20,6 +21,7 @@ export function Modal({
   children,
   className,
   bodyClassName,
+  headerActions,
   size = 'md'
 }: ModalProps) {
   const [isAnimating, setIsAnimating] = useState(false);
@@ -57,10 +59,13 @@ export function Modal({
           </h2>}
           {description && <p className="text-sm text-muted-foreground">{description}</p>}
         </div>
-        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full -mr-2 -mt-2" onClick={onClose}>
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </Button>
+        <div className="flex items-center gap-1 -mr-2 -mt-2">
+          {headerActions}
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={onClose}>
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </Button>
+        </div>
       </div>}
 
       {/* Body */}
