@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
   Copy,
-  FilePenLine,
   PencilLine,
   Plus,
   Send,
@@ -31,7 +30,6 @@ import {
   useGetClinicAdminTemplatesQuery,
   useSendClinicAdminTemplateMutation,
   useUpdateClinicAdminTemplateMutation,
-  useUpdateClinicAdminTemplateStatusMutation,
   type ClinicAdminTemplate,
 } from '../../redux/api/clinicAdminTemplateApi';
 import {
@@ -150,7 +148,6 @@ export function AdminQuestionnairesWorkspace() {
   const [createTemplate] = useCreateClinicAdminTemplateMutation();
   const [updateTemplate] = useUpdateClinicAdminTemplateMutation();
   const [copyTemplate] = useCopyClinicAdminTemplateMutation();
-  const [updateStatus] = useUpdateClinicAdminTemplateStatusMutation();
   const [sendTemplate] = useSendClinicAdminTemplateMutation();
 
   const templates = templatesResponse?.response?.data || [];
@@ -255,45 +252,6 @@ export function AdminQuestionnairesWorkspace() {
       setIsTemplateModalOpen(true);
     } catch (error) {
       notify.error(getFriendlyErrorMessage(error, 'Unable to edit template.'));
-    }
-  };
-
-  const handleDuplicate = async (template: ClinicAdminTemplate) => {
-    try {
-      await createTemplate({
-        title: `${template.title} Copy`,
-        category: template.category,
-        description: template.description,
-        content: template.content,
-        status: 'active',
-      }).unwrap();
-      notify.success(`Duplicated "${template.title}".`);
-    } catch (error) {
-      notify.error(getFriendlyErrorMessage(error, 'Failed to duplicate template.'));
-    }
-  };
-
-  const handleArchiveToggle = async (template: ClinicAdminTemplate) => {
-    if (template.isSystemTemplate || template.clinicId === null) {
-      notify.error('Starter templates cannot be archived. Edit to create your own copy first.');
-      return;
-    }
-
-    const nextStatus = template.status === 'active' ? 'archived' : 'active';
-    try {
-      await updateStatus({ templateId: template.id, status: nextStatus }).unwrap();
-      notify.success(nextStatus === 'archived' ? 'Template archived.' : 'Template restored.');
-    } catch (error) {
-      notify.error(getFriendlyErrorMessage(error, 'Failed to update template status.'));
-    }
-  };
-
-  const handleCopy = async (template: ClinicAdminTemplate) => {
-    try {
-      await navigator.clipboard.writeText(template.content);
-      notify.success(`Copied "${template.title}" content.`);
-    } catch {
-      notify.error('Could not copy template content.');
     }
   };
 
@@ -465,18 +423,6 @@ export function AdminQuestionnairesWorkspace() {
                 <Button variant="ghost" size="sm" onClick={() => handleEdit(template)}>
                   <PencilLine className="mr-2 h-3.5 w-3.5" />
                   Edit
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => handleDuplicate(template)}>
-                  <FilePenLine className="mr-2 h-3.5 w-3.5" />
-                  Duplicate
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => handleCopy(template)}>
-                  <Copy className="mr-2 h-3.5 w-3.5" />
-                  Copy
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => handleArchiveToggle(template)}>
-                  <Trash2 className="mr-2 h-3.5 w-3.5" />
-                  {template.status === 'active' ? 'Archive' : 'Restore'}
                 </Button>
               </div>
             </div>
