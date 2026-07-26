@@ -383,14 +383,8 @@ export function LoginPage() {
         normalizedMessage.includes('account already exists');
 
       if (isExistingAccountError) {
-        setShowSignupPanel(false);
-        setFormData((prev) => ({
-          ...prev,
-          email: signupData.email.trim(),
-        }));
-        setSignupError('');
-        setSignupSuccess('');
-        setFormErrors((prev) => ({ ...prev, email: 'An account with this email already exists. Please log in.', password: '' }));
+        setSignupErrors((prev) => ({ ...prev, email: 'An account with this email already exists. Please log in.' }));
+        setSignupError('An account with this email already exists. Please log in.');
         return;
       }
 
