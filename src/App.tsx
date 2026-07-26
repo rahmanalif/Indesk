@@ -47,6 +47,7 @@ import { SessionBootstrap } from './components/SessionBootstrap';
 import { AppointmentPaymentSuccessPage } from './pages/AppointmentPaymentSuccessPage';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { RequireOnboarding } from './components/RequireOnboarding';
+import { OnboardingGuard } from './components/OnboardingGuard';
 import { getClinicOnboardingState } from './lib/onboarding';
 
 function HomeRedirect() {
@@ -69,6 +70,7 @@ export function App() {
       <SessionBootstrap>
         <ToastHost />
         <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <OnboardingGuard>
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<HomeRedirect />} />
@@ -219,6 +221,7 @@ export function App() {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
+        </OnboardingGuard>
         </Router>
       </SessionBootstrap>
     </DataProvider>
