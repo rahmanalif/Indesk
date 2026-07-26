@@ -433,7 +433,7 @@ export function OnboardingPage() {
         <div className="w-full max-w-xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <Link to="/" className="inline-flex items-center gap-2">
-              <img src="/images/inkind logo-04.png" alt="InDesk" className="h-8 w-auto" />
+              <img src="/images/inkind logo-04.png" alt="InDesk" className="h-14 w-auto object-contain" />
             </Link>
             <button
               type="button"
