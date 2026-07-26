@@ -137,7 +137,6 @@ export function OnboardingPage() {
 
   const [clinicForm, setClinicForm] = useState({
     name: '',
-    url: '',
     email: '',
     phone: '',
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/London',
@@ -200,7 +199,6 @@ export function OnboardingPage() {
 
     setClinicForm({
       name: status.clinic.name || '',
-      url: status.clinic.url || '',
       email: status.clinic.email || '',
       phone: phoneValue,
       timezone: status.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/London',
@@ -312,7 +310,6 @@ export function OnboardingPage() {
           step: 1,
           data: {
             name: clinicForm.name.trim(),
-            url: clinicForm.url.trim() || undefined,
             email: clinicForm.email.trim(),
             phoneNumber: parsed?.nationalNumber,
             countryCode: parsed ? `+${parsed.countryCallingCode}` : undefined,
@@ -440,13 +437,6 @@ export function OnboardingPage() {
                   error={clinicErrors.name}
                   disabled={!status?.canEdit || isBusy}
                   required
-                />
-                <Input
-                  label="Public URL / slug"
-                  placeholder="your-clinic"
-                  value={clinicForm.url}
-                  onChange={(e) => setClinicForm({ ...clinicForm, url: e.target.value })}
-                  disabled={!status?.canEdit || isBusy}
                 />
                 <Input
                   label="Support email"

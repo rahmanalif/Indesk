@@ -21,7 +21,6 @@ export interface OnboardingStatusData {
     id: string;
     name: string;
     email: string | null;
-    url: string | null;
     phoneNumber: string | null;
     countryCode: string | null;
     isActive: boolean;
@@ -53,7 +52,6 @@ export type SaveOnboardingStepRequest =
       step: 1;
       data: {
         name: string;
-        url?: string;
         email?: string;
         phoneNumber?: string;
         countryCode?: string;
