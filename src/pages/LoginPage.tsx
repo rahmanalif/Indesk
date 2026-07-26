@@ -6,6 +6,7 @@ import { Select } from '../components/ui/Select';
 import { Eye, EyeOff, ArrowRight, AlertCircle, Mail, KeyRound, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { getFriendlyErrorMessage } from '../lib/utils';
+import { getClinicOnboardingState } from '../lib/onboarding';
 import { PhoneNumberInput, isValidPhoneNumber, parsePhoneNumber } from '../components/ui/PhoneNumberInput';
 import {
   useCancelPlanOnboardingMutation,
@@ -18,7 +19,7 @@ import {
 export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isAuthenticated, isLoading: authLoading, error: authError, clearError } = useAuth();
+  const { login, user, isAuthenticated, isLoading: authLoading, error: authError, clearError } = useAuth();
   const {
     data: plansResponse,
     isLoading: isPlansLoading,
@@ -312,7 +313,16 @@ export function LoginPage() {
     const result = await login(formData.email, formData.password);
 
     if (result.success) {
-      if (fromPath && fromPath !== '/login') {
+      const userData = (result.data as any)?.response?.data;
+      const membershipClinic = userData?.clinicMemberships?.[0]?.clinic;
+      const ownedClinic = userData?.ownedClinics?.[0];
+      const clinic = membershipClinic || ownedClinic;
+      if (clinic && clinic.isOnboarded === false) {
+        navigate('/onboarding', { replace: true });
+        return;
+      }
+
+      if (fromPath && fromPath !== '/login' && fromPath !== '/onboarding') {
         navigate(fromPath, { replace: true });
         return;
       }
@@ -640,6 +650,10 @@ export function LoginPage() {
   };
 
   if (isAuthenticated) {
+    const { hasClinic, isOnboarded } = getClinicOnboardingState(user);
+    if (hasClinic && !isOnboarded) {
+      return <Navigate to="/onboarding" replace />;
+    }
     return <Navigate to={fromPath || '/dashboard'} replace />;
   }
 

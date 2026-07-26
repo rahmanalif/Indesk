@@ -45,11 +45,18 @@ import { NoPermissionsPage } from './pages/NoPermissionsPage';
 import { ToastHost } from './components/ui/ToastHost';
 import { SessionBootstrap } from './components/SessionBootstrap';
 import { AppointmentPaymentSuccessPage } from './pages/AppointmentPaymentSuccessPage';
+import { OnboardingPage } from './pages/OnboardingPage';
+import { RequireOnboarding } from './components/RequireOnboarding';
+import { getClinicOnboardingState } from './lib/onboarding';
 
 function HomeRedirect() {
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
 
   if (isAuthenticated && user) {
+    const { hasClinic, isOnboarded } = getClinicOnboardingState(user);
+    if (hasClinic && !isOnboarded) {
+      return <Navigate to="/onboarding" replace />;
+    }
     return <SmartRedirect preferredRoutes={['/dashboard', '/profile']} fallbackPath="/no-access" />;
   }
 
@@ -68,6 +75,7 @@ export function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/appointments/payment-success" element={<AppointmentPaymentSuccessPage />} />
           <Route path="/legal/:slug" element={<LegalDocumentPage />} />
           <Route path="/client-intake-form" element={<PublicClientIntakePage />} />
@@ -77,7 +85,13 @@ export function App() {
           <Route path="/landing" element={<Navigate to="/" replace />} />
 
           {/* Protected Admin Routes */}
-          <Route element={<AdminLayout />}>
+          <Route
+            element={
+              <RequireOnboarding>
+                <AdminLayout />
+              </RequireOnboarding>
+            }
+          >
             <Route path="dashboard" element={
               <ProtectedRoute permission="clinician_dashboard">
                 <DashboardPage />

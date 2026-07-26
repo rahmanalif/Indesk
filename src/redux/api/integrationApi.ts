@@ -88,8 +88,18 @@ export const integrationApi = createApi({
     getPublicIntegrations: builder.query<GetPublicIntegrationsResponse, void>({
       query: () => "integration/public",
     }),
-    getIntegrationOAuthUrl: builder.query<GetIntegrationOAuthResponse, string>({
-      query: (type) => `integration/oauth/${type}`,
+    getIntegrationOAuthUrl: builder.query<
+      GetIntegrationOAuthResponse,
+      { type: string; returnTo?: string } | string
+    >({
+      query: (arg) => {
+        const type = typeof arg === 'string' ? arg : arg.type;
+        const returnTo = typeof arg === 'string' ? undefined : arg.returnTo;
+        return {
+          url: `integration/oauth/${type}`,
+          params: returnTo ? { returnTo } : undefined,
+        };
+      },
     }),
     disconnectIntegration: builder.mutation<IntegrationActionResponse, string>({
       query: (type) => ({

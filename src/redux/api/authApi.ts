@@ -27,6 +27,24 @@ interface AuthenticatedUser {
   lastLoginAt: string | null;
   createdAt: string;
   updatedAt: string;
+  clinicMemberships?: Array<{
+    id: string;
+    role: string;
+    clinic?: {
+      id: string;
+      name: string;
+      isActive?: boolean;
+      isOnboarded?: boolean;
+      onboardingStep?: number;
+    };
+  }>;
+  ownedClinics?: Array<{
+    id: string;
+    name: string;
+    isActive?: boolean;
+    isOnboarded?: boolean;
+    onboardingStep?: number;
+  }>;
   subscription?: {
     id: string;
     clinicId: string;
@@ -154,17 +172,31 @@ interface SelfClinicMembership {
   id: string;
   role: string;
   clinicianToken: string | null;
-  availability: string[];
+  availabilitySchedule?: unknown;
   specialization: string[];
+  clinic?: {
+    id: string;
+    name: string;
+    email?: string | null;
+    url?: string | null;
+    phoneNumber?: string | null;
+    countryCode?: string | null;
+    isActive?: boolean;
+    isOnboarded?: boolean;
+    onboardingStep?: number;
+  };
 }
 
 interface SelfOwnedClinic {
   id: string;
   name: string;
   email: string;
+  url?: string | null;
   logo: string | null;
   color: string | null;
   isActive: boolean;
+  isOnboarded?: boolean;
+  onboardingStep?: number;
 }
 
 interface SelfUserData {
@@ -310,6 +342,7 @@ export const {
   useResetPasswordMutation,
   useLogoutMutation,
   useGetSelfProfileQuery,
+  useLazyGetSelfProfileQuery,
   useUpdateSelfProfileMutation,
   useChangePasswordMutation,
 } = authApi;

@@ -10,6 +10,24 @@ interface User {
   isEmailVerified: boolean;
   phoneNumber: string | null;
   isOnline: boolean;
+  clinicMemberships?: Array<{
+    id: string;
+    role: string;
+    clinic?: {
+      id: string;
+      name?: string;
+      isActive?: boolean;
+      isOnboarded?: boolean;
+      onboardingStep?: number;
+    };
+  }>;
+  ownedClinics?: Array<{
+    id: string;
+    name?: string;
+    isActive?: boolean;
+    isOnboarded?: boolean;
+    onboardingStep?: number;
+  }>;
   subscription?: {
     id: string;
     clinicId: string;
