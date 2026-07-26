@@ -1,35 +1,29 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { Textarea } from '../ui/Textarea';
 import { Button } from '../ui/Button';
+import type {
+  ClinicAdminTemplate,
+  ClinicAdminTemplateCategory,
+} from '../../redux/api/clinicAdminTemplateApi';
 
-export type AdminQuestionnaireCategory =
-  | 'agreement'
-  | 'consent'
-  | 'intake'
-  | 'feedback'
-  | 'letter'
-  | 'admin';
+export type AdminQuestionnaireCategory = ClinicAdminTemplateCategory;
+export type AdminQuestionnaireTemplate = ClinicAdminTemplate;
 
-export type AdminQuestionnaireTemplate = {
-  id: string;
+type AdminQuestionnaireDraft = {
   title: string;
   category: AdminQuestionnaireCategory;
   description: string;
   content: string;
   status: 'active' | 'archived';
-  updatedAt: string;
-  isSystemTemplate?: boolean;
 };
-
-type AdminQuestionnaireDraft = Omit<AdminQuestionnaireTemplate, 'id' | 'updatedAt'>;
 
 interface AdminQuestionnaireModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (draft: AdminQuestionnaireDraft) => void;
+  onSave: (draft: AdminQuestionnaireDraft) => Promise<void> | void;
   template?: AdminQuestionnaireTemplate | null;
 }
 
@@ -48,7 +42,6 @@ const initialDraft: AdminQuestionnaireDraft = {
   description: '',
   content: '',
   status: 'active',
-  isSystemTemplate: false,
 };
 
 export function AdminQuestionnaireModal({
@@ -66,11 +59,10 @@ export function AdminQuestionnaireModal({
     if (template) {
       setDraft({
         title: template.title,
-        category: template.category,
-        description: template.description,
+        category: (template.category as AdminQuestionnaireCategory) || 'admin',
+        description: template.description || '',
         content: template.content,
-        status: template.status,
-        isSystemTemplate: template.isSystemTemplate ?? false,
+        status: template.status === 'archived' ? 'archived' : 'active',
       });
       return;
     }
@@ -86,7 +78,7 @@ export function AdminQuestionnaireModal({
 
     setIsSaving(true);
     try {
-      onSave({
+      await onSave({
         ...draft,
         title: draft.title.trim(),
         description: draft.description.trim(),

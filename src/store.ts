@@ -9,6 +9,7 @@ import { integrationApi } from './redux/api/integrationApi';
 import { aiAssistantApi } from './redux/api/aiAssistantApi';
 import { notificationApi } from './redux/api/notificationApi';
 import { onboardingApi } from './redux/api/onboardingApi';
+import { clinicAdminTemplateApi } from './redux/api/clinicAdminTemplateApi';
 
 const appReducer = combineReducers({
   auth: authReducer,
@@ -21,6 +22,7 @@ const appReducer = combineReducers({
   [aiAssistantApi.reducerPath]: aiAssistantApi.reducer,
   [notificationApi.reducerPath]: notificationApi.reducer,
   [onboardingApi.reducerPath]: onboardingApi.reducer,
+  [clinicAdminTemplateApi.reducerPath]: clinicAdminTemplateApi.reducer,
 });
 
 const rootReducer = (state: any, action: any) => {
@@ -48,7 +50,8 @@ export const store = configureStore({
       integrationApi.middleware,
       aiAssistantApi.middleware,
       notificationApi.middleware,
-      onboardingApi.middleware
+      onboardingApi.middleware,
+      clinicAdminTemplateApi.middleware
     ),
 });
 
