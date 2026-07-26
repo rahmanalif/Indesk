@@ -12,6 +12,28 @@ interface PhoneNumberInputProps {
   placeholder?: string;
 }
 
+/** True only when the value includes actual national digits (not just a country code). */
+export function hasPhoneNationalNumber(value?: string | null): boolean {
+  const raw = (value || '').trim();
+  if (!raw) return false;
+  try {
+    const parsed = parsePhoneNumber(raw);
+    return Boolean(parsed?.nationalNumber?.trim());
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * For optional phone fields: empty / country-only → '' ;
+ * otherwise keep the E.164 value for validation/submit.
+ */
+export function normalizeOptionalPhoneValue(value?: string | null): string {
+  const raw = (value || '').trim();
+  if (!raw || !hasPhoneNationalNumber(raw)) return '';
+  return raw;
+}
+
 export function PhoneNumberInput({
   value,
   onChange,
@@ -29,8 +51,8 @@ export function PhoneNumberInput({
         international
         defaultCountry="GB"
         limitMaxLength
-        value={value}
-        onChange={(val) => onChange(val || '')}
+        value={value || undefined}
+        onChange={(val) => onChange(normalizeOptionalPhoneValue(val))}
         placeholder={placeholder}
         className={`w-full h-11 px-3 text-sm border rounded-xl focus-within:ring-2 focus-within:ring-slate-200 transition-colors bg-white ${
           error ? 'border-red-400 bg-red-50' : 'border-slate-200'

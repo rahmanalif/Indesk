@@ -16,7 +16,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Textarea } from '../components/ui/Textarea';
-import { PhoneNumberInput, isValidPhoneNumber, parsePhoneNumber } from '../components/ui/PhoneNumberInput';
+import { PhoneNumberInput, isValidPhoneNumber, parsePhoneNumber, hasPhoneNationalNumber, normalizeOptionalPhoneValue } from '../components/ui/PhoneNumberInput';
 import { AvailabilityScheduleEditor } from '../components/clinicians/AvailabilityScheduleEditor';
 import {
   buildAvailabilitySchedulePayload,
@@ -280,7 +280,9 @@ export function OnboardingPage() {
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clinicForm.email.trim())) {
       nextErrors.email = 'Enter a valid email.';
     }
-    if (clinicForm.phone.trim() && !isValidPhoneNumber(clinicForm.phone)) {
+    // Phone is optional. Country flag alone (e.g. GB / +44) must not block continue.
+    const phone = normalizeOptionalPhoneValue(clinicForm.phone);
+    if (phone && !isValidPhoneNumber(phone)) {
       nextErrors.phone = 'Enter a valid phone number.';
     }
     if (!clinicForm.timezone) nextErrors.timezone = 'Timezone is required.';
@@ -341,14 +343,15 @@ export function OnboardingPage() {
     try {
       if (step === 1) {
         if (!validateClinic()) return;
-        const rawPhone = clinicForm.phone.trim();
-        const parsed = rawPhone ? parsePhoneNumber(rawPhone) : undefined;
+        const phone = normalizeOptionalPhoneValue(clinicForm.phone);
+        const parsed = phone && isValidPhoneNumber(phone) ? parsePhoneNumber(phone) : undefined;
         const nationalNumber = parsed?.nationalNumber?.trim() || '';
         const callingCode = parsed?.countryCallingCode
           ? String(parsed.countryCallingCode).trim()
           : '';
-        // Ignore empty field or country-code-only values from the phone input
-        const hasCompletePhone = Boolean(nationalNumber && callingCode);
+        const hasCompletePhone = Boolean(
+          phone && hasPhoneNationalNumber(phone) && nationalNumber && callingCode,
+        );
 
         const data: {
           name: string;
