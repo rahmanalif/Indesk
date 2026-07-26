@@ -341,18 +341,35 @@ export function OnboardingPage() {
     try {
       if (step === 1) {
         if (!validateClinic()) return;
-        const parsed = clinicForm.phone.trim()
-          ? parsePhoneNumber(clinicForm.phone.trim())
-          : undefined;
+        const rawPhone = clinicForm.phone.trim();
+        const parsed = rawPhone ? parsePhoneNumber(rawPhone) : undefined;
+        const nationalNumber = parsed?.nationalNumber?.trim() || '';
+        const callingCode = parsed?.countryCallingCode
+          ? String(parsed.countryCallingCode).trim()
+          : '';
+        // Ignore empty field or country-code-only values from the phone input
+        const hasCompletePhone = Boolean(nationalNumber && callingCode);
+
+        const data: {
+          name: string;
+          email: string;
+          timezone: string;
+          phoneNumber?: string;
+          countryCode?: string;
+        } = {
+          name: clinicForm.name.trim(),
+          email: clinicForm.email.trim(),
+          timezone: clinicForm.timezone,
+        };
+
+        if (hasCompletePhone) {
+          data.phoneNumber = nationalNumber;
+          data.countryCode = `+${callingCode}`;
+        }
+
         await saveStep({
           step: 1,
-          data: {
-            name: clinicForm.name.trim(),
-            email: clinicForm.email.trim(),
-            phoneNumber: parsed?.nationalNumber,
-            countryCode: parsed ? `+${parsed.countryCallingCode}` : undefined,
-            timezone: clinicForm.timezone,
-          },
+          data,
         }).unwrap();
         goNextLocal(2);
         return;
