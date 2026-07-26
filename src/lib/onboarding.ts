@@ -22,8 +22,8 @@ export function getClinicOnboardingState(user: any): {
 
   return {
     hasClinic: true,
-    // Missing field (older payloads) should not force the wizard
-    isOnboarded: clinic.isOnboarded !== false,
+    // Only an explicit true allows access to the main app
+    isOnboarded: clinic.isOnboarded === true,
     onboardingStep: Number(clinic.onboardingStep) || 1,
   };
 }

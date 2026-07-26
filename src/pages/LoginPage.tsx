@@ -314,10 +314,8 @@ export function LoginPage() {
 
     if (result.success) {
       const userData = (result.data as any)?.response?.data;
-      const membershipClinic = userData?.clinicMemberships?.[0]?.clinic;
-      const ownedClinic = userData?.ownedClinics?.[0];
-      const clinic = membershipClinic || ownedClinic;
-      if (clinic && clinic.isOnboarded === false) {
+      const { hasClinic, isOnboarded } = getClinicOnboardingState(userData);
+      if (hasClinic && !isOnboarded) {
         navigate('/onboarding', { replace: true });
         return;
       }

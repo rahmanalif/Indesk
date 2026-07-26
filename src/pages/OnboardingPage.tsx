@@ -82,7 +82,7 @@ export function OnboardingPage() {
   const dispatch = useDispatch<AppDispatch>();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, isAuthenticated, logout } = useAuth();
-  const { isOnboarded: localOnboarded, hasClinic } = getClinicOnboardingState(user);
+  const { hasClinic } = getClinicOnboardingState(user);
 
   const {
     data: statusResponse,
@@ -162,7 +162,7 @@ export function OnboardingPage() {
   const isBusy = isSaving || isCompleting || isOAuthLoading || isStatusFetching;
   const currentStepMeta = STEPS.find((item) => item.id === step) || STEPS[0];
   const StepIcon = currentStepMeta.icon;
-  const isFullyOnboarded = status?.isOnboarded === true || (localOnboarded && !statusError && !isStatusLoading);
+  const isFullyOnboarded = status?.isOnboarded === true;
 
   useEffect(() => {
     const oauthStatus = searchParams.get('status');

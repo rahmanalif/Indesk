@@ -1,7 +1,9 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { Loader2 } from 'lucide-react';
 import { RootState } from '../store';
 import { getClinicOnboardingState } from '../lib/onboarding';
+import { useGetOnboardingStatusQuery } from '../redux/api/onboardingApi';
 
 interface RequireOnboardingProps {
   children: React.ReactNode;
@@ -19,9 +21,31 @@ export function RequireOnboarding({ children }: RequireOnboardingProps) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  const { hasClinic, isOnboarded } = getClinicOnboardingState(user);
+  const { hasClinic, isOnboarded: localOnboarded } = getClinicOnboardingState(user);
 
-  if (hasClinic && !isOnboarded) {
+  const { data: statusResponse, isLoading, isFetching } = useGetOnboardingStatusQuery(
+    undefined,
+    { skip: !hasClinic },
+  );
+
+  if (!hasClinic) {
+    return <>{children}</>;
+  }
+
+  // Wait for authoritative status unless the local profile already confirms completion
+  // (avoids bouncing users back after they finish onboarding).
+  if (!localOnboarded && (isLoading || isFetching) && statusResponse === undefined) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const apiOnboarded = statusResponse?.response?.data?.isOnboarded === true;
+  const isOnboarded = localOnboarded || apiOnboarded;
+
+  if (!isOnboarded) {
     return <Navigate to="/onboarding" replace />;
   }
 
