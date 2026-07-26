@@ -10,8 +10,8 @@ interface RequireOnboardingProps {
 }
 
 /**
- * Blocks access to the main app until clinic post-login onboarding is complete.
- * Provider/users without a clinic pass through.
+ * Blocks clinic admins from the main app until clinic onboarding is complete.
+ * Clinicians/members and users without a clinic pass through.
  */
 export function RequireOnboarding({ children }: RequireOnboardingProps) {
   const location = useLocation();
@@ -21,20 +21,18 @@ export function RequireOnboarding({ children }: RequireOnboardingProps) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  const { hasClinic, isOnboarded: localOnboarded } = getClinicOnboardingState(user);
+  const { isClinicAdmin, isOnboarded: localOnboarded } = getClinicOnboardingState(user);
 
   const { data: statusResponse, isLoading, isFetching } = useGetOnboardingStatusQuery(
     undefined,
-    { skip: !hasClinic },
+    { skip: !isClinicAdmin || localOnboarded },
   );
 
-  if (!hasClinic) {
+  if (!isClinicAdmin || localOnboarded) {
     return <>{children}</>;
   }
 
-  // Wait for authoritative status unless the local profile already confirms completion
-  // (avoids bouncing users back after they finish onboarding).
-  if (!localOnboarded && (isLoading || isFetching) && statusResponse === undefined) {
+  if ((isLoading || isFetching) && statusResponse === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -43,9 +41,7 @@ export function RequireOnboarding({ children }: RequireOnboardingProps) {
   }
 
   const apiOnboarded = statusResponse?.response?.data?.isOnboarded === true;
-  const isOnboarded = localOnboarded || apiOnboarded;
-
-  if (!isOnboarded) {
+  if (!apiOnboarded) {
     return <Navigate to="/onboarding" replace />;
   }
 

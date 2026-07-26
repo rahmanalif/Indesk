@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { RenewSubscriptionPrompt } from './RenewSubscriptionPrompt';
+import { AvailabilityPromptHost } from './AvailabilityPromptHost';
 import { cn } from '../lib/utils';
 import { RootState } from '../store';
 
@@ -39,6 +40,7 @@ export function AdminLayout() {
       </div>
 
       <RenewSubscriptionPrompt />
+      <AvailabilityPromptHost />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { baseQueryWithReauth } from './baseQuery';
 
-export type OnboardingStep = 1 | 2 | 3 | 4;
+export type OnboardingStep = 1 | 2 | 3 | 4 | 5;
 
 export interface OnboardingIntegrationSummary {
   type: string;
@@ -33,6 +33,7 @@ export interface OnboardingStatusData {
     endTime: string;
     breakTime?: { startTime: string; endTime: string } | null;
   }>;
+  sessionCount: number;
   integrations: OnboardingIntegrationSummary[];
 }
 
@@ -70,7 +71,20 @@ export type SaveOnboardingStepRequest =
       };
     }
   | {
-      step: 3 | 4;
+      step: 3;
+      data: {
+        name?: string;
+        duration?: number;
+        price?: number;
+        description?: string | null;
+        color?: string | null;
+        reminders?: number[];
+        enableEmailReminders?: boolean;
+        enableSmsReminders?: boolean;
+      };
+    }
+  | {
+      step: 4 | 5;
       data?: { skip?: boolean };
     };
 

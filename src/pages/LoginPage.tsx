@@ -314,8 +314,8 @@ export function LoginPage() {
 
     if (result.success) {
       const userData = (result.data as any)?.response?.data;
-      const { hasClinic, isOnboarded } = getClinicOnboardingState(userData);
-      if (hasClinic && !isOnboarded) {
+      const { requiresClinicOnboarding } = getClinicOnboardingState(userData);
+      if (requiresClinicOnboarding) {
         navigate('/onboarding', { replace: true });
         return;
       }
@@ -642,8 +642,8 @@ export function LoginPage() {
   };
 
   if (isAuthenticated) {
-    const { hasClinic, isOnboarded } = getClinicOnboardingState(user);
-    if (hasClinic && !isOnboarded) {
+    const { requiresClinicOnboarding } = getClinicOnboardingState(user);
+    if (requiresClinicOnboarding) {
       return <Navigate to="/onboarding" replace />;
     }
     return <Navigate to={fromPath || '/dashboard'} replace />;

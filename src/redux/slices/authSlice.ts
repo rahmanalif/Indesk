@@ -13,6 +13,7 @@ interface User {
   clinicMemberships?: Array<{
     id: string;
     role: string;
+    availabilitySchedule?: unknown;
     clinic?: {
       id: string;
       name?: string;

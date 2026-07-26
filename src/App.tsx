@@ -53,8 +53,8 @@ function HomeRedirect() {
   const { isAuthenticated, user } = useSelector((state: RootState) => state.auth);
 
   if (isAuthenticated && user) {
-    const { hasClinic, isOnboarded } = getClinicOnboardingState(user);
-    if (hasClinic && !isOnboarded) {
+    const { requiresClinicOnboarding } = getClinicOnboardingState(user);
+    if (requiresClinicOnboarding) {
       return <Navigate to="/onboarding" replace />;
     }
     return <SmartRedirect preferredRoutes={['/dashboard', '/profile']} fallbackPath="/no-access" />;

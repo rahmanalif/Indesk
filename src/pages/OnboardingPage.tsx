@@ -8,12 +8,14 @@ import {
   CheckCircle2,
   CreditCard,
   Loader2,
+  Stethoscope,
   Video,
 } from 'lucide-react';
 import { useDispatch } from 'react-redux';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
+import { Textarea } from '../components/ui/Textarea';
 import { PhoneNumberInput, isValidPhoneNumber, parsePhoneNumber } from '../components/ui/PhoneNumberInput';
 import { AvailabilityScheduleEditor } from '../components/clinicians/AvailabilityScheduleEditor';
 import {
@@ -22,6 +24,7 @@ import {
   type AvailabilityDaySchedule,
 } from '../lib/clinicianAvailability';
 import { getFriendlyErrorMessage } from '../lib/utils';
+import { toReminderCodes } from '../lib/sessionReminders';
 import {
   useCompleteOnboardingMutation,
   useGetOnboardingStatusQuery,
@@ -61,13 +64,20 @@ const STEPS = [
   },
   {
     id: 3,
+    title: 'Session type',
+    description: 'Create at least one session offering clients can book.',
+    illustration: '/images/logindemo2.png',
+    icon: Stethoscope,
+  },
+  {
+    id: 4,
     title: 'Telehealth',
     description: 'Connect Zoom or Google Meet for online sessions.',
     illustration: '/images/logindemo2.png',
     icon: Video,
   },
   {
-    id: 4,
+    id: 5,
     title: 'Payments',
     description: 'Set up Stripe Connect to receive patient payments.',
     illustration: '/images/logindemo4.png',
@@ -75,14 +85,14 @@ const STEPS = [
   },
 ] as const;
 
-type StepId = 1 | 2 | 3 | 4;
+type StepId = 1 | 2 | 3 | 4 | 5;
 
 export function OnboardingPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, isAuthenticated, logout } = useAuth();
-  const { hasClinic } = getClinicOnboardingState(user);
+  const { hasClinic, isClinicAdmin } = getClinicOnboardingState(user);
 
   const {
     data: statusResponse,
@@ -91,7 +101,7 @@ export function OnboardingPage() {
     error: statusError,
     refetch,
   } = useGetOnboardingStatusQuery(undefined, {
-    skip: !isAuthenticated || !hasClinic,
+    skip: !isAuthenticated || !hasClinic || !isClinicAdmin,
   });
 
   const [saveStep, { isLoading: isSaving }] = useSaveOnboardingStepMutation();
@@ -115,7 +125,7 @@ export function OnboardingPage() {
 
     const patchClinic = (clinic: any) =>
       clinic
-        ? { ...clinic, isOnboarded: true, onboardingStep: 5 }
+        ? { ...clinic, isOnboarded: true, onboardingStep: 6 }
         : clinic;
 
     dispatch(
@@ -149,6 +159,13 @@ export function OnboardingPage() {
     { day: 'thursday', startTime: '09:00', endTime: '17:00', breakStartTime: '', breakEndTime: '' },
     { day: 'friday', startTime: '09:00', endTime: '17:00', breakStartTime: '', breakEndTime: '' },
   ]);
+  const [sessionForm, setSessionForm] = useState({
+    name: 'Initial Consultation',
+    duration: '60',
+    price: '150.00',
+    description: '',
+  });
+  const [sessionErrors, setSessionErrors] = useState<Record<string, string>>({});
 
   const timezoneOptions = useMemo(
     () =>
@@ -170,7 +187,7 @@ export function OnboardingPage() {
     const oauthType = searchParams.get('type');
     const stepParam = Number(searchParams.get('step'));
 
-    if (stepParam >= 1 && stepParam <= 4) {
+    if (stepParam >= 1 && stepParam <= 5) {
       setStep(stepParam as StepId);
     }
 
@@ -210,7 +227,7 @@ export function OnboardingPage() {
     }
 
     if (!searchParams.get('step')) {
-      const preferred = Math.min(Math.max(status.onboardingStep || 1, 1), 4) as StepId;
+      const preferred = Math.min(Math.max(status.onboardingStep || 1, 1), 5) as StepId;
       setStep(preferred);
     }
     setHydrated(true);
@@ -220,7 +237,7 @@ export function OnboardingPage() {
     return <Navigate to="/login" replace />;
   }
 
-  if (!hasClinic) {
+  if (!hasClinic || !isClinicAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -268,6 +285,27 @@ export function OnboardingPage() {
     }
     if (!clinicForm.timezone) nextErrors.timezone = 'Timezone is required.';
     setClinicErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const validateSession = () => {
+    const nextErrors: Record<string, string> = {};
+    const hasExistingSession = (status?.sessionCount || 0) > 0;
+    const name = sessionForm.name.trim();
+    const duration = Number(sessionForm.duration);
+    const price = Number(sessionForm.price);
+
+    if (!hasExistingSession || name) {
+      if (!name) nextErrors.name = 'Session name is required.';
+      if (!Number.isFinite(duration) || duration <= 0) {
+        nextErrors.duration = 'Enter a valid duration in minutes.';
+      }
+      if (!Number.isFinite(price) || price < 0) {
+        nextErrors.price = 'Enter a valid price.';
+      }
+    }
+
+    setSessionErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
 
@@ -334,6 +372,32 @@ export function OnboardingPage() {
         goNextLocal(3);
         return;
       }
+
+      if (step === 3) {
+        if (!validateSession()) return;
+        const hasExistingSession = (status?.sessionCount || 0) > 0;
+        const name = sessionForm.name.trim();
+        const duration = Number(sessionForm.duration);
+        const price = Number(sessionForm.price);
+
+        await saveStep({
+          step: 3,
+          data:
+            !hasExistingSession || name
+              ? {
+                  name,
+                  duration,
+                  price,
+                  description: sessionForm.description.trim() || null,
+                  reminders: toReminderCodes(['Email']),
+                  enableEmailReminders: true,
+                  enableSmsReminders: false,
+                }
+              : {},
+        }).unwrap();
+        goNextLocal(4);
+        return;
+      }
     } catch (err) {
       setError(getFriendlyErrorMessage(err, 'Unable to save this step. Please try again.'));
     }
@@ -343,8 +407,8 @@ export function OnboardingPage() {
     if (!status?.canEdit) return;
     setError('');
     try {
-      await saveStep({ step: 3, data: { skip: true } }).unwrap();
-      goNextLocal(4);
+      await saveStep({ step: 4, data: { skip: true } }).unwrap();
+      goNextLocal(5);
     } catch (err) {
       setError(getFriendlyErrorMessage(err, 'Unable to skip this step.'));
     }
@@ -354,7 +418,7 @@ export function OnboardingPage() {
     if (!status?.canEdit) return;
     setError('');
     try {
-      await saveStep({ step: 4, data: { skip: skipStripe } }).unwrap();
+      await saveStep({ step: 5, data: { skip: skipStripe } }).unwrap();
       await completeOnboarding().unwrap();
       await markLocalOnboarded();
       navigate('/dashboard', { replace: true });
@@ -486,6 +550,54 @@ export function OnboardingPage() {
             )}
 
             {step === 3 && (
+              <div className="space-y-4">
+                {(status?.sessionCount || 0) > 0 && (
+                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                    You already have {status?.sessionCount} session type
+                    {(status?.sessionCount || 0) === 1 ? '' : 's'}. You can continue, or create another below.
+                  </div>
+                )}
+                <Input
+                  label="Session name"
+                  placeholder="e.g. Initial Consultation"
+                  value={sessionForm.name}
+                  onChange={(e) => setSessionForm({ ...sessionForm, name: e.target.value })}
+                  error={sessionErrors.name}
+                  disabled={!status?.canEdit || isBusy}
+                  required={(status?.sessionCount || 0) === 0}
+                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Input
+                    label="Duration (minutes)"
+                    type="number"
+                    value={sessionForm.duration}
+                    onChange={(e) => setSessionForm({ ...sessionForm, duration: e.target.value })}
+                    error={sessionErrors.duration}
+                    disabled={!status?.canEdit || isBusy}
+                    required={(status?.sessionCount || 0) === 0}
+                  />
+                  <Input
+                    label="Price"
+                    type="number"
+                    value={sessionForm.price}
+                    onChange={(e) => setSessionForm({ ...sessionForm, price: e.target.value })}
+                    error={sessionErrors.price}
+                    disabled={!status?.canEdit || isBusy}
+                    required={(status?.sessionCount || 0) === 0}
+                  />
+                </div>
+                <Textarea
+                  label="Description"
+                  placeholder="What does this session include?"
+                  value={sessionForm.description}
+                  onChange={(e) => setSessionForm({ ...sessionForm, description: e.target.value })}
+                  disabled={!status?.canEdit || isBusy}
+                  rows={4}
+                />
+              </div>
+            )}
+
+            {step === 4 && (
               <div className="space-y-3">
                 <button
                   type="button"
@@ -526,7 +638,7 @@ export function OnboardingPage() {
               </div>
             )}
 
-            {step === 4 && (
+            {step === 5 && (
               <div className="space-y-3">
                 <button
                   type="button"
@@ -565,12 +677,12 @@ export function OnboardingPage() {
                   </Button>
                 )}
 
-                {step === 3 ? (
+                {step === 4 ? (
                   <Button type="button" className="flex-1" disabled={isBusy} onClick={handleSkipIntegrations}>
                     {isZoomConnected || isMeetConnected ? 'Continue' : 'Skip for now'}
                     <ArrowRight className="ml-2 w-4 h-4" />
                   </Button>
-                ) : step === 4 ? (
+                ) : step === 5 ? (
                   <>
                     <Button
                       type="button"
