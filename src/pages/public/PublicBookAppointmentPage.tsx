@@ -25,6 +25,7 @@ import {
 import {
   brandBg,
   brandGradient,
+  brandStrong,
   brandText,
   hexToHslToken,
   hexToRgb,
@@ -273,7 +274,8 @@ export function PublicBookAppointmentPage() {
     return `${apiOrigin}${value}`;
   };
 
-  const color = clinic?.color || branding.color || "#0066FF";
+  const color = clinic?.color || branding.color || "#779362";
+  const accent = brandStrong(color);
   const textColor = brandText(color);
   const onBrand = readableTextOn(color);
   const brandStyle = { "--primary": hexToHslToken(color) } as CSSProperties;
@@ -320,11 +322,11 @@ export function PublicBookAppointmentPage() {
     return {
       id: member.id,
       clinicianToken: member?.clinicianToken || "",
-      name: `Dr. ${fullName}`.trim(),
+      name: fullName,
       specialty:
         specialization.length > 0
           ? specialization.join(", ")
-          : "General Psychology",
+          : "",
       timezone: (member?.user as any)?.timezone || "Europe/London",
       availability: Array.from(availabilityMap.values()).map((item: any) => ({
         day: toTitleCase(item.day),
@@ -705,20 +707,18 @@ export function PublicBookAppointmentPage() {
             ) : (
               <div
                 className="h-9 w-9 rounded-xl flex items-center justify-center font-serif font-bold shrink-0"
-                style={{ backgroundColor: color, color: onBrand }}
+                style={{ backgroundColor: accent, color: onBrand }}
               >
                 {clinicName[0]}
               </div>
             )}
             <button
               type="button"
-              onClick={() =>
-                navigate(`/clinic-portal/${linkId}/clinician/${id}`)
-              }
+              onClick={() => navigate(`/clinic-portal/${linkId}`)}
               className="flex items-center gap-2 text-sm font-medium text-charcoal hover:opacity-70 transition-opacity truncate"
             >
               <ArrowLeft className="h-4 w-4 shrink-0" />
-              <span className="truncate">{clinician.name}</span>
+              <span className="truncate">Back to {clinicName}</span>
             </button>
           </div>
           <span className="text-xs font-bold uppercase tracking-widest text-warm-gray hidden sm:block">
@@ -729,12 +729,14 @@ export function PublicBookAppointmentPage() {
 
       <main className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 py-10 pb-28">
         <div className="mb-8">
-          <p
-            className="text-xs font-bold uppercase tracking-widest mb-2"
-            style={{ color: textColor }}
-          >
-            {clinician.specialty}
-          </p>
+          {clinician.specialty ? (
+            <p
+              className="text-xs font-bold uppercase tracking-widest mb-2"
+              style={{ color: textColor }}
+            >
+              {clinician.specialty}
+            </p>
+          ) : null}
           <h1 className="font-serif text-3xl md:text-4xl text-charcoal mb-2">
             Book with {clinician.name}
           </h1>
@@ -754,7 +756,7 @@ export function PublicBookAppointmentPage() {
                       step > s.n
                         ? { backgroundColor: "#22c55e", color: "#fff" }
                         : step === s.n
-                          ? { backgroundColor: color, color: onBrand }
+                          ? { backgroundColor: accent, color: onBrand }
                           : {
                               backgroundColor: brandBg(color, 0.1),
                               color: "#8A8279",
@@ -978,7 +980,7 @@ export function PublicBookAppointmentPage() {
                             style={
                               isSelected
                                 ? {
-                                    backgroundColor: color,
+                                    backgroundColor: accent,
                                     color: onBrand,
                                     borderColor: color,
                                   }
@@ -1085,7 +1087,7 @@ export function PublicBookAppointmentPage() {
                           className="h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0"
                           style={
                             isSel
-                              ? { borderColor: color, backgroundColor: color }
+                              ? { borderColor: accent, backgroundColor: accent }
                               : { borderColor: "#cbd5e1" }
                           }
                         >
@@ -1298,7 +1300,7 @@ export function PublicBookAppointmentPage() {
                 type="button"
                 onClick={() => navigate(`/clinic-portal/${linkId}`)}
                 className="flex-1 py-3 font-bold rounded-full text-sm"
-                style={{ backgroundColor: color, color: onBrand }}
+                style={{ backgroundColor: accent, color: onBrand }}
               >
                 Done
               </button>
@@ -1319,7 +1321,7 @@ export function PublicBookAppointmentPage() {
                 onClick={step === 3 ? handleConfirm : handleNext}
                 disabled={isSubmitting}
                 className="flex-1 py-3 font-bold rounded-full transition-all flex items-center justify-center gap-2 disabled:opacity-70 text-sm"
-                style={{ backgroundColor: color, color: onBrand }}
+                style={{ backgroundColor: accent, color: onBrand }}
               >
                 {isSubmitting ? (
                   <>

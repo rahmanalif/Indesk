@@ -1,15 +1,26 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { MapPin, Phone, Mail, ArrowRight } from "lucide-react";
+import {
+  ArrowRight,
+  Clock,
+  Mail,
+  MapPin,
+  Phone,
+  Video,
+} from "lucide-react";
 import { useData } from "../../context/DataContext";
 import { useGetPublicClinicQuery } from "../../redux/api/clientsApi";
 import {
   brandBg,
+  brandStrong,
   brandText,
   readableTextOn,
   hexToHslToken,
 } from "../../lib/branding";
-import { useInView } from "../../hooks/landing/useInView";
+import { useClinicPageMotion } from "../../hooks/useClinicPageMotion";
+
+const DEFAULT_CLINIC_COLOR = "#779362";
+const SHOWCASE_AVATAR = "/clinic/showcase-avatar.png";
 
 const normalizeAddress = (address: any) => {
   if (!address) return {};
@@ -27,6 +38,8 @@ const normalizeAddress = (address: any) => {
 const toTitleCase = (value: string) =>
   value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
 
+const dayShort = (day: string) => toTitleCase(day).slice(0, 3);
+
 function roleToLabel(role?: string) {
   const normalized = (role || "").toLowerCase();
   if (normalized === "superadmin") return "Lead Clinician";
@@ -35,13 +48,26 @@ function roleToLabel(role?: string) {
   return "Clinician";
 }
 
+function formatPrice(price: unknown, currency = "GBP") {
+  const value = Number(price);
+  if (!Number.isFinite(value)) return null;
+  try {
+    return new Intl.NumberFormat("en-GB", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0,
+    }).format(value);
+  } catch {
+    return `£${value}`;
+  }
+}
+
 export function PublicClinicPage() {
   const { linkId } = useParams();
   const navigate = useNavigate();
   const { branding } = useData();
   const [isScrolled, setIsScrolled] = useState(false);
-  const { ref: heroRef, isInView: heroInView } = useInView();
-  const { ref: teamRef, isInView: teamInView } = useInView();
+  const pageRef = useRef<HTMLDivElement>(null);
 
   const {
     data: clinicResponse,
@@ -51,10 +77,12 @@ export function PublicClinicPage() {
     skip: !linkId,
     refetchOnMountOrArgChange: false,
   });
-  const clinic = clinicResponse?.response?.data;
+  const clinic = clinicResponse?.response?.data as any;
+
+  useClinicPageMotion(pageRef, Boolean(clinic) && !isLoading && !isError);
 
   useEffect(() => {
-    const onScroll = () => setIsScrolled(window.scrollY > 20);
+    const onScroll = () => setIsScrolled(window.scrollY > 16);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
@@ -75,16 +103,19 @@ export function PublicClinicPage() {
     return `${apiOrigin}${value}`;
   };
 
-  const color = clinic?.color || branding.color || "#0066FF";
+  const color =
+    clinic?.color || branding.color || DEFAULT_CLINIC_COLOR;
+  const accent = brandStrong(color);
   const textColor = brandText(color);
   const onBrand = readableTextOn(color);
   const slogan = (clinic?.description || "").trim();
   const brandStyle = { "--primary": hexToHslToken(color) } as CSSProperties;
   const clinicName = clinic?.name || "Clinic";
   const clinicLogo = resolveImageUrl(clinic?.logo) || branding.logo;
+  const currency = clinic?.currency || "GBP";
   const clinicPhone =
     `${clinic?.countryCode || ""}${clinic?.phoneNumber || ""}`.trim() || "";
-  const clinicEmail = clinic?.email || "";
+  const clinicEmail = (clinic?.email || "").trim();
   const clinicAddressObject = normalizeAddress(clinic?.address);
   const clinicAddress =
     [
@@ -97,6 +128,16 @@ export function PublicClinicPage() {
       .map((part: string) => (part || "").trim())
       .filter(Boolean)
       .join(", ");
+
+  const sessions = useMemo(() => {
+    const rows = Array.isArray(clinic?.sessions) ? clinic.sessions : [];
+    return rows.map((session: any) => ({
+      id: session.id,
+      name: session.name || "Session",
+      duration: Number(session.duration) || null,
+      priceLabel: formatPrice(session.price, currency),
+    }));
+  }, [clinic?.sessions, currency]);
 
   const clinicians = useMemo(() => {
     const members = clinic?.members || [];
@@ -115,32 +156,39 @@ export function PublicClinicPage() {
         const rawSchedule = Array.isArray(member?.availabilitySchedule)
           ? member.availabilitySchedule
           : [];
-        const daysSet = new Set<string>();
-        rawSchedule.forEach((item: any) => {
-          if (item?.day && typeof item.day === "string") {
-            daysSet.add(item.day.toLowerCase());
-          }
-        });
-        const availabilityDays = Array.from(daysSet);
+        const days = rawSchedule
+          .map((item: any) =>
+            typeof item?.day === "string" ? item.day.toLowerCase() : ""
+          )
+          .filter(Boolean);
+        const uniqueDays = Array.from(new Set(days)) as string[];
         const specialization = Array.isArray(member?.specialization)
-          ? member.specialization
+          ? member.specialization.filter(Boolean)
           : [];
+        const hours =
+          rawSchedule[0]?.startTime && rawSchedule[0]?.endTime
+            ? `${rawSchedule[0].startTime} – ${rawSchedule[0].endTime}`
+            : null;
 
         return {
           id: member.id,
-          name: `Dr. ${fullName}`.trim(),
+          name: fullName,
           role: roleToLabel(member?.role),
-          specialty:
-            specialization.length > 0
-              ? specialization.join(", ")
-              : "General Psychology",
-          bio:
-            member?.user?.bio ||
-            "Experienced clinician focused on compassionate, evidence-based care.",
-          availabilityDays: availabilityDays.map(toTitleCase),
+          specialty: specialization.join(", "),
+          bio: (member?.user?.bio || "").trim(),
+          avatar: resolveImageUrl(member?.user?.avatar),
+          availabilityDays: uniqueDays.map(toTitleCase),
+          hours,
         };
       });
-  }, [clinic?.members]);
+  }, [clinic?.members, apiOrigin]);
+
+  const featured = clinicians[0];
+  const meetingModes = [
+    clinic?.isZoomAvailable ? "Zoom" : null,
+    clinic?.isMeetAvailable ? "Google Meet" : null,
+    "In person",
+  ].filter(Boolean) as string[];
 
   if (isLoading) {
     return (
@@ -158,208 +206,312 @@ export function PublicClinicPage() {
     );
   }
 
-  const canCall = Boolean(clinicPhone);
-  const canEmail = Boolean(clinicEmail);
-  const canVisit = Boolean(clinicAddress);
+  const goClinician = (id: string) =>
+    navigate(`/clinic-portal/${linkId}/clinician/${id}/book`);
 
   return (
     <div
-      className="min-h-screen w-full bg-cream text-charcoal font-sans selection:bg-black/10"
+      ref={pageRef}
+      className="min-h-screen w-full bg-cream text-charcoal font-sans selection:bg-terracotta/20"
       style={brandStyle}
     >
       <div
-        className="pointer-events-none fixed inset-0 opacity-[0.035]"
+        className="pointer-events-none fixed inset-0 opacity-[0.03]"
         style={{
           backgroundImage: "radial-gradient(#2D2A26 1px, transparent 1px)",
           backgroundSize: "24px 24px",
         }}
       />
-      <div
-        className="pointer-events-none absolute top-0 right-0 w-2/3 h-[70vh] rounded-bl-[100px] -z-0"
-        style={{
-          background: `linear-gradient(to bottom left, ${brandBg(color, 0.35)}, transparent)`,
-        }}
-      />
-      <div
-        className="pointer-events-none absolute top-24 right-16 w-64 h-64 rounded-full blur-3xl -z-0 opacity-40"
-        style={{ backgroundColor: brandBg(color, 0.45) }}
-      />
 
       <nav
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
           isScrolled
             ? "bg-cream/90 backdrop-blur-md shadow-sm py-3"
             : "bg-transparent py-5"
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             {clinicLogo ? (
               <img
                 src={clinicLogo}
-                alt={clinicName}
-                className="h-10 w-10 rounded-xl object-cover"
+                alt=""
+                className="h-10 w-auto max-w-[140px] object-contain"
               />
             ) : (
-              <div
-                className="h-10 w-10 rounded-xl flex items-center justify-center font-serif font-bold text-lg"
-                style={{ backgroundColor: color, color: onBrand }}
-              >
-                {clinicName[0]}
-              </div>
+              <span className="font-serif text-2xl font-bold tracking-tight text-charcoal truncate">
+                {clinicName}
+              </span>
             )}
-            <span className="font-serif font-bold text-charcoal text-lg tracking-tight truncate">
-              {clinicName}
-            </span>
+            {clinicLogo && (
+              <span className="font-serif text-xl font-bold text-charcoal truncate hidden sm:block">
+                {clinicName}
+              </span>
+            )}
           </div>
           <a
-            href="#clinicians"
-            className="hidden sm:inline-flex text-sm font-medium text-white px-5 py-2.5 rounded-full transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5"
-            style={{ backgroundColor: color }}
+            href="#book"
+            className="shrink-0 text-sm font-medium px-5 py-2.5 rounded-full transition-all hover:-translate-y-0.5 shadow-sm"
+            style={{ backgroundColor: accent, color: onBrand }}
           >
-            Book an appointment
+            Book now
           </a>
         </div>
       </nav>
 
       <main className="relative z-10">
-        <section className="relative min-h-[100svh] flex items-center pt-28 pb-20 overflow-hidden">
+        {/* Hero — one composition */}
+        <section className="relative min-h-[88svh] flex items-center pt-28 pb-16 overflow-hidden">
           <div
-            ref={heroRef}
-            className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full transition-all duration-1000 ${
-              heroInView
-                ? "opacity-100 translate-y-0"
-                : "opacity-0 translate-y-8"
-            }`}
-          >
-            <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 mb-6">
+            className="absolute top-0 right-0 w-[58%] h-full hidden lg:block"
+            style={{
+              background: `linear-gradient(160deg, ${brandBg(color, 0.22)} 0%, transparent 70%)`,
+            }}
+          />
+          <div
+            className="absolute -top-24 -right-16 w-[420px] h-[420px] rounded-full blur-3xl opacity-50 hidden lg:block"
+            style={{ backgroundColor: brandBg(color, 0.55) }}
+          />
+
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 w-full grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-10 items-center">
+            <div className="lg:col-span-7">
+              <div className="inline-flex items-center gap-3 mb-7" data-animate="hero">
                 <span
-                  className="h-px w-8"
-                  style={{ backgroundColor: color }}
+                  className="h-px w-10"
+                  style={{ backgroundColor: accent }}
                 />
                 <span
-                  className="font-bold tracking-widest text-xs uppercase"
+                  className="text-xs font-bold tracking-[0.18em] uppercase"
                   style={{ color: textColor }}
                 >
-                  Care that fits your life
+                  Online booking
                 </span>
               </div>
 
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-serif font-medium text-charcoal leading-[1.08] text-balance mb-6">
+              <h1
+                className="font-serif text-5xl sm:text-6xl lg:text-[4.5rem] font-medium text-charcoal leading-[1.05] tracking-tight mb-6"
+                data-animate="hero"
+              >
                 {clinicName}
               </h1>
 
-              {slogan ? (
-                <p className="text-lg text-warm-gray max-w-xl leading-relaxed mb-10">
-                  {slogan}
-                </p>
-              ) : (
-                <p className="text-lg text-warm-gray max-w-xl leading-relaxed mb-10">
-                  Thoughtful clinical care from clinicians who know your clinic
-                  — book a session when it suits you.
-                </p>
-              )}
-
-              <a
-                href="#clinicians"
-                className="inline-flex items-center gap-2 text-white text-base font-medium px-8 py-4 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1"
-                style={{ backgroundColor: color }}
+              <p
+                className="text-lg sm:text-xl text-warm-gray max-w-xl leading-relaxed mb-9"
+                data-animate="hero"
               >
-                Book an appointment
-                <ArrowRight className="h-4 w-4" />
-              </a>
+                {slogan ||
+                  "Book a session with our team — choose a clinician and a time that works for you."}
+              </p>
+
+              <div
+                className="flex flex-col sm:flex-row sm:items-center gap-4"
+                data-animate="hero"
+              >
+                <a
+                  href="#book"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full text-base font-medium shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
+                  style={{ backgroundColor: accent, color: onBrand }}
+                >
+                  Book an appointment
+                  <ArrowRight className="h-4 w-4" />
+                </a>
+                {(clinicPhone || clinicEmail) && (
+                  <a
+                    href="#contact"
+                    className="inline-flex items-center justify-center px-6 py-4 rounded-full text-base font-medium border border-warm-gray/25 text-charcoal hover:bg-white/70 transition-colors"
+                  >
+                    Contact us
+                  </a>
+                )}
+              </div>
+
+              {meetingModes.length > 0 && (
+                <div
+                  className="mt-10 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-warm-gray"
+                  data-animate="hero"
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <Video className="h-4 w-4" style={{ color: textColor }} />
+                    {meetingModes.join(" · ")}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="lg:col-span-5" data-animate="hero-visual">
+              <div
+                className="relative rounded-[2rem] overflow-hidden aspect-[4/5] max-w-md mx-auto lg:ml-auto shadow-xl border border-white/40 bg-warm-white"
+              >
+                <img
+                  src={SHOWCASE_AVATAR}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover object-center"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-charcoal/55 via-transparent to-transparent" />
+
+                {featured && (
+                  <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
+                    <p className="text-white font-serif text-xl">
+                      {featured.name}
+                    </p>
+                    <p className="text-white/80 text-sm mt-1">
+                      {featured.role}
+                      {featured.hours ? ` · ${featured.hours}` : ""}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </section>
 
+        {/* Book / clinicians */}
         <section
-          id="clinicians"
-          className="py-24 scroll-mt-24 border-t border-warm-gray/10"
+          id="book"
+          className="py-20 sm:py-24 scroll-mt-24 bg-white border-y border-warm-gray/10"
+          data-animate="section"
         >
-          <div
-            ref={teamRef}
-            className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 transition-all duration-1000 ${
-              teamInView
-                ? "opacity-100 translate-y-0"
-                : "opacity-0 translate-y-8"
-            }`}
-          >
-            <div className="max-w-2xl mb-14">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6">
+            <div className="max-w-2xl mb-12" data-animate="item">
               <span
-                className="font-bold tracking-widest text-xs uppercase block mb-4"
+                className="text-xs font-bold tracking-[0.18em] uppercase block mb-3"
                 style={{ color: textColor }}
               >
-                Our team
+                {clinicians.length === 1 ? "Your clinician" : "Our team"}
               </span>
-              <h2 className="text-3xl md:text-4xl font-serif text-charcoal mb-4">
+              <h2 className="font-serif text-3xl sm:text-4xl text-charcoal mb-3">
                 {clinicians.length === 1
-                  ? "Meet your clinician"
-                  : "Choose a clinician"}
+                  ? `Book with ${featured?.name?.split(" ")[0] || "us"}`
+                  : "Choose who you’d like to see"}
               </h2>
-              <p className="text-lg text-warm-gray">
-                Select someone to see availability and book a session.
+              <p className="text-warm-gray text-lg">
+                Pick a clinician to book a session.
               </p>
             </div>
 
             {clinicians.length === 0 ? (
-              <p className="text-warm-gray">
-                No clinicians are available for booking yet.
+              <p className="text-warm-gray" data-animate="item">
+                Booking isn’t open yet. Please check back soon.
               </p>
+            ) : clinicians.length === 1 && featured ? (
+              <div
+                className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start"
+                data-animate="item"
+              >
+                <div className="lg:col-span-5">
+                  <div className="rounded-3xl overflow-hidden bg-warm-white border border-warm-gray/10 aspect-square max-w-sm">
+                    <img
+                      src={SHOWCASE_AVATAR}
+                      alt=""
+                      className="w-full h-full object-cover object-center"
+                    />
+                  </div>
+                </div>
+                <div className="lg:col-span-7 pt-1">
+                  <h3 className="font-serif text-3xl text-charcoal mb-2">
+                    {featured.name}
+                  </h3>
+                  <p className="text-sm font-medium mb-5" style={{ color: textColor }}>
+                    {featured.role}
+                    {featured.specialty ? ` · ${featured.specialty}` : ""}
+                  </p>
+                  {featured.bio ? (
+                    <p className="text-warm-gray leading-relaxed mb-6 max-w-xl">
+                      {featured.bio}
+                    </p>
+                  ) : null}
+
+                  {featured.availabilityDays.length > 0 && (
+                    <div className="mb-8">
+                      <p className="text-xs font-bold uppercase tracking-widest text-warm-gray mb-3">
+                        Available days
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {featured.availabilityDays.map((day: string) => (
+                          <span
+                            key={day}
+                            className="px-3 py-1.5 rounded-full text-xs font-semibold bg-cream border border-warm-gray/15 text-charcoal"
+                          >
+                            {dayShort(day)}
+                          </span>
+                        ))}
+                      </div>
+                      {featured.hours && (
+                        <p className="text-sm text-warm-gray mt-3 inline-flex items-center gap-1.5">
+                          <Clock className="h-3.5 w-3.5" />
+                          Typically {featured.hours}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => goClinician(featured.id)}
+                    className="inline-flex items-center gap-2 px-8 py-4 rounded-full text-base font-medium shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all"
+                    style={{ backgroundColor: accent, color: onBrand }}
+                  >
+                    Book an appointment
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
             ) : (
-              <div className="space-y-0 divide-y divide-warm-gray/15">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {clinicians.map((clinician: any) => (
                   <button
                     key={clinician.id}
                     type="button"
-                    onClick={() =>
-                      navigate(
-                        `/clinic-portal/${linkId}/clinician/${clinician.id}`
-                      )
-                    }
-                    className="group w-full text-left py-8 flex flex-col sm:flex-row sm:items-center gap-6 hover:bg-warm-white/60 -mx-2 px-2 sm:-mx-4 sm:px-4 rounded-2xl transition-colors"
+                    data-animate="item"
+                    onClick={() => goClinician(clinician.id)}
+                    className="group text-left rounded-3xl border border-warm-gray/10 bg-cream/60 hover:bg-cream p-6 transition-all hover:shadow-md"
                   >
-                    <div
-                      className="h-16 w-16 rounded-2xl flex items-center justify-center font-serif font-bold text-xl shrink-0 transition-transform duration-300 group-hover:scale-105"
-                      style={{
-                        backgroundColor: brandBg(color, 0.12),
-                        color: textColor,
-                      }}
-                    >
-                      {clinician.name
-                        .split(" ")
-                        .map((n: string) => n[0])
-                        .join("")
-                        .slice(0, 2)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-serif text-2xl text-charcoal mb-1">
-                        {clinician.name}
-                      </h3>
-                      <p className="text-sm font-medium text-warm-gray mb-2">
-                        {clinician.role}
-                        {clinician.specialty
-                          ? ` · ${clinician.specialty}`
-                          : ""}
-                      </p>
-                      <p className="text-warm-gray text-sm leading-relaxed line-clamp-2 max-w-2xl">
-                        {clinician.bio}
-                      </p>
-                      {clinician.availabilityDays.length > 0 && (
-                        <p className="mt-3 text-xs text-warm-gray">
-                          Available{" "}
-                          {clinician.availabilityDays.slice(0, 4).join(", ")}
-                          {clinician.availabilityDays.length > 4 ? "…" : ""}
-                        </p>
+                    <div className="flex items-start gap-4">
+                      {clinician.avatar ? (
+                        <img
+                          src={clinician.avatar}
+                          alt=""
+                          className="h-16 w-16 rounded-2xl object-cover shrink-0"
+                        />
+                      ) : (
+                        <div
+                          className="h-16 w-16 rounded-2xl flex items-center justify-center font-serif text-xl shrink-0"
+                          style={{
+                            backgroundColor: brandBg(color, 0.15),
+                            color: textColor,
+                          }}
+                        >
+                          {clinician.name
+                            .split(" ")
+                            .map((n: string) => n[0])
+                            .join("")
+                            .slice(0, 2)}
+                        </div>
                       )}
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-serif text-2xl text-charcoal mb-1">
+                          {clinician.name}
+                        </h3>
+                        <p className="text-sm text-warm-gray mb-3">
+                          {clinician.role}
+                          {clinician.specialty
+                            ? ` · ${clinician.specialty}`
+                            : ""}
+                        </p>
+                        {clinician.bio ? (
+                          <p className="text-sm text-warm-gray line-clamp-2 mb-4">
+                            {clinician.bio}
+                          </p>
+                        ) : null}
+                        <span
+                          className="inline-flex items-center gap-2 text-sm font-medium group-hover:gap-3 transition-all"
+                          style={{ color: textColor }}
+                        >
+                          Book
+                          <ArrowRight className="h-4 w-4" />
+                        </span>
+                      </div>
                     </div>
-                    <span
-                      className="inline-flex items-center gap-2 text-sm font-medium shrink-0 group-hover:gap-3 transition-all"
-                      style={{ color: textColor }}
-                    >
-                      View & book
-                      <ArrowRight className="h-4 w-4" />
-                    </span>
                   </button>
                 ))}
               </div>
@@ -367,75 +519,135 @@ export function PublicClinicPage() {
           </div>
         </section>
 
-        <section className="py-20 border-t border-warm-gray/10 bg-warm-white/50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-2xl mb-10">
-              <span
-                className="font-bold tracking-widest text-xs uppercase block mb-4"
-                style={{ color: textColor }}
+        {/* Sessions */}
+        {sessions.length > 0 && (
+          <section className="py-20 sm:py-24" data-animate="section">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6">
+              <div className="max-w-2xl mb-12" data-animate="item">
+                <span
+                  className="text-xs font-bold tracking-[0.18em] uppercase block mb-3"
+                  style={{ color: textColor }}
+                >
+                  Sessions
+                </span>
+                <h2 className="font-serif text-3xl sm:text-4xl text-charcoal mb-3">
+                  What you can book
+                </h2>
+                <p className="text-warm-gray text-lg">
+                  Session types offered at {clinicName}.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {sessions.map((session: any) => (
+                  <div
+                    key={session.id}
+                    data-animate="item"
+                    className="rounded-2xl border border-warm-gray/10 bg-white px-6 py-5 flex items-center justify-between gap-4"
+                  >
+                    <div>
+                      <p className="font-serif text-xl text-charcoal">
+                        {session.name}
+                      </p>
+                      {session.duration && (
+                        <p className="text-sm text-warm-gray mt-1 inline-flex items-center gap-1.5">
+                          <Clock className="h-3.5 w-3.5" />
+                          {session.duration} min
+                        </p>
+                      )}
+                    </div>
+                    {session.priceLabel && (
+                      <p
+                        className="text-lg font-semibold shrink-0"
+                        style={{ color: textColor }}
+                      >
+                        {session.priceLabel}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Contact — only real fields */}
+        {(clinicPhone || clinicEmail || clinicAddress) && (
+          <section
+            id="contact"
+            className="py-20 sm:py-24 bg-warm-white/70 border-t border-warm-gray/10 scroll-mt-24"
+            data-animate="section"
+          >
+            <div className="max-w-6xl mx-auto px-4 sm:px-6">
+              <div className="max-w-2xl mb-10" data-animate="item">
+                <span
+                  className="text-xs font-bold tracking-[0.18em] uppercase block mb-3"
+                  style={{ color: textColor }}
+                >
+                  Contact
+                </span>
+                <h2 className="font-serif text-3xl text-charcoal">
+                  Get in touch with {clinicName}
+                </h2>
+              </div>
+
+              <div
+                className="flex flex-col sm:flex-row flex-wrap gap-x-14 gap-y-8"
+                data-animate="item"
               >
-                Get in touch
-              </span>
-              <h2 className="text-3xl font-serif text-charcoal">
-                Contact {clinicName}
-              </h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-              <div>
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-warm-gray mb-3">
-                  <Phone className="h-3.5 w-3.5" /> Phone
-                </div>
-                {canCall ? (
-                  <a
-                    href={`tel:${clinicPhone}`}
-                    className="text-charcoal font-medium hover:opacity-70 transition-opacity"
-                  >
-                    {clinicPhone}
-                  </a>
-                ) : (
-                  <p className="text-warm-gray">Not available</p>
+                {clinicPhone && (
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-warm-gray mb-2 inline-flex items-center gap-1.5">
+                      <Phone className="h-3.5 w-3.5" /> Phone
+                    </p>
+                    <a
+                      href={`tel:${clinicPhone}`}
+                      className="text-lg text-charcoal font-medium hover:opacity-70 transition-opacity"
+                    >
+                      {clinicPhone}
+                    </a>
+                  </div>
                 )}
-              </div>
-              <div>
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-warm-gray mb-3">
-                  <Mail className="h-3.5 w-3.5" /> Email
-                </div>
-                {canEmail ? (
-                  <a
-                    href={`mailto:${clinicEmail}`}
-                    className="text-charcoal font-medium hover:opacity-70 transition-opacity break-all"
-                  >
-                    {clinicEmail}
-                  </a>
-                ) : (
-                  <p className="text-warm-gray">Not available</p>
+                {clinicEmail && (
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-warm-gray mb-2 inline-flex items-center gap-1.5">
+                      <Mail className="h-3.5 w-3.5" /> Email
+                    </p>
+                    <a
+                      href={`mailto:${clinicEmail}`}
+                      className="text-lg text-charcoal font-medium hover:opacity-70 transition-opacity break-all"
+                    >
+                      {clinicEmail}
+                    </a>
+                  </div>
                 )}
-              </div>
-              <div>
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-warm-gray mb-3">
-                  <MapPin className="h-3.5 w-3.5" /> Visit
-                </div>
-                {canVisit ? (
-                  <a
-                    href={`https://maps.google.com/?q=${encodeURIComponent(clinicAddress)}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-charcoal font-medium hover:opacity-70 transition-opacity"
-                  >
-                    {clinicAddress}
-                  </a>
-                ) : (
-                  <p className="text-warm-gray">Not available</p>
+                {clinicAddress && (
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-warm-gray mb-2 inline-flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5" /> Visit
+                    </p>
+                    <a
+                      href={`https://maps.google.com/?q=${encodeURIComponent(clinicAddress)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-lg text-charcoal font-medium hover:opacity-70 transition-opacity"
+                    >
+                      {clinicAddress}
+                    </a>
+                  </div>
                 )}
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
       </main>
 
-      <footer className="border-t border-warm-gray/10 py-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-warm-gray">
-          © {new Date().getFullYear()} {clinicName}. All rights reserved.
+      <footer className="border-t border-warm-gray/10 py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-warm-gray">
+          <p>
+            © {new Date().getFullYear()} {clinicName}
+          </p>
+          <p className="text-warm-gray/70">Powered by InDesk</p>
         </div>
       </footer>
     </div>
