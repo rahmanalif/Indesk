@@ -1607,6 +1607,7 @@ export const clientsApi = createApi({
     >({
       query: (clinicianToken) => `/appointment/session/${clinicianToken}`,
       providesTags: ["Clients"],
+      keepUnusedDataFor: 600,
     }),
 
     getAvailableSlots: builder.query<
@@ -1629,6 +1630,7 @@ export const clientsApi = createApi({
         params,
       }),
       providesTags: ["Clients"],
+      keepUnusedDataFor: 300,
     }),
 
 
@@ -1793,6 +1795,7 @@ export const clientsApi = createApi({
     getPublicClinic: builder.query<GetClinicResponse, string>({
       query: (publicToken) => `/clinic/public/${publicToken}`,
       providesTags: ["Clients"],
+      keepUnusedDataFor: 600,
     }),
 
     patchClinicPermissions: builder.mutation<

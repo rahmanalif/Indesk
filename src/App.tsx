@@ -35,6 +35,7 @@ import { AIAssistancePage } from './pages/AIAssistancePage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { PublicClinicPage } from './pages/public/PublicClinicPage';
 import { PublicClinicianPage } from './pages/public/PublicClinicianPage';
+import { PublicBookAppointmentPage } from './pages/public/PublicBookAppointmentPage';
 import { PublicLandingPage } from './pages/public/PublicLandingPage';
 import { PublicAssessmentPage } from './pages/public/PublicAssessmentPage';
 import { PublicClientIntakePage } from './pages/public/PublicClientIntakePage';
@@ -84,6 +85,7 @@ export function App() {
           <Route path="/assessment-portal/:token" element={<PublicAssessmentPage />} />
           <Route path="/clinic-portal/:linkId" element={<PublicClinicPage />} />
           <Route path="/clinic-portal/:linkId/clinician/:id" element={<PublicClinicianPage />} />
+          <Route path="/clinic-portal/:linkId/clinician/:id/book" element={<PublicBookAppointmentPage />} />
           <Route path="/landing" element={<Navigate to="/" replace />} />
 
           {/* Protected Admin Routes */}
