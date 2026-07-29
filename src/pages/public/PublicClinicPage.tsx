@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowRight,
-  Building2,
   Clock,
   Mail,
   MapPin,
@@ -786,161 +785,61 @@ export function PublicClinicPage() {
       <footer className="bg-warm-white border-t border-warm-gray/10">
         <div
           id="contact"
-          className="max-w-6xl mx-auto px-4 sm:px-6 pt-16 pb-12 scroll-mt-24"
+          className="max-w-6xl mx-auto px-4 sm:px-6 py-12 scroll-mt-24"
         >
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
-            <div className="lg:col-span-5">
-              <div className="flex items-center gap-3 mb-5">
-                {clinicLogo ? (
-                  <img
-                    src={clinicLogo}
-                    alt=""
-                    className="h-12 w-auto max-w-[140px] object-contain"
-                  />
-                ) : (
-                  <div
-                    className="h-12 w-12 rounded-2xl flex items-center justify-center"
-                    style={{
-                      backgroundColor: brandBg(color, 0.18),
-                      color: textColor,
-                    }}
-                  >
-                    <Building2 className="h-5 w-5" strokeWidth={1.75} />
-                  </div>
-                )}
-                <p className="font-serif text-2xl text-charcoal tracking-tight">
-                  {clinicName}
-                </p>
-              </div>
-              <p className="text-warm-gray text-base leading-relaxed max-w-md mb-7">
-                {slogan ||
-                  "Book a session with our team — choose a clinician and a time that works for you."}
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-10">
+            <div className="flex items-center gap-3 min-w-0">
+              {clinicLogo ? (
+                <img
+                  src={clinicLogo}
+                  alt=""
+                  className="h-10 w-auto max-w-[120px] object-contain shrink-0"
+                />
+              ) : null}
+              <p className="font-serif text-xl text-charcoal tracking-tight truncate">
+                {clinicName}
               </p>
-              {clinicians.length > 0 && (
-                <a
-                  href="#book"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-semibold transition-all hover:-translate-y-0.5 shadow-sm"
-                  style={{ backgroundColor: accent, color: onBrand }}
-                >
-                  Book an appointment
-                  <ArrowRight className="h-4 w-4" />
-                </a>
-              )}
             </div>
 
-            <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-8 sm:gap-10">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-warm-gray mb-4">
-                  Contact
-                </p>
-                <ul className="space-y-4">
-                  {clinicPhone ? (
-                    <li>
-                      <a
-                        href={`tel:${clinicPhone}`}
-                        className="flex items-start gap-3 text-charcoal hover:opacity-75 transition-opacity"
-                      >
-                        <span
-                          className="mt-0.5 h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
-                          style={{
-                            backgroundColor: brandBg(color, 0.12),
-                            color: textColor,
-                          }}
-                        >
-                          <Phone className="h-4 w-4" />
-                        </span>
-                        <span>
-                          <span className="block text-xs text-warm-gray mb-0.5">
-                            Phone
-                          </span>
-                          <span className="text-base font-medium">
-                            {clinicPhone}
-                          </span>
-                        </span>
-                      </a>
-                    </li>
-                  ) : null}
-                  {clinicEmail ? (
-                    <li>
-                      <a
-                        href={`mailto:${clinicEmail}`}
-                        className="flex items-start gap-3 text-charcoal hover:opacity-75 transition-opacity"
-                      >
-                        <span
-                          className="mt-0.5 h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
-                          style={{
-                            backgroundColor: brandBg(color, 0.12),
-                            color: textColor,
-                          }}
-                        >
-                          <Mail className="h-4 w-4" />
-                        </span>
-                        <span className="min-w-0">
-                          <span className="block text-xs text-warm-gray mb-0.5">
-                            Email
-                          </span>
-                          <span className="text-base font-medium break-all">
-                            {clinicEmail}
-                          </span>
-                        </span>
-                      </a>
-                    </li>
-                  ) : null}
-                  {!clinicPhone && !clinicEmail && (
-                    <li className="text-sm text-warm-gray">
-                      Contact details coming soon.
-                    </li>
-                  )}
-                </ul>
-              </div>
-
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-warm-gray mb-4">
-                  Visit
-                </p>
+            {(clinicPhone || clinicEmail || clinicAddress) && (
+              <div className="flex flex-col sm:flex-row sm:flex-wrap gap-x-10 gap-y-5 text-sm">
+                {clinicPhone ? (
+                  <a
+                    href={`tel:${clinicPhone}`}
+                    className="text-charcoal hover:opacity-70 transition-opacity"
+                  >
+                    <span className="block text-xs text-warm-gray mb-1">
+                      Phone
+                    </span>
+                    {clinicPhone}
+                  </a>
+                ) : null}
+                {clinicEmail ? (
+                  <a
+                    href={`mailto:${clinicEmail}`}
+                    className="text-charcoal hover:opacity-70 transition-opacity break-all"
+                  >
+                    <span className="block text-xs text-warm-gray mb-1">
+                      Email
+                    </span>
+                    {clinicEmail}
+                  </a>
+                ) : null}
                 {clinicAddress ? (
                   <a
                     href={`https://maps.google.com/?q=${encodeURIComponent(clinicAddress)}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-start gap-3 text-charcoal hover:opacity-75 transition-opacity"
+                    className="text-charcoal hover:opacity-70 transition-opacity max-w-xs"
                   >
-                    <span
-                      className="mt-0.5 h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
-                      style={{
-                        backgroundColor: brandBg(color, 0.12),
-                        color: textColor,
-                      }}
-                    >
-                      <MapPin className="h-4 w-4" />
+                    <span className="block text-xs text-warm-gray mb-1">
+                      Address
                     </span>
-                    <span>
-                      <span className="block text-xs text-warm-gray mb-0.5">
-                        Address
-                      </span>
-                      <span className="text-base font-medium leading-relaxed">
-                        {clinicAddress}
-                      </span>
-                    </span>
+                    {clinicAddress}
                   </a>
-                ) : (
-                  <p className="text-sm text-warm-gray">
-                    Address not listed yet.
-                  </p>
-                )}
-
-                {meetingModes.length > 0 && (
-                  <div className="mt-8">
-                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-warm-gray mb-3">
-                      Appointments
-                    </p>
-                    <p className="text-sm text-charcoal leading-relaxed">
-                      {meetingModes.join(" · ")}
-                    </p>
-                  </div>
-                )}
+                ) : null}
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -949,10 +848,7 @@ export function PublicClinicPage() {
             <p>
               © {new Date().getFullYear()} {clinicName}
             </p>
-            <p className="text-warm-gray/70">
-              Powered by{" "}
-              <span className="font-medium text-charcoal/70">InDesk</span>
-            </p>
+            <p className="text-warm-gray/70">Powered by InDesk</p>
           </div>
         </div>
       </footer>
