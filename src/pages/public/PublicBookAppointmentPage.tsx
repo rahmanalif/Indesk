@@ -1144,7 +1144,7 @@ export function PublicBookAppointmentPage() {
       ? `Open times on ${formatIsoLong(selectedDate)}.`
       : "Select a time that works for you.",
     details: "For verification, we’ll send a one-time code (OTP) to your email.",
-    verify: `Enter the 6-digit code we sent to ${formData.email || "your email"}.`,
+    verify: "Enter the 6-digit code from your email.",
     confirm: isPaidSession
       ? "Review the details, then continue to payment to confirm your appointment."
       : "Take a moment to review, then confirm.",
@@ -1255,10 +1255,34 @@ export function PublicBookAppointmentPage() {
           </div>
           {step !== "success" && (
             <p className="text-sm font-semibold text-warm-gray tabular-nums">
-              Step {currentStepIndex + 1} of {visibleSteps.length}
+              {STEP_LABELS[step as Exclude<BookingStep, "success">]}
             </p>
           )}
         </div>
+        {step !== "success" && (
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-3">
+            <div
+              className="h-1.5 w-full rounded-full overflow-hidden"
+              style={{ backgroundColor: brandBg(color, 0.12) }}
+              role="progressbar"
+              aria-valuemin={1}
+              aria-valuemax={visibleSteps.length}
+              aria-valuenow={currentStepIndex + 1}
+              aria-label={`Step ${currentStepIndex + 1} of ${visibleSteps.length}`}
+            >
+              <div
+                className="h-full rounded-full transition-all duration-500 ease-out"
+                style={{
+                  width: `${((currentStepIndex + 1) / visibleSteps.length) * 100}%`,
+                  backgroundColor: accent,
+                }}
+              />
+            </div>
+            <p className="mt-1.5 text-xs text-warm-gray tabular-nums">
+              Step {currentStepIndex + 1} of {visibleSteps.length}
+            </p>
+          </div>
+        )}
       </header>
 
       <main
@@ -1330,67 +1354,12 @@ export function PublicBookAppointmentPage() {
                 )}
               </div>
             )}
-
-            {step !== "success" && (
-              <div className="hidden lg:flex flex-col gap-1.5">
-                {visibleSteps.map((s, i) => {
-                  const done = currentStepIndex > i;
-                  const active = step === s;
-                  return (
-                    <div
-                      key={s}
-                      className="flex items-center gap-3 py-1"
-                    >
-                      <div
-                        className="h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
-                        style={
-                          done
-                            ? { backgroundColor: "#779362", color: "#fff" }
-                            : active
-                              ? { backgroundColor: accent, color: onBrand }
-                              : {
-                                  backgroundColor: brandBg(color, 0.1),
-                                  color: "#6b635c",
-                                }
-                        }
-                      >
-                        {done ? <Check className="h-4 w-4" strokeWidth={3} /> : i + 1}
-                      </div>
-                      <span
-                        className="text-sm font-semibold"
-                        style={{
-                          color: done
-                            ? "#5F7A4E"
-                            : active
-                              ? textColor
-                              : "#6b635c",
-                        }}
-                      >
-                        {STEP_LABELS[s]}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </aside>
 
           {/* Focused step content */}
           <div>
             {step !== "success" && (
               <div className="mb-6 lg:mb-8">
-                <div className="flex gap-1.5 mb-5 lg:hidden">
-                  {visibleSteps.map((s, i) => (
-                    <div
-                      key={s}
-                      className="h-1 flex-1 rounded-full transition-colors"
-                      style={{
-                        backgroundColor:
-                          currentStepIndex >= i ? accent : brandBg(color, 0.12),
-                      }}
-                    />
-                  ))}
-                </div>
                 <h2 className="font-serif text-3xl sm:text-[2rem] text-charcoal leading-snug">
                   {stepHeadline[step]}
                 </h2>
@@ -1878,13 +1847,7 @@ export function PublicBookAppointmentPage() {
               )}
 
               {step === "verify" && (
-                <div className="space-y-6 max-w-lg">
-                  <div className="rounded-2xl border border-warm-gray/15 bg-warm-white px-5 py-4">
-                    <p className="text-sm text-warm-gray">Code sent to</p>
-                    <p className="text-lg font-semibold text-charcoal break-all">
-                      {formData.email}
-                    </p>
-                  </div>
+                <div className="space-y-5 max-w-lg">
                   <div>
                     <label className="block text-sm font-semibold text-charcoal mb-3">
                       Verification code
