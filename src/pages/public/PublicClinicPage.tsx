@@ -343,7 +343,7 @@ export function PublicClinicPage() {
                 className="relative rounded-[2rem] overflow-hidden aspect-[4/5] max-w-md mx-auto lg:ml-auto shadow-xl border border-white/40 bg-warm-white"
               >
                 <img
-                  src={SHOWCASE_AVATAR}
+                  src={featured?.avatar || SHOWCASE_AVATAR}
                   alt=""
                   className="absolute inset-0 w-full h-full object-cover object-center"
                 />
@@ -401,7 +401,7 @@ export function PublicClinicPage() {
                 <div className="lg:col-span-5">
                   <div className="rounded-3xl overflow-hidden bg-warm-white border border-warm-gray/10 aspect-square max-w-sm">
                     <img
-                      src={SHOWCASE_AVATAR}
+                      src={featured.avatar || SHOWCASE_AVATAR}
                       alt=""
                       className="w-full h-full object-cover object-center"
                     />
@@ -521,51 +521,67 @@ export function PublicClinicPage() {
 
         {/* Sessions */}
         {sessions.length > 0 && (
-          <section className="py-20 sm:py-24" data-animate="section">
+          <section
+            className="py-20 sm:py-24 bg-warm-white/60 border-y border-warm-gray/10"
+            data-animate="section"
+          >
             <div className="max-w-6xl mx-auto px-4 sm:px-6">
-              <div className="max-w-2xl mb-12" data-animate="item">
-                <span
-                  className="text-xs font-bold tracking-[0.18em] uppercase block mb-3"
-                  style={{ color: textColor }}
-                >
-                  Sessions
-                </span>
-                <h2 className="font-serif text-3xl sm:text-4xl text-charcoal mb-3">
-                  What you can book
-                </h2>
-                <p className="text-warm-gray text-lg">
-                  Session types offered at {clinicName}.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {sessions.map((session: any) => (
-                  <div
-                    key={session.id}
-                    data-animate="item"
-                    className="rounded-2xl border border-warm-gray/10 bg-white px-6 py-5 flex items-center justify-between gap-4"
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-start">
+                <div className="lg:col-span-4 max-w-md" data-animate="item">
+                  <span
+                    className="text-xs font-bold tracking-[0.18em] uppercase block mb-3"
+                    style={{ color: textColor }}
                   >
-                    <div>
-                      <p className="font-serif text-xl text-charcoal">
-                        {session.name}
-                      </p>
-                      {session.duration && (
-                        <p className="text-sm text-warm-gray mt-1 inline-flex items-center gap-1.5">
-                          <Clock className="h-3.5 w-3.5" />
-                          {session.duration} min
-                        </p>
-                      )}
-                    </div>
-                    {session.priceLabel && (
-                      <p
-                        className="text-lg font-semibold shrink-0"
-                        style={{ color: textColor }}
+                    Sessions
+                  </span>
+                  <h2 className="font-serif text-3xl sm:text-4xl text-charcoal mb-3 leading-tight">
+                    What you can book
+                  </h2>
+                  <p className="text-warm-gray text-lg leading-relaxed">
+                    Session types offered at {clinicName}.
+                  </p>
+                  {clinicians.length > 0 && (
+                    <a
+                      href="#book"
+                      className="mt-8 inline-flex items-center gap-2 text-sm font-semibold hover:opacity-70 transition-opacity"
+                      style={{ color: textColor }}
+                    >
+                      Book a session
+                      <ArrowRight className="h-4 w-4" />
+                    </a>
+                  )}
+                </div>
+
+                <div className="lg:col-span-8" data-animate="item">
+                  <ul className="divide-y divide-warm-gray/15 border-y border-warm-gray/15">
+                    {sessions.map((session: any) => (
+                      <li
+                        key={session.id}
+                        className="flex items-center justify-between gap-6 py-5 sm:py-6"
                       >
-                        {session.priceLabel}
-                      </p>
-                    )}
-                  </div>
-                ))}
+                        <div className="min-w-0">
+                          <p className="font-serif text-xl sm:text-2xl text-charcoal tracking-tight">
+                            {session.name}
+                          </p>
+                          {session.duration ? (
+                            <p className="mt-1.5 text-sm text-warm-gray inline-flex items-center gap-1.5">
+                              <Clock className="h-3.5 w-3.5" />
+                              {session.duration} minutes
+                            </p>
+                          ) : null}
+                        </div>
+                        {session.priceLabel ? (
+                          <p
+                            className="shrink-0 font-serif text-xl sm:text-2xl tabular-nums"
+                            style={{ color: textColor }}
+                          >
+                            {session.priceLabel}
+                          </p>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             </div>
           </section>
@@ -602,7 +618,7 @@ export function PublicClinicPage() {
                     </p>
                     <a
                       href={`tel:${clinicPhone}`}
-                      className="text-lg text-charcoal font-medium hover:opacity-70 transition-opacity"
+                      className="text-xl text-charcoal font-medium hover:opacity-70 transition-opacity"
                     >
                       {clinicPhone}
                     </a>

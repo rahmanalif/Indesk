@@ -1,19 +1,21 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { gsap } from "gsap";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
-  Calendar,
+  Building2,
+  Calendar as CalendarIcon,
+  Check,
   CheckCircle,
+  ChevronLeft,
   ChevronRight,
   Clock,
-  Layers,
   Loader2,
   Mail,
+  MapPin,
   Printer,
   Send,
   User,
-  Video,
 } from "lucide-react";
 import { fromZonedTime } from "date-fns-tz";
 import { useData } from "../../context/DataContext";
@@ -44,18 +46,121 @@ export type BookAppointmentLocationState = {
   time?: string | null;
 };
 
-type Step = 1 | 2 | 3 | 4;
+type BookingStep =
+  | "session"
+  | "meeting"
+  | "day"
+  | "time"
+  | "details"
+  | "confirm"
+  | "success";
 
-const formatTime = (value?: string | null) => {
-  if (!value || !value.includes(":")) return "-";
-  const [hoursText, minutesText] = value.split(":");
-  const hours = Number(hoursText);
-  const minutes = Number(minutesText);
-  if (Number.isNaN(hours) || Number.isNaN(minutes)) return value;
-  const period = hours >= 12 ? "PM" : "AM";
-  const displayHours = hours % 12 || 12;
-  return `${String(displayHours).padStart(2, "0")}:${String(minutes).padStart(2, "0")} ${period}`;
+type MeetingTypeId = "in_person" | "zoom" | "google_meet";
+
+const BOOKING_WINDOW_DAYS = 15;
+
+const WEEKDAY_NAMES = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+] as const;
+
+function ZoomBrandIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 48 48"
+      className={className}
+      aria-hidden
+      focusable="false"
+    >
+      <rect width="48" height="48" rx="12" fill="#2D8CFF" />
+      <path
+        fill="#FFFFFF"
+        d="M14.5 17.25c0-1.24 1-2.25 2.25-2.25h11.5c1.24 0 2.25 1.01 2.25 2.25v13.5c0 1.24-1.01 2.25-2.25 2.25h-11.5c-1.24 0-2.25-1.01-2.25-2.25v-13.5zm19.1 1.35 4.65-2.7c.74-.43 1.65.12 1.65.98v14.24c0 .86-.91 1.41-1.65.98l-4.65-2.7V18.6z"
+      />
+    </svg>
+  );
+}
+
+function GoogleMeetBrandIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 48 48"
+      className={className}
+      aria-hidden
+      focusable="false"
+    >
+      <path
+        fill="#00832D"
+        d="M24 25.5V36H8.5C6.6 36 5 34.4 5 32.5v-15C5 15.6 6.6 14 8.5 14H18l6 11.5z"
+      />
+      <path
+        fill="#0066DA"
+        d="M24 14h14.5c1.9 0 3.5 1.6 3.5 3.5V22L33 25.5 24 14z"
+      />
+      <path
+        fill="#E37400"
+        d="M24 36 33 25.5 42 29v3.5c0 1.9-1.6 3.5-3.5 3.5H24z"
+      />
+      <path fill="#2684FC" d="M42 22v7l-9-3.5L42 22z" />
+      <path fill="#00AC47" d="M24 25.5 18 14h-1.5L24 25.5z" />
+      <path fill="#00832D" d="M8.5 14C6.6 14 5 15.6 5 17.5V22h13L8.5 14z" />
+      <path
+        fill="#FFBA00"
+        d="M36.6 16.1c.9-.9 2.1-1.4 3.4-1.5-.2-1.1-.7-2-1.5-2.7C36.9 10.4 34.7 10.4 33.1 12l-5.5 5.5L33 25.5l3.6-9.4z"
+      />
+      <path
+        fill="#0066DA"
+        d="M42 22v10.5c0 .8-.2 1.5-.7 2.1L33 25.5 42 22z"
+      />
+    </svg>
+  );
+}
+
+const STEP_ORDER: Array<Exclude<BookingStep, "success">> = [
+  "session",
+  "meeting",
+  "day",
+  "time",
+  "details",
+  "confirm",
+];
+
+const STEP_LABELS: Record<Exclude<BookingStep, "success">, string> = {
+  session: "Service",
+  meeting: "Format",
+  day: "Date",
+  time: "Time",
+  details: "Details",
+  confirm: "Confirm",
 };
+
+const toIsoDateLocal = (date: Date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+};
+
+const formatIsoLong = (iso: string) =>
+  new Date(`${iso}T12:00:00`).toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+
+const formatIsoShort = (iso: string) =>
+  new Date(`${iso}T12:00:00`).toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+
+const isIsoDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value);
 
 const toTitleCase = (value: string) =>
   value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
@@ -325,9 +430,7 @@ export function PublicBookAppointmentPage() {
       clinicianToken: member?.clinicianToken || "",
       name: fullName,
       specialty:
-        specialization.length > 0
-          ? specialization.join(", ")
-          : "",
+        specialization.length > 0 ? specialization.join(", ") : "",
       timezone: (member?.user as any)?.timezone || "Europe/London",
       availability: Array.from(availabilityMap.values()).map((item: any) => ({
         day: toTitleCase(item.day),
@@ -338,7 +441,7 @@ export function PublicBookAppointmentPage() {
     };
   }, [clinic?.members, id]);
 
-  const [step, setStep] = useState<Step>(1);
+  const [step, setStep] = useState<BookingStep>("session");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const invoiceRef = useRef<string>(generateInvoiceNumber());
@@ -348,9 +451,11 @@ export function PublicBookAppointmentPage() {
     email: "",
     phone: "",
   });
-  const [selectedDay, setSelectedDay] = useState<string | null>(
-    prefill.day || null
-  );
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
   const [selectedSlot, setSelectedSlot] = useState<string | null>(
     prefill.time || null
   );
@@ -358,14 +463,146 @@ export function PublicBookAppointmentPage() {
   const [selectedSessionId, setSelectedSessionId] = useState<
     string | number | null
   >(prefill.sessionId ?? null);
-  const [meetingType, setMeetingType] = useState<
-    "in_person" | "zoom" | "google_meet"
-  >("in_person");
+  const [meetingType, setMeetingType] = useState<MeetingTypeId>("in_person");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const prefillApplied = useRef(false);
 
   const availability = clinician?.availability || [];
   const clinicianToken = clinician?.clinicianToken || "";
+
+  const availableWeekdays = useMemo(() => {
+    return new Set(
+      availability.map((item: any) => String(item.day || "").toLowerCase())
+    );
+  }, [availability]);
+
+  const bookableDates = useMemo(() => {
+    if (availableWeekdays.size === 0) return [];
+    const today = new Date();
+    today.setHours(12, 0, 0, 0);
+    const dates: Array<{
+      iso: string;
+      weekday: string;
+      dayNumber: number;
+      monthLabel: string;
+      isToday: boolean;
+    }> = [];
+
+    for (let offset = 0; offset < BOOKING_WINDOW_DAYS; offset += 1) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + offset);
+      const weekday = WEEKDAY_NAMES[date.getDay()];
+      if (!availableWeekdays.has(weekday.toLowerCase())) continue;
+      dates.push({
+        iso: toIsoDateLocal(date),
+        weekday,
+        dayNumber: date.getDate(),
+        monthLabel: date.toLocaleDateString("en-GB", { month: "short" }),
+        isToday: offset === 0,
+      });
+    }
+    return dates;
+  }, [availableWeekdays]);
+
+  const bookableDateSet = useMemo(
+    () => new Set(bookableDates.map((d) => d.iso)),
+    [bookableDates]
+  );
+
+  const bookingWindowBounds = useMemo(() => {
+    const today = new Date();
+    today.setHours(12, 0, 0, 0);
+    const end = new Date(today);
+    end.setDate(today.getDate() + BOOKING_WINDOW_DAYS - 1);
+    return {
+      startMonth: new Date(today.getFullYear(), today.getMonth(), 1),
+      endMonth: new Date(end.getFullYear(), end.getMonth(), 1),
+      todayIso: toIsoDateLocal(today),
+    };
+  }, []);
+
+  const canGoPrevMonth =
+    calendarMonth.getFullYear() > bookingWindowBounds.startMonth.getFullYear() ||
+    (calendarMonth.getFullYear() === bookingWindowBounds.startMonth.getFullYear() &&
+      calendarMonth.getMonth() > bookingWindowBounds.startMonth.getMonth());
+
+  const canGoNextMonth =
+    calendarMonth.getFullYear() < bookingWindowBounds.endMonth.getFullYear() ||
+    (calendarMonth.getFullYear() === bookingWindowBounds.endMonth.getFullYear() &&
+      calendarMonth.getMonth() < bookingWindowBounds.endMonth.getMonth());
+
+  const calendarCells = useMemo(() => {
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+    const firstDay = new Date(year, month, 1);
+    // Monday-first index: Sun=6, Mon=0, ...
+    const startOffset = (firstDay.getDay() + 6) % 7;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const cells: Array<{
+      key: string;
+      iso: string | null;
+      dayNumber: number | null;
+      isBookable: boolean;
+      isToday: boolean;
+      isSelected: boolean;
+      inMonth: boolean;
+    }> = [];
+
+    for (let i = 0; i < startOffset; i += 1) {
+      cells.push({
+        key: `pad-${i}`,
+        iso: null,
+        dayNumber: null,
+        isBookable: false,
+        isToday: false,
+        isSelected: false,
+        inMonth: false,
+      });
+    }
+
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const date = new Date(year, month, day);
+      const iso = toIsoDateLocal(date);
+      const isBookable = bookableDateSet.has(iso);
+      cells.push({
+        key: iso,
+        iso,
+        dayNumber: day,
+        isBookable,
+        isToday: iso === bookingWindowBounds.todayIso,
+        isSelected: selectedDate === iso,
+        inMonth: true,
+      });
+    }
+
+    while (cells.length % 7 !== 0) {
+      cells.push({
+        key: `trail-${cells.length}`,
+        iso: null,
+        dayNumber: null,
+        isBookable: false,
+        isToday: false,
+        isSelected: false,
+        inMonth: false,
+      });
+    }
+
+    return cells;
+  }, [
+    calendarMonth,
+    bookableDateSet,
+    bookingWindowBounds.todayIso,
+    selectedDate,
+  ]);
+
+  const resolvePrefillDate = (raw?: string | null) => {
+    if (!raw) return null;
+    if (isIsoDate(raw)) return raw;
+    const match = bookableDates.find(
+      (d) => d.weekday.toLowerCase() === raw.toLowerCase()
+    );
+    return match?.iso || null;
+  };
 
   const { data: clinicianSessionsResponse, isLoading: isSessionsLoading } =
     useGetSessionsByClinicianTokenQuery(clinicianToken, {
@@ -388,7 +625,7 @@ export function PublicBookAppointmentPage() {
         id: session?.id || session?._id || `api-session-${index}`,
         name: session?.name || "Session",
         durationMinutes,
-        durationLabel: `${durationMinutes} min`,
+        durationLabel: `${durationMinutes} minutes`,
         priceLabel:
           Number.isFinite(priceNumber) && priceNumber >= 0
             ? `£${priceNumber}`
@@ -405,7 +642,7 @@ export function PublicBookAppointmentPage() {
         id: session.id,
         name: session.name,
         durationMinutes,
-        durationLabel: session.duration || `${durationMinutes} min`,
+        durationLabel: session.duration || `${durationMinutes} minutes`,
         priceLabel: session.price || "-",
       };
     });
@@ -422,20 +659,57 @@ export function PublicBookAppointmentPage() {
 
   const availableMeetingTypes = useMemo(() => {
     const types: Array<{
-      id: "in_person" | "zoom" | "google_meet";
+      id: MeetingTypeId;
       label: string;
-      icon: typeof User;
-    }> = [{ id: "in_person", label: "In-Person", icon: User }];
+      hint: string;
+      icon: ReactNode;
+    }> = [
+      {
+        id: "in_person",
+        label: "In person",
+        hint: "Visit the clinic",
+        icon: null,
+      },
+    ];
     if (isZoomAvailable)
-      types.push({ id: "zoom", label: "Zoom Video Call", icon: Video });
+      types.push({
+        id: "zoom",
+        label: "Zoom",
+        hint: "Video call link by email",
+        icon: <ZoomBrandIcon className="h-8 w-8 rounded-[9px] shadow-sm" />,
+      });
     if (isMeetAvailable)
       types.push({
         id: "google_meet",
         label: "Google Meet",
-        icon: Video,
+        hint: "Video call link by email",
+        icon: <GoogleMeetBrandIcon className="h-8 w-8" />,
       });
     return types;
   }, [isZoomAvailable, isMeetAvailable]);
+
+  const showMeetingStep = availableMeetingTypes.length > 1;
+
+  const visibleSteps = useMemo(
+    () => STEP_ORDER.filter((s) => s !== "meeting" || showMeetingStep),
+    [showMeetingStep]
+  );
+
+  const goToNext = (from: Exclude<BookingStep, "success">) => {
+    const idx = visibleSteps.indexOf(from);
+    if (idx >= 0 && idx < visibleSteps.length - 1) {
+      setStep(visibleSteps[idx + 1]);
+      setErrors({});
+    }
+  };
+
+  const goToPrev = () => {
+    const idx = visibleSteps.indexOf(step as Exclude<BookingStep, "success">);
+    if (idx > 0) {
+      setStep(visibleSteps[idx - 1]);
+      setErrors({});
+    }
+  };
 
   useEffect(() => {
     if (isZoomAvailable) setMeetingType("zoom");
@@ -446,81 +720,60 @@ export function PublicBookAppointmentPage() {
   useEffect(() => {
     if (prefillApplied.current) return;
     if (!prefill.day && !prefill.sessionId && !prefill.time) return;
+    // Wait until bookable dates are known when a day was prefilled
+    if (prefill.day && bookableDates.length === 0 && availability.length > 0) {
+      return;
+    }
     prefillApplied.current = true;
-    if (prefill.day) setSelectedDay(prefill.day);
+    const resolvedDate = resolvePrefillDate(prefill.day);
+    if (resolvedDate) {
+      setSelectedDate(resolvedDate);
+      const [y, m] = resolvedDate.split("-").map(Number);
+      setCalendarMonth(new Date(y, m - 1, 1));
+    }
     if (prefill.sessionId != null) setSelectedSessionId(prefill.sessionId);
     if (prefill.time) setSelectedSlot(prefill.time);
-    if (prefill.day || prefill.sessionId) setStep(2);
-  }, [prefill.day, prefill.sessionId, prefill.time]);
+
+    if (resolvedDate && prefill.time && prefill.sessionId != null) {
+      setStep("details");
+    } else if (resolvedDate && prefill.sessionId != null) {
+      setStep("time");
+    } else if (prefill.sessionId != null) {
+      setStep(showMeetingStep ? "meeting" : "day");
+    } else if (resolvedDate) {
+      setStep("session");
+    }
+  }, [
+    prefill.day,
+    prefill.sessionId,
+    prefill.time,
+    showMeetingStep,
+    bookableDates,
+    availability.length,
+  ]);
 
   const contentRef = useRef<HTMLDivElement>(null);
-  const slotsRef = useRef<HTMLDivElement>(null);
-  const sessionsRef = useRef<HTMLDivElement>(null);
+  const optionsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (contentRef.current) {
       gsap.fromTo(
         contentRef.current,
-        { opacity: 0, y: 20, scale: 0.98 },
-        { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: "back.out(1.2)" }
+        { opacity: 0, y: 16 },
+        { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }
       );
     }
   }, [step]);
-
-  useEffect(() => {
-    if (sessionsRef.current && sessionOptions.length > 0) {
-      gsap.fromTo(
-        sessionsRef.current.children,
-        { opacity: 0, x: -15 },
-        { opacity: 1, x: 0, duration: 0.3, stagger: 0.08, ease: "power2.out" }
-      );
-    }
-  }, [sessionOptions, step]);
-
-  const getDayIsoDate = (dayName: string) => {
-    const days = [
-      "Sunday",
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday",
-    ];
-    const today = new Date();
-    const targetDay = days.indexOf(dayName);
-    let daysUntil = targetDay - today.getDay();
-    if (daysUntil < 0) daysUntil += 7;
-    if (daysUntil === 0) daysUntil = 7;
-    const date = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate() + daysUntil
-    );
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  };
-
-  const getDayFormatted = (dayName: string) => {
-    const iso = getDayIsoDate(dayName);
-    return new Date(iso + "T12:00:00").toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-    });
-  };
 
   const { data: slotsResponse, isLoading: isSlotsLoading } =
     useGetPublicAvailableSlotsQuery(
       {
         clinicianToken,
-        date: selectedDay ? getDayIsoDate(selectedDay) : "",
+        date: selectedDate || "",
         sessionId: selectedSessionId ? String(selectedSessionId) : undefined,
       },
       {
-        skip: !clinicianToken || !selectedDay,
+        skip: !clinicianToken || !selectedDate,
         refetchOnMountOrArgChange: false,
       }
     );
@@ -530,33 +783,34 @@ export function PublicBookAppointmentPage() {
   }, [slotsResponse]);
 
   useEffect(() => {
+    if (optionsRef.current && optionsRef.current.children.length > 0) {
+      gsap.fromTo(
+        optionsRef.current.children,
+        { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: 0.28, stagger: 0.05, ease: "power2.out" }
+      );
+    }
+  }, [step, sessionOptions, availableSlots, bookableDates, availableMeetingTypes]);
+
+  useEffect(() => {
+    if (!selectedDate) return;
     if (availableSlots && availableSlots.length > 0) {
       const matchedSlot = availableSlots.find(
         (s: any) => s.timeLabel === selectedSlot
       );
       if (matchedSlot) {
         setSelectedSlotIso(matchedSlot.startTime);
-      } else {
-        setSelectedSlot(availableSlots[0].timeLabel);
-        setSelectedSlotIso(availableSlots[0].startTime);
+      } else if (step === "time") {
+        setSelectedSlot(null);
+        setSelectedSlotIso(null);
       }
-    } else if (!isSlotsLoading) {
+    } else if (!isSlotsLoading && step === "time") {
       setSelectedSlot(null);
       setSelectedSlotIso(null);
     }
-  }, [availableSlots, isSlotsLoading, selectedSlot]);
+  }, [availableSlots, isSlotsLoading, selectedSlot, step, selectedDate]);
 
-  useEffect(() => {
-    if (slotsRef.current && availableSlots.length > 0) {
-      gsap.fromTo(
-        slotsRef.current.children,
-        { opacity: 0, scale: 0.8, y: 10 },
-        { opacity: 1, scale: 1, y: 0, duration: 0.3, stagger: 0.05, ease: "back.out(1.5)" }
-      );
-    }
-  }, [availableSlots, selectedDay, step]);
-
-  const validateStep1 = () => {
+  const validateDetails = () => {
     const e: Record<string, string> = {};
     const nameRegex = /^[\p{L}\s\-.,']+$/u;
     if (!formData.firstName.trim()) e.firstName = "First name is required.";
@@ -573,22 +827,42 @@ export function PublicBookAppointmentPage() {
     return Object.keys(e).length === 0;
   };
 
-  const validateStep2 = () => {
-    const e: Record<string, string> = {};
-    if (!selectedDay) e.slot = "Please select a day.";
-    if (!selectedSlot) e.slot = "Please select a time slot.";
-    if (!selectedSessionId) e.session = "Please select a session type.";
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
-
   const handleNext = () => {
-    if (step === 1 && validateStep1()) setStep(2);
-    else if (step === 2 && validateStep2()) setStep(3);
+    if (step === "session") {
+      if (!selectedSessionId) {
+        setErrors({ session: "Please select a session." });
+        return;
+      }
+      goToNext("session");
+      return;
+    }
+    if (step === "meeting") {
+      goToNext("meeting");
+      return;
+    }
+    if (step === "day") {
+      if (!selectedDate) {
+        setErrors({ day: "Please select a date." });
+        return;
+      }
+      goToNext("day");
+      return;
+    }
+    if (step === "time") {
+      if (!selectedSlot) {
+        setErrors({ time: "Please select a time." });
+        return;
+      }
+      goToNext("time");
+      return;
+    }
+    if (step === "details" && validateDetails()) {
+      goToNext("details");
+    }
   };
 
   const handleConfirm = async () => {
-    if (!clinician || !selectedDay || !selectedSessionId) return;
+    if (!clinician || !selectedDate || !selectedSessionId) return;
     setIsSubmitting(true);
     try {
       const clinicianTimezone = clinician.timezone || "Europe/London";
@@ -600,7 +874,7 @@ export function PublicBookAppointmentPage() {
       if (period === "AM" && hour === 12) hour = 0;
       const timeStr = `${String(hour).padStart(2, "0")}:${m || "00"}`;
 
-      const dateStr = getDayIsoDate(selectedDay);
+      const dateStr = selectedDate;
       const localDateTimeStr = `${dateStr} ${timeStr}:00`;
       const clinicianDateTime = fromZonedTime(localDateTimeStr, clinicianTimezone);
       const fullIsoDateTime = clinicianDateTime.toISOString();
@@ -640,7 +914,7 @@ export function PublicBookAppointmentPage() {
         email: formData.email,
         phone: formData.phone,
         clinicianName: clinician.name,
-        date: getDayIsoDate(selectedDay),
+        date: selectedDate,
         time: timeStr,
         sessionType: selectedSession?.name || "Initial Consultation",
         duration: resolvedDuration,
@@ -648,7 +922,7 @@ export function PublicBookAppointmentPage() {
       });
       setIsSubmitting(false);
       setEmailSent(true);
-      setStep(4);
+      setStep("success");
     } catch (err: any) {
       setErrors({
         submit: err?.data?.message || "Failed to book appointment",
@@ -667,7 +941,7 @@ export function PublicBookAppointmentPage() {
       sessionName: selectedSession?.name || "Appointment",
       duration: selectedSession?.durationLabel || "",
       price: selectedSession?.priceLabel || "",
-      date: selectedDay ? getDayFormatted(selectedDay) : "",
+      date: selectedDate ? formatIsoLong(selectedDate) : "",
       time: selectedSlot || "",
       clinicName,
       clinicPhone,
@@ -676,6 +950,31 @@ export function PublicBookAppointmentPage() {
       brandColor: color,
       logoDataUrl: clinicLogo,
     });
+  };
+
+  const meetingLabel =
+    availableMeetingTypes.find((t) => t.id === meetingType)?.label || "-";
+
+  const stepHeadline: Record<BookingStep, string> = {
+    session: "What would you like to book?",
+    meeting: "How would you like to meet?",
+    day: "Which date works for you?",
+    time: "What time suits you?",
+    details: "Your contact details",
+    confirm: "Please check your booking",
+    success: "You're all set",
+  };
+
+  const stepSubhead: Record<BookingStep, string> = {
+    session: "Choose the session that suits you best.",
+    meeting: "In person at the clinic, or by video call.",
+    day: `Showing the next ${BOOKING_WINDOW_DAYS} days with availability.`,
+    time: selectedDate
+      ? `Open times on ${formatIsoLong(selectedDate)}.`
+      : "Select a time that works for you.",
+    details: "We’ll use these details to confirm your appointment.",
+    confirm: "Take a moment to review, then confirm.",
+    success: "Your appointment is confirmed.",
   };
 
   if (isClinicLoading) {
@@ -702,20 +1001,34 @@ export function PublicBookAppointmentPage() {
     );
   }
 
-  const steps = [
-    { n: 1, label: "Your info" },
-    { n: 2, label: "Session" },
-    { n: 3, label: "Confirm" },
-  ];
-
   const inputBase =
-    "w-full h-11 px-3 text-sm border rounded-xl bg-warm-white focus:outline-none focus:ring-2 transition-colors";
+    "w-full h-14 px-4 text-base border rounded-2xl bg-warm-white focus:outline-none focus:ring-2 transition-colors";
   const inputWithIcon =
-    "w-full h-11 pl-10 pr-3 text-sm border rounded-xl bg-warm-white focus:outline-none focus:ring-2 transition-colors";
+    "w-full h-14 pl-11 pr-4 text-base border rounded-2xl bg-warm-white focus:outline-none focus:ring-2 transition-colors";
 
-  const selectedAvailability = availability.find(
-    (avail: any) => avail.day === selectedDay
-  );
+  const currentStepIndex =
+    step === "success"
+      ? visibleSteps.length
+      : Math.max(0, visibleSteps.indexOf(step));
+
+  const summaryChips = [
+    selectedSession
+      ? { key: "session", label: selectedSession.name }
+      : null,
+    showMeetingStep && selectedSession
+      ? { key: "meeting", label: meetingLabel }
+      : null,
+    selectedDate ? { key: "day", label: formatIsoShort(selectedDate) } : null,
+    selectedSlot ? { key: "time", label: selectedSlot } : null,
+  ].filter(Boolean) as Array<{ key: string; label: string }>;
+
+  const canContinue =
+    (step === "session" && Boolean(selectedSessionId)) ||
+    step === "meeting" ||
+    (step === "day" && Boolean(selectedDate)) ||
+    (step === "time" && Boolean(selectedSlot)) ||
+    step === "details" ||
+    step === "confirm";
 
   return (
     <div
@@ -731,20 +1044,24 @@ export function PublicBookAppointmentPage() {
       />
 
       <header className="sticky top-0 z-50 bg-cream/90 backdrop-blur-md border-b border-warm-gray/10">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             {clinicLogo ? (
               <img
                 src={clinicLogo}
                 alt=""
-                className="h-9 w-9 rounded-xl object-cover shrink-0"
+                className="h-10 w-10 rounded-full object-cover shrink-0 ring-1 ring-warm-gray/10"
               />
             ) : (
               <div
-                className="h-9 w-9 rounded-xl flex items-center justify-center font-serif font-bold shrink-0"
-                style={{ backgroundColor: accent, color: onBrand }}
+                className="h-10 w-10 rounded-full flex items-center justify-center shrink-0 ring-1 ring-warm-gray/10"
+                style={{
+                  background: `linear-gradient(145deg, ${brandBg(color, 0.22)} 0%, ${brandBg(color, 0.08)} 100%)`,
+                  color: textColor,
+                }}
+                aria-hidden
               >
-                {clinicName[0]}
+                <Building2 className="h-5 w-5" strokeWidth={1.75} />
               </div>
             )}
             <button
@@ -753,253 +1070,463 @@ export function PublicBookAppointmentPage() {
               className="flex items-center gap-2 text-sm font-medium text-charcoal hover:opacity-70 transition-opacity truncate"
             >
               <ArrowLeft className="h-4 w-4 shrink-0" />
-              <span className="truncate">Back to {clinicName}</span>
+              <span className="truncate">{clinicName}</span>
             </button>
           </div>
-          <span className="text-xs font-bold uppercase tracking-widest text-warm-gray hidden sm:block">
-            Book appointment
-          </span>
+          {step !== "success" && (
+            <p className="text-sm font-semibold text-warm-gray tabular-nums">
+              Step {currentStepIndex + 1} of {visibleSteps.length}
+            </p>
+          )}
         </div>
       </header>
 
-      <main className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 py-10 pb-28">
-        <div className="mb-8">
-          {clinician.specialty ? (
-            <p
-              className="text-xs font-bold uppercase tracking-widest mb-2"
-              style={{ color: textColor }}
-            >
-              {clinician.specialty}
-            </p>
-          ) : null}
-          <h1 className="font-serif text-3xl md:text-4xl text-charcoal mb-2">
-            Book with {clinician.name}
-          </h1>
-          <p className="text-warm-gray">
-            A few details and we’ll confirm your session.
-          </p>
-        </div>
-
-        {step < 4 && (
-          <div className="flex items-center gap-2 mb-10">
-            {steps.map((s, i) => (
-              <div key={s.n} className="flex items-center gap-2 flex-1">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div
-                    className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
-                    style={
-                      step > s.n
-                        ? { backgroundColor: "#22c55e", color: "#fff" }
-                        : step === s.n
-                          ? { backgroundColor: accent, color: onBrand }
-                          : {
-                              backgroundColor: brandBg(color, 0.1),
-                              color: "#8A8279",
-                            }
-                    }
-                  >
-                    {step > s.n ? <CheckCircle className="h-3.5 w-3.5" /> : s.n}
-                  </div>
-                  <span
-                    className="text-xs font-semibold hidden sm:block truncate"
-                    style={{
-                      color:
-                        step >= s.n
-                          ? step > s.n
-                            ? "#16a34a"
-                            : textColor
-                          : "#8A8279",
-                    }}
-                  >
-                    {s.label}
-                  </span>
-                </div>
-                {i < steps.length - 1 && (
-                  <div
-                    className="h-px flex-1 min-w-[12px]"
-                    style={{
-                      backgroundColor: step > s.n ? "#86efac" : "#e5e7eb",
-                    }}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div ref={contentRef} className="bg-warm-white/80 border border-warm-gray/10 rounded-3xl p-6 sm:p-8 shadow-sm">
-          {step === 1 && (
-            <div className="space-y-4">
-              <p className="text-warm-gray text-sm mb-2">
-                Your contact information so we can confirm your appointment.
-              </p>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-xs font-bold text-charcoal mb-1.5">
-                    First name *
-                  </label>
-                  <div className="relative">
-                    <User className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-warm-gray" />
-                    <input
-                      value={formData.firstName}
-                      onChange={(e) =>
-                        setFormData((f) => ({
-                          ...f,
-                          firstName: e.target.value,
-                        }))
-                      }
-                      placeholder="John"
-                      className={`${inputWithIcon} ${
-                        errors.firstName
-                          ? "border-red-400 bg-red-50"
-                          : "border-warm-gray/20"
-                      }`}
-                      style={
-                        {
-                          ["--tw-ring-color" as string]: brandBg(color, 0.35),
-                        } as CSSProperties
-                      }
-                    />
-                  </div>
-                  {errors.firstName && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.firstName}
-                    </p>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-charcoal mb-1.5">
-                    Last name *
-                  </label>
-                  <input
-                    value={formData.lastName}
-                    onChange={(e) =>
-                      setFormData((f) => ({ ...f, lastName: e.target.value }))
-                    }
-                    placeholder="Doe"
-                    className={`${inputBase} ${
-                      errors.lastName
-                        ? "border-red-400 bg-red-50"
-                        : "border-warm-gray/20"
-                    }`}
-                  />
-                  {errors.lastName && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.lastName}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-charcoal mb-1.5">
-                  Email *
-                </label>
-                <div className="relative">
-                  <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-warm-gray" />
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData((f) => ({ ...f, email: e.target.value }))
-                    }
-                    placeholder="john@example.com"
-                    className={`${inputWithIcon} ${
-                      errors.email
-                        ? "border-red-400 bg-red-50"
-                        : "border-warm-gray/20"
-                    }`}
-                  />
-                </div>
-                {errors.email && (
-                  <p className="text-red-500 text-xs mt-1">{errors.email}</p>
-                )}
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-charcoal mb-1.5">
-                  Phone *
-                </label>
-                <PhoneNumberInput
-                  value={formData.phone}
-                  onChange={(val) =>
-                    setFormData((f) => ({ ...f, phone: val }))
-                  }
-                  error={errors.phone}
-                />
-              </div>
-            </div>
-          )}
-
-          {step === 2 && (
+      <main
+        className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10"
+        style={{
+          paddingBottom:
+            "max(11rem, calc(8.5rem + env(safe-area-inset-bottom, 0px)))",
+        }}
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8 lg:gap-10">
+          {/* Sticky context panel — Calendly-style */}
+          <aside className="lg:sticky lg:top-24 lg:self-start space-y-5">
             <div>
-              <p className="text-warm-gray text-sm mb-4">
-                Choose a day, time, and session type.
-              </p>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {availability.map((avail: any) => (
-                  <button
-                    key={avail.day}
-                    type="button"
-                    onClick={() => {
-                      setSelectedDay(avail.day);
-                      setSelectedSlot(null);
-                      setErrors({});
-                    }}
-                    className="px-3 py-2 rounded-full text-xs font-bold border transition-all"
-                    style={
-                      selectedDay === avail.day
-                        ? {
-                            backgroundColor: color,
-                            color: onBrand,
-                            borderColor: color,
-                          }
-                        : {
-                            backgroundColor: "#fff",
-                            color: "#8A8279",
-                            borderColor: "#e5e7eb",
-                          }
-                    }
-                  >
-                    {avail.day}
-                  </button>
-                ))}
-              </div>
-
-              {selectedDay && selectedAvailability && (
-                <div
-                  className="mb-4 rounded-2xl border px-4 py-3 text-sm text-warm-gray"
-                  style={{
-                    borderColor: brandBg(color, 0.18),
-                    backgroundColor: brandBg(color, 0.05),
-                  }}
+              {clinician.specialty ? (
+                <p
+                  className="text-[11px] font-bold uppercase tracking-widest mb-2"
+                  style={{ color: textColor }}
                 >
-                  <p>
-                    <strong className="text-charcoal">Working hours:</strong>{" "}
-                    {formatTime(selectedAvailability.startTime)} –{" "}
-                    {formatTime(selectedAvailability.endTime)}
-                  </p>
-                  {selectedAvailability.breakTime?.startTime &&
-                    selectedAvailability.breakTime?.endTime && (
-                      <p className="mt-1">
-                        <strong className="text-charcoal">Break:</strong>{" "}
-                        {formatTime(selectedAvailability.breakTime.startTime)} –{" "}
-                        {formatTime(selectedAvailability.breakTime.endTime)}
-                      </p>
-                    )}
+                  {clinician.specialty}
+                </p>
+              ) : null}
+              <h1 className="font-serif text-3xl sm:text-4xl text-charcoal leading-tight">
+                {clinician.name}
+              </h1>
+              <p className="text-base text-warm-gray mt-3 leading-relaxed">
+                Book your appointment in a few simple steps.
+              </p>
+            </div>
+
+            {summaryChips.length > 0 && step !== "success" && (
+              <div
+                className="rounded-2xl border p-4 space-y-3"
+                style={{
+                  borderColor: brandBg(color, 0.2),
+                  backgroundColor: brandBg(color, 0.04),
+                }}
+              >
+                <p className="text-sm font-semibold uppercase tracking-wide text-warm-gray">
+                  Your selection
+                </p>
+                <ul className="space-y-3">
+                  {summaryChips.map((chip) => (
+                    <li
+                      key={chip.key}
+                      className="flex items-start gap-3 text-base text-charcoal"
+                    >
+                      <span
+                        className="mt-0.5 h-6 w-6 rounded-full flex items-center justify-center shrink-0"
+                        style={{ backgroundColor: brandBg(color, 0.18), color }}
+                      >
+                        <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                      </span>
+                      <span className="font-medium leading-snug">
+                        {chip.label}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {selectedSession?.priceLabel && (
+                  <div className="pt-3 border-t border-warm-gray/10 flex items-center justify-between">
+                    <span className="text-sm text-warm-gray">Price</span>
+                    <span className="text-base font-semibold" style={{ color }}>
+                      {selectedSession.priceLabel}
+                      {selectedSession.durationLabel
+                        ? ` · ${selectedSession.durationLabel}`
+                        : ""}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {step !== "success" && (
+              <div className="hidden lg:flex flex-col gap-1.5">
+                {visibleSteps.map((s, i) => {
+                  const done = currentStepIndex > i;
+                  const active = step === s;
+                  return (
+                    <div
+                      key={s}
+                      className="flex items-center gap-3 py-1"
+                    >
+                      <div
+                        className="h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+                        style={
+                          done
+                            ? { backgroundColor: "#779362", color: "#fff" }
+                            : active
+                              ? { backgroundColor: accent, color: onBrand }
+                              : {
+                                  backgroundColor: brandBg(color, 0.1),
+                                  color: "#6b635c",
+                                }
+                        }
+                      >
+                        {done ? <Check className="h-4 w-4" strokeWidth={3} /> : i + 1}
+                      </div>
+                      <span
+                        className="text-sm font-semibold"
+                        style={{
+                          color: done
+                            ? "#5F7A4E"
+                            : active
+                              ? textColor
+                              : "#6b635c",
+                        }}
+                      >
+                        {STEP_LABELS[s]}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </aside>
+
+          {/* Focused step content */}
+          <div>
+            {step !== "success" && (
+              <div className="mb-6 lg:mb-8">
+                <div className="flex gap-1.5 mb-5 lg:hidden">
+                  {visibleSteps.map((s, i) => (
+                    <div
+                      key={s}
+                      className="h-1 flex-1 rounded-full transition-colors"
+                      style={{
+                        backgroundColor:
+                          currentStepIndex >= i ? accent : brandBg(color, 0.12),
+                      }}
+                    />
+                  ))}
+                </div>
+                <h2 className="font-serif text-3xl sm:text-[2rem] text-charcoal leading-snug">
+                  {stepHeadline[step]}
+                </h2>
+                <p className="text-base text-warm-gray mt-3 leading-relaxed">
+                  {stepSubhead[step]}
+                </p>
+              </div>
+            )}
+
+            <div
+              ref={contentRef}
+              className={
+                step === "session"
+                  ? "min-h-[280px]"
+                  : "bg-warm-white/90 border border-warm-gray/10 rounded-[1.75rem] p-5 sm:p-7 shadow-sm min-h-[280px]"
+              }
+            >
+              {step === "session" && (
+                <div>
+                  {isSessionsLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-warm-gray py-10 justify-center">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading sessions...
+                    </div>
+                  ) : (
+                    <div ref={optionsRef} className="space-y-3">
+                      {sessionOptions.map((session: any) => {
+                        const isSel =
+                          String(selectedSessionId) === String(session.id);
+                        return (
+                          <button
+                            key={session.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedSessionId(session.id);
+                              setSelectedSlot(null);
+                              setSelectedSlotIso(null);
+                              setErrors({});
+                            }}
+                            className="w-full rounded-2xl border bg-white px-5 py-6 text-left transition-all duration-200 hover:border-warm-gray/30 hover:shadow-sm sm:px-6"
+                            style={
+                              isSel
+                                ? {
+                                    borderColor: color,
+                                    backgroundColor: brandBg(color, 0.05),
+                                    boxShadow: `0 0 0 1px ${color}`,
+                                  }
+                                : {
+                                    borderColor: "rgba(138,130,121,0.14)",
+                                  }
+                            }
+                          >
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="min-w-0">
+                                <p className="font-serif text-2xl text-charcoal tracking-tight">
+                                  {session.name}
+                                </p>
+                                <p className="mt-2 inline-flex items-center gap-2 text-base text-warm-gray">
+                                  <Clock className="h-4 w-4" />
+                                  {session.durationLabel}
+                                </p>
+                              </div>
+                              <div className="flex shrink-0 items-center gap-3">
+                                <p
+                                  className="text-xl font-semibold tabular-nums"
+                                  style={{ color: isSel ? color : textColor }}
+                                >
+                                  {session.priceLabel}
+                                </p>
+                                <span
+                                  className="flex h-10 w-10 items-center justify-center rounded-full"
+                                  style={
+                                    isSel
+                                      ? {
+                                          backgroundColor: accent,
+                                          color: onBrand,
+                                        }
+                                      : {
+                                          backgroundColor: "#f3f0eb",
+                                          color: "#6b635c",
+                                        }
+                                  }
+                                >
+                                  {isSel ? (
+                                    <Check className="h-4 w-4" strokeWidth={3} />
+                                  ) : (
+                                    <ChevronRight className="h-5 w-5" />
+                                  )}
+                                </span>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {errors.session && (
+                    <p className="text-red-500 text-xs mt-3">{errors.session}</p>
+                  )}
                 </div>
               )}
 
-              {selectedDay ? (
-                <div className="mb-6">
-                  <p className="text-charcoal font-bold text-xs mb-3 uppercase tracking-wider">
-                    Available time slots
-                  </p>
+              {step === "meeting" && (
+                <div ref={optionsRef} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {availableMeetingTypes.map((type) => {
+                    const isSelected = meetingType === type.id;
+                    return (
+                      <button
+                        key={type.id}
+                        type="button"
+                        onClick={() => {
+                          setMeetingType(type.id);
+                          setErrors({});
+                        }}
+                        className="flex flex-col items-start text-left p-6 rounded-2xl border-2 transition-all hover:shadow-sm min-h-[140px]"
+                        style={
+                          isSelected
+                            ? {
+                                borderColor: color,
+                                backgroundColor: brandBg(color, 0.06),
+                              }
+                            : {
+                                borderColor: "#e8e4de",
+                                backgroundColor: "#fff",
+                              }
+                        }
+                      >
+                        {type.id === "in_person" ? (
+                          <MapPin
+                            className="h-8 w-8 mb-4"
+                            style={{ color: isSelected ? color : "#6b635c" }}
+                          />
+                        ) : (
+                          <div className="mb-4">{type.icon}</div>
+                        )}
+                        <span
+                          className="text-lg font-semibold"
+                          style={{ color: isSelected ? color : "#2D2A26" }}
+                        >
+                          {type.label}
+                        </span>
+                        <span className="text-base text-warm-gray mt-2 leading-snug">
+                          {type.hint}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {step === "day" && (
+                <div>
+                  {bookableDates.length === 0 ? (
+                    <div className="text-center py-12">
+                      <CalendarIcon
+                        className="h-12 w-12 mx-auto mb-4 opacity-30"
+                        style={{ color }}
+                      />
+                      <p className="text-base text-warm-gray">
+                        No available dates right now. Please check back later.
+                      </p>
+                    </div>
+                  ) : (
+                    <div
+                      ref={optionsRef}
+                      className="rounded-[1.75rem] border border-warm-gray/15 bg-white p-4 sm:p-6"
+                    >
+                      <div className="flex items-center justify-between gap-3 mb-5">
+                        <button
+                          type="button"
+                          aria-label="Previous month"
+                          disabled={!canGoPrevMonth}
+                          onClick={() =>
+                            setCalendarMonth(
+                              (current) =>
+                                new Date(
+                                  current.getFullYear(),
+                                  current.getMonth() - 1,
+                                  1
+                                )
+                            )
+                          }
+                          className="h-11 w-11 rounded-full border border-warm-gray/20 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-cream transition-colors"
+                        >
+                          <ChevronLeft className="h-5 w-5" />
+                        </button>
+                        <p className="font-serif text-xl sm:text-2xl text-charcoal text-center">
+                          {calendarMonth.toLocaleDateString("en-GB", {
+                            month: "long",
+                            year: "numeric",
+                          })}
+                        </p>
+                        <button
+                          type="button"
+                          aria-label="Next month"
+                          disabled={!canGoNextMonth}
+                          onClick={() =>
+                            setCalendarMonth(
+                              (current) =>
+                                new Date(
+                                  current.getFullYear(),
+                                  current.getMonth() + 1,
+                                  1
+                                )
+                            )
+                          }
+                          className="h-11 w-11 rounded-full border border-warm-gray/20 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-cream transition-colors"
+                        >
+                          <ChevronRight className="h-5 w-5" />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-7 gap-1.5 sm:gap-2 mb-2">
+                        {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
+                          (label) => (
+                            <div
+                              key={label}
+                              className="h-10 flex items-center justify-center text-sm font-semibold text-warm-gray"
+                            >
+                              {label}
+                            </div>
+                          )
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                        {calendarCells.map((cell) => {
+                          if (!cell.inMonth || cell.dayNumber == null) {
+                            return (
+                              <div
+                                key={cell.key}
+                                className="aspect-square min-h-[48px] sm:min-h-[56px]"
+                              />
+                            );
+                          }
+
+                          if (!cell.isBookable) {
+                            return (
+                              <div
+                                key={cell.key}
+                                className="aspect-square min-h-[48px] sm:min-h-[56px] rounded-2xl flex items-center justify-center text-base tabular-nums text-warm-gray/35"
+                                aria-hidden
+                              >
+                                {cell.dayNumber}
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <button
+                              key={cell.key}
+                              type="button"
+                              aria-label={
+                                cell.iso
+                                  ? formatIsoLong(cell.iso)
+                                  : `Day ${cell.dayNumber}`
+                              }
+                              aria-pressed={cell.isSelected}
+                              onClick={() => {
+                                if (!cell.iso) return;
+                                setSelectedDate(cell.iso);
+                                setSelectedSlot(null);
+                                setSelectedSlotIso(null);
+                                setErrors({});
+                              }}
+                              className="aspect-square min-h-[48px] sm:min-h-[56px] rounded-2xl flex flex-col items-center justify-center text-base sm:text-lg font-semibold tabular-nums border-2 transition-all hover:shadow-sm"
+                              style={
+                                cell.isSelected
+                                  ? {
+                                      backgroundColor: accent,
+                                      color: onBrand,
+                                      borderColor: color,
+                                    }
+                                  : {
+                                      backgroundColor: brandBg(color, 0.08),
+                                      color: textColor,
+                                      borderColor: brandBg(color, 0.22),
+                                    }
+                              }
+                            >
+                              <span>{cell.dayNumber}</span>
+                              {cell.isToday && !cell.isSelected ? (
+                                <span
+                                  className="mt-0.5 h-1.5 w-1.5 rounded-full"
+                                  style={{ backgroundColor: color }}
+                                />
+                              ) : null}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <p className="mt-5 text-sm text-warm-gray text-center">
+                        Available dates are highlighted. You can book up to{" "}
+                        {BOOKING_WINDOW_DAYS} days ahead.
+                      </p>
+                    </div>
+                  )}
+                  {errors.day && (
+                    <p className="text-red-600 text-sm mt-3">{errors.day}</p>
+                  )}
+                </div>
+              )}
+
+              {step === "time" && (
+                <div>
                   {isSlotsLoading ? (
-                    <div className="flex items-center gap-2 text-xs text-warm-gray py-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Loading available slots...
+                    <div className="flex items-center gap-2 text-base text-warm-gray py-10 justify-center">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Finding open times...
                     </div>
                   ) : availableSlots.length > 0 ? (
-                    <div ref={slotsRef} className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-5">
+                    <div
+                      ref={optionsRef}
+                      className="grid grid-cols-2 sm:grid-cols-3 gap-3"
+                    >
                       {availableSlots.map((slot: any) => {
                         const isSelected = selectedSlot === slot.timeLabel;
                         return (
@@ -1011,7 +1538,7 @@ export function PublicBookAppointmentPage() {
                               setSelectedSlotIso(slot.startTime);
                               setErrors({});
                             }}
-                            className="px-2.5 py-2 rounded-xl text-xs font-bold border transition-all text-center"
+                            className="min-h-[56px] px-4 py-4 rounded-2xl text-base font-semibold border-2 transition-all text-center hover:shadow-sm"
                             style={
                               isSelected
                                 ? {
@@ -1021,8 +1548,8 @@ export function PublicBookAppointmentPage() {
                                   }
                                 : {
                                     backgroundColor: "#fff",
-                                    color: "#475569",
-                                    borderColor: "#e5e7eb",
+                                    color: "#2D2A26",
+                                    borderColor: "#e8e4de",
                                   }
                             }
                           >
@@ -1032,346 +1559,323 @@ export function PublicBookAppointmentPage() {
                       })}
                     </div>
                   ) : (
-                    <p className="text-xs text-red-500 font-medium">
-                      No available slots on this day. Please try another day.
+                    <div className="text-center py-12">
+                      <Clock
+                        className="h-12 w-12 mx-auto mb-4 opacity-30"
+                        style={{ color }}
+                      />
+                      <p className="text-base text-warm-gray mb-4">
+                        No open times on this date.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setStep("day")}
+                        className="text-base font-semibold underline"
+                        style={{ color: textColor }}
+                      >
+                        Choose another date
+                      </button>
+                    </div>
+                  )}
+                  {errors.time && (
+                    <p className="text-red-600 text-sm mt-3">{errors.time}</p>
+                  )}
+                </div>
+              )}
+
+              {step === "details" && (
+                <div className="space-y-5 max-w-lg">
+                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-sm font-semibold text-charcoal mb-2">
+                        First name *
+                      </label>
+                      <div className="relative">
+                        <User className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-warm-gray" />
+                        <input
+                          value={formData.firstName}
+                          onChange={(e) =>
+                            setFormData((f) => ({
+                              ...f,
+                              firstName: e.target.value,
+                            }))
+                          }
+                          placeholder="Alex"
+                          className={`${inputWithIcon} ${
+                            errors.firstName
+                              ? "border-red-400 bg-red-50"
+                              : "border-warm-gray/20"
+                          }`}
+                          style={
+                            {
+                              ["--tw-ring-color" as string]: brandBg(color, 0.35),
+                            } as CSSProperties
+                          }
+                        />
+                      </div>
+                      {errors.firstName && (
+                        <p className="text-red-600 text-sm mt-1.5">
+                          {errors.firstName}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-charcoal mb-2">
+                        Last name *
+                      </label>
+                      <input
+                        value={formData.lastName}
+                        onChange={(e) =>
+                          setFormData((f) => ({
+                            ...f,
+                            lastName: e.target.value,
+                          }))
+                        }
+                        placeholder="Morgan"
+                        className={`${inputBase} ${
+                          errors.lastName
+                            ? "border-red-400 bg-red-50"
+                            : "border-warm-gray/20"
+                        }`}
+                      />
+                      {errors.lastName && (
+                        <p className="text-red-600 text-sm mt-1.5">
+                          {errors.lastName}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-charcoal mb-2">
+                      Email *
+                    </label>
+                    <div className="relative">
+                      <Mail className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-warm-gray" />
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) =>
+                          setFormData((f) => ({ ...f, email: e.target.value }))
+                        }
+                        placeholder="alex@email.com"
+                        className={`${inputWithIcon} ${
+                          errors.email
+                            ? "border-red-400 bg-red-50"
+                            : "border-warm-gray/20"
+                        }`}
+                      />
+                    </div>
+                    {errors.email && (
+                      <p className="text-red-600 text-sm mt-1.5">{errors.email}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-charcoal mb-2">
+                      Phone *
+                    </label>
+                    <PhoneNumberInput
+                      value={formData.phone}
+                      onChange={(val) =>
+                        setFormData((f) => ({ ...f, phone: val }))
+                      }
+                      error={errors.phone}
+                      className="[&_.PhoneInput]:h-14 [&_.PhoneInput]:rounded-2xl [&_.PhoneInput]:px-4 [&_.PhoneInput]:text-base [&_.PhoneInput]:border-warm-gray/20"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {step === "confirm" && (
+                <div>
+                  <div className="rounded-2xl border border-warm-gray/15 overflow-hidden divide-y divide-warm-gray/10">
+                    {[
+                      {
+                        label: "Service",
+                        value: selectedSession?.name || "-",
+                      },
+                      {
+                        label: "When",
+                        value: selectedDate
+                          ? `${formatIsoLong(selectedDate)} · ${selectedSlot || "-"}`
+                          : "-",
+                      },
+                      { label: "Format", value: meetingLabel },
+                      {
+                        label: "Duration",
+                        value: selectedSession?.durationLabel || "-",
+                      },
+                      {
+                        label: "You",
+                        value: `${formData.firstName} ${formData.lastName}`,
+                      },
+                      { label: "Email", value: formData.email },
+                      { label: "Phone", value: formData.phone },
+                      {
+                        label: "Amount",
+                        value: selectedSession?.priceLabel || "-",
+                      },
+                    ].map((item) => (
+                      <div
+                        key={item.label}
+                        className="flex items-start justify-between gap-4 px-5 py-4"
+                      >
+                        <span className="text-sm font-semibold text-warm-gray pt-0.5">
+                          {item.label}
+                        </span>
+                        <span className="text-base font-semibold text-charcoal text-right max-w-[65%]">
+                          {item.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  {errors.submit && (
+                    <p className="text-red-500 text-sm font-semibold mt-4 text-center">
+                      {errors.submit}
                     </p>
                   )}
                 </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Calendar
-                    className="h-10 w-10 mx-auto mb-2 opacity-30"
-                    style={{ color }}
-                  />
-                  <p className="text-warm-gray text-sm">
-                    Select a day to continue
-                  </p>
-                </div>
               )}
 
-              <p className="text-warm-gray text-sm mt-2 mb-4">
-                Session type
-              </p>
-              {isSessionsLoading && (
-                <p className="text-xs text-warm-gray mb-3">Loading sessions...</p>
-              )}
-              <div ref={sessionsRef} className="space-y-3">
-                {sessionOptions.map((session: any) => {
-                  const isSel =
-                    String(selectedSessionId) === String(session.id);
-                  return (
-                    <button
-                      key={session.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedSessionId(session.id);
-                        setErrors({});
-                      }}
-                      className="w-full text-left rounded-2xl border-2 p-4 transition-all hover:shadow-sm"
-                      style={
-                        isSel
-                          ? {
-                              borderColor: color,
-                              backgroundColor: brandBg(color, 0.06),
-                            }
-                          : {
-                              borderColor: "#e5e7eb",
-                              backgroundColor: "#fff",
-                            }
-                      }
+              {step === "success" && (
+                <div>
+                  <div className="text-center mb-6">
+                    <div
+                      className="h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                      style={{ backgroundColor: brandBg(color, 0.12) }}
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
-                            style={
-                              isSel
-                                ? {
-                                    backgroundColor: brandBg(color, 0.15),
-                                    color,
-                                  }
-                                : {
-                                    backgroundColor: "#f1f5f9",
-                                    color: "#64748b",
-                                  }
-                            }
-                          >
-                            <Layers className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <p className="font-bold text-sm text-charcoal">
-                              {session.name}
-                            </p>
-                            <p className="text-xs text-warm-gray mt-0.5 flex items-center gap-2">
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {session.durationLabel}
-                              </span>
-                              <span
-                                className="font-bold"
-                                style={
-                                  isSel ? { color } : { color: "#64748b" }
-                                }
-                              >
-                                {session.priceLabel}
-                              </span>
-                            </p>
-                          </div>
-                        </div>
-                        <div
-                          className="h-5 w-5 rounded-full border-2 flex items-center justify-center shrink-0"
-                          style={
-                            isSel
-                              ? { borderColor: accent, backgroundColor: accent }
-                              : { borderColor: "#cbd5e1" }
-                          }
-                        >
-                          {isSel && (
-                            <CheckCircle className="h-3.5 w-3.5 text-white" />
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {availableMeetingTypes.length > 1 && (
-                <div className="mt-6">
-                  <p className="text-warm-gray text-sm mb-3">
-                    Preferred meeting type
-                  </p>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    {availableMeetingTypes.map((type) => {
-                      const isSelected = meetingType === type.id;
-                      return (
-                        <button
-                          key={type.id}
-                          type="button"
-                          onClick={() => setMeetingType(type.id)}
-                          className="flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all"
-                          style={
-                            isSelected
-                              ? {
-                                  borderColor: color,
-                                  backgroundColor: brandBg(color, 0.05),
-                                }
-                              : {
-                                  borderColor: "#e5e7eb",
-                                  backgroundColor: "#fff",
-                                }
-                          }
-                        >
-                          <type.icon
-                            className="h-6 w-6 mb-2"
-                            style={{
-                              color: isSelected ? color : "#64748b",
-                            }}
-                          />
-                          <span
-                            className="text-sm font-semibold"
-                            style={{
-                              color: isSelected ? color : "#475569",
-                            }}
-                          >
-                            {type.label}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              {errors.slot && (
-                <p className="text-red-500 text-xs mt-3">{errors.slot}</p>
-              )}
-              {errors.session && (
-                <p className="text-red-500 text-xs mt-3">{errors.session}</p>
-              )}
-            </div>
-          )}
-
-          {step === 3 && (
-            <div>
-              <p className="text-warm-gray text-sm mb-4">
-                Review your booking before confirming.
-              </p>
-              <div className="rounded-2xl border border-warm-gray/15 overflow-hidden">
-                {[
-                  {
-                    label: "Patient",
-                    value: `${formData.firstName} ${formData.lastName}`,
-                  },
-                  { label: "Email", value: formData.email },
-                  { label: "Phone", value: formData.phone },
-                  { label: "Clinician", value: clinician.name },
-                  {
-                    label: "Date",
-                    value: selectedDay ? getDayFormatted(selectedDay) : "-",
-                  },
-                  { label: "Time", value: selectedSlot || "-" },
-                  {
-                    label: "Meeting type",
-                    value:
-                      availableMeetingTypes.find((t) => t.id === meetingType)
-                        ?.label || "-",
-                  },
-                  {
-                    label: "Session type",
-                    value: selectedSession?.name || "-",
-                  },
-                  {
-                    label: "Duration",
-                    value: selectedSession?.durationLabel || "-",
-                  },
-                  {
-                    label: "Amount due",
-                    value: selectedSession?.priceLabel || "-",
-                  },
-                ].map((item, i) => (
-                  <div
-                    key={item.label}
-                    className={`flex items-center justify-between px-4 py-3 ${
-                      i % 2 === 0 ? "bg-cream/80" : "bg-warm-white"
-                    }`}
-                  >
-                    <span className="text-xs font-bold text-warm-gray uppercase tracking-widest">
-                      {item.label}
-                    </span>
-                    <span className="text-sm font-semibold text-charcoal text-right max-w-[60%]">
-                      {item.value}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              {errors.submit && (
-                <p className="text-red-500 text-sm font-semibold mt-4 text-center">
-                  {errors.submit}
-                </p>
-              )}
-            </div>
-          )}
-
-          {step === 4 && (
-            <div>
-              <div className="text-center mb-5">
-                <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
-                  <CheckCircle className="h-8 w-8 text-green-500" />
-                </div>
-                <h3 className="text-xl font-serif text-charcoal">
-                  Booking confirmed
-                </h3>
-                <p className="text-warm-gray text-sm mt-1">
-                  {clinician.name} ·{" "}
-                  {selectedDay ? getDayFormatted(selectedDay) : ""} ·{" "}
-                  {selectedSlot}
-                </p>
-              </div>
-
-              {emailSent && (
-                <div className="flex items-center gap-3 rounded-xl bg-blue-50 border border-blue-200 px-4 py-3 mb-4">
-                  <Send className="h-4 w-4 text-blue-500 shrink-0" />
-                  <p className="text-sm text-blue-700 font-medium">
-                    Invoice sent to <strong>{formData.email}</strong>
-                  </p>
-                </div>
-              )}
-
-              <div className="rounded-2xl border border-warm-gray/15 overflow-hidden">
-                <div
-                  className="p-4 flex items-center justify-between"
-                  style={{ background: brandGradient(color) }}
-                >
-                  <div>
-                    <p className="text-white font-bold text-sm">{clinicName}</p>
-                    <p className="text-white/70 text-xs mt-0.5">
-                      Invoice preview
+                      <CheckCircle className="h-8 w-8" style={{ color }} />
+                    </div>
+                    <h3 className="text-2xl font-serif text-charcoal">
+                      Booking confirmed
+                    </h3>
+                    <p className="text-warm-gray text-base mt-2">
+                      {clinician.name}
+                      {selectedDate
+                        ? ` · ${formatIsoLong(selectedDate)}`
+                        : ""}
+                      {selectedSlot ? ` · ${selectedSlot}` : ""}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-white/70 text-[10px] uppercase tracking-widest">
-                      Invoice
-                    </p>
-                    <p className="text-white font-black text-sm">
-                      {invoiceRef.current}
-                    </p>
-                  </div>
-                </div>
-                <div className="px-4 py-3 border-b border-warm-gray/10">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-bold text-charcoal">
-                        {selectedSession?.name}
-                      </p>
-                      <p className="text-xs text-warm-gray mt-0.5">
-                        {selectedSession?.durationLabel} · {clinician.name}
+
+                  {emailSent && (
+                    <div className="flex items-center gap-3 rounded-2xl bg-blue-50 border border-blue-200 px-4 py-3 mb-4">
+                      <Send className="h-4 w-4 text-blue-500 shrink-0" />
+                      <p className="text-sm text-blue-700 font-medium">
+                        Confirmation sent to{" "}
+                        <strong>{formData.email}</strong>
                       </p>
                     </div>
-                    <p className="text-base font-black" style={{ color }}>
-                      {selectedSession?.priceLabel}
-                    </p>
+                  )}
+
+                  <div className="rounded-2xl border border-warm-gray/15 overflow-hidden">
+                    <div
+                      className="p-4 flex items-center justify-between"
+                      style={{ background: brandGradient(color) }}
+                    >
+                      <div>
+                        <p className="text-white font-bold text-sm">
+                          {clinicName}
+                        </p>
+                        <p className="text-white/70 text-xs mt-0.5">
+                          Invoice preview
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-white/70 text-[10px] uppercase tracking-widest">
+                          Invoice
+                        </p>
+                        <p className="text-white font-black text-sm">
+                          {invoiceRef.current}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="px-4 py-3.5">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-bold text-charcoal">
+                            {selectedSession?.name}
+                          </p>
+                          <p className="text-xs text-warm-gray mt-0.5">
+                            {selectedSession?.durationLabel} · {clinician.name}
+                          </p>
+                        </div>
+                        <p className="text-base font-black" style={{ color }}>
+                          {selectedSession?.priceLabel}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </main>
 
-      <div className="fixed bottom-0 inset-x-0 z-50 border-t border-warm-gray/10 bg-cream/95 backdrop-blur-md">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4">
-          {step === 4 ? (
-            <div className="flex gap-2">
+      <div className="fixed bottom-0 inset-x-0 z-50 border-t border-warm-gray/10 bg-cream/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
+          {step === "success" ? (
+            <div className="flex gap-3 max-w-xl ml-auto">
               <button
                 type="button"
                 onClick={handleDownloadInvoice}
-                className="flex-1 flex items-center justify-center gap-2 py-3 border-2 font-bold rounded-full text-sm transition-all hover:opacity-80"
+                className="flex-1 flex items-center justify-center gap-2 py-4 border-2 font-semibold rounded-full text-base transition-all hover:opacity-80"
                 style={{ borderColor: color, color }}
               >
-                <Printer className="h-4 w-4" />
+                <Printer className="h-5 w-5" />
                 Download invoice
               </button>
               <button
                 type="button"
                 onClick={() => navigate(`/clinic-portal/${linkId}`)}
-                className="flex-1 py-3 font-bold rounded-full text-sm"
+                className="flex-1 py-4 font-semibold rounded-full text-base"
                 style={{ backgroundColor: accent, color: onBrand }}
               >
                 Done
               </button>
             </div>
           ) : (
-            <div className="flex gap-3">
-              {step > 1 && (
+            <div className="flex gap-3 items-center">
+              {step !== "session" && (
                 <button
                   type="button"
-                  onClick={() => setStep((s) => (s - 1) as Step)}
-                  className="flex items-center gap-2 px-5 py-3 border border-warm-gray/20 text-charcoal font-semibold rounded-full hover:bg-warm-white transition-colors text-sm"
+                  onClick={goToPrev}
+                  className="flex items-center gap-2 px-5 sm:px-6 py-4 border border-warm-gray/20 text-charcoal font-semibold rounded-full hover:bg-warm-white transition-colors text-base"
                 >
-                  <ArrowLeft className="h-4 w-4" /> Back
+                  <ArrowLeft className="h-5 w-5" />
+                  <span className="hidden sm:inline">Back</span>
                 </button>
               )}
-              <button
-                type="button"
-                onClick={step === 3 ? handleConfirm : handleNext}
-                disabled={isSubmitting}
-                className="flex-1 py-3 font-bold rounded-full transition-all flex items-center justify-center gap-2 disabled:opacity-70 text-sm"
-                style={{ backgroundColor: accent, color: onBrand }}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" /> Confirming...
-                  </>
-                ) : step === 3 ? (
-                  <>
-                    <CheckCircle className="h-4 w-4" /> Confirm booking
-                  </>
-                ) : (
-                  <>
-                    Next <ChevronRight className="h-4 w-4" />
-                  </>
-                )}
-              </button>
+              <div className="flex-1" />
+              {step !== "confirm" ? (
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  disabled={!canContinue}
+                  className="min-w-[160px] sm:min-w-[200px] py-4 px-7 font-semibold rounded-full transition-all flex items-center justify-center gap-2 disabled:opacity-40 text-base"
+                  style={{ backgroundColor: accent, color: onBrand }}
+                >
+                  Continue <ChevronRight className="h-5 w-5" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleConfirm}
+                  disabled={isSubmitting}
+                  className="min-w-[180px] sm:min-w-[220px] py-4 px-7 font-semibold rounded-full transition-all flex items-center justify-center gap-2 disabled:opacity-70 text-base"
+                  style={{ backgroundColor: accent, color: onBrand }}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" /> Confirming...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-5 w-5" /> Confirm booking
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           )}
         </div>
