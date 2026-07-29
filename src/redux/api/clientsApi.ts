@@ -1956,6 +1956,7 @@ export const clientsApi = createApi({
         clientFirstName: string;
         clientLastName: string;
         clientEmail: string;
+        emailVerificationToken: string;
         clientPhone?: string;
         clientCountryCode?: string;
         sessionId: string;
@@ -1970,6 +1971,56 @@ export const clientsApi = createApi({
         body,
       }),
       invalidatesTags: ["Clients"],
+    }),
+
+    sendPublicBookingEmailVerification: builder.mutation<
+      {
+        message: string;
+        response?: {
+          data?: {
+            challengeToken: string;
+            email: string;
+            expiresInSeconds: number;
+          };
+        };
+        data?: {
+          challengeToken: string;
+          email: string;
+          expiresInSeconds: number;
+        };
+      },
+      { token: string; email: string }
+    >({
+      query: ({ token, email }) => ({
+        url: `/appointment/${token}/email-verification/send`,
+        method: "POST",
+        body: { email },
+      }),
+    }),
+
+    verifyPublicBookingEmailVerification: builder.mutation<
+      {
+        message: string;
+        response?: {
+          data?: {
+            emailVerificationToken: string;
+            email: string;
+            expiresInSeconds: number;
+          };
+        };
+        data?: {
+          emailVerificationToken: string;
+          email: string;
+          expiresInSeconds: number;
+        };
+      },
+      { token: string; email: string; otp: string; challengeToken: string }
+    >({
+      query: ({ token, ...body }) => ({
+        url: `/appointment/${token}/email-verification/verify`,
+        method: "POST",
+        body,
+      }),
     }),
 
     createClinicMember: builder.mutation<
@@ -2108,4 +2159,6 @@ export const {
   useDeleteClientMutation,
   useCreateClinicalNoteMutation,
   useApplyAppointmentWithTokenMutation,
+  useSendPublicBookingEmailVerificationMutation,
+  useVerifyPublicBookingEmailVerificationMutation,
 } = clientsApi;

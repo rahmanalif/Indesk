@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ClipboardEvent, type ReactNode } from "react";
 import { gsap } from "gsap";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
@@ -24,6 +24,8 @@ import {
   useGetPublicAvailableSlotsQuery,
   useGetPublicClinicQuery,
   useGetSessionsByClinicianTokenQuery,
+  useSendPublicBookingEmailVerificationMutation,
+  useVerifyPublicBookingEmailVerificationMutation,
 } from "../../redux/api/clientsApi";
 import {
   brandBg,
@@ -52,6 +54,7 @@ type BookingStep =
   | "day"
   | "time"
   | "details"
+  | "verify"
   | "confirm"
   | "success";
 
@@ -127,6 +130,7 @@ const STEP_ORDER: Array<Exclude<BookingStep, "success">> = [
   "day",
   "time",
   "details",
+  "verify",
   "confirm",
 ];
 
@@ -136,6 +140,7 @@ const STEP_LABELS: Record<Exclude<BookingStep, "success">, string> = {
   day: "Date",
   time: "Time",
   details: "Details",
+  verify: "Verify",
   confirm: "Confirm",
 };
 
@@ -451,6 +456,15 @@ export function PublicBookAppointmentPage() {
     email: "",
     phone: "",
   });
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const otpInputRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const [challengeToken, setChallengeToken] = useState<string | null>(null);
+  const [emailVerificationToken, setEmailVerificationToken] = useState<
+    string | null
+  >(null);
+  const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null);
+  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(() => {
     const now = new Date();
@@ -610,6 +624,10 @@ export function PublicBookAppointmentPage() {
       refetchOnMountOrArgChange: false,
     });
   const [applyAppointment] = useApplyAppointmentWithTokenMutation();
+  const [sendBookingEmailVerification] =
+    useSendPublicBookingEmailVerificationMutation();
+  const [verifyBookingEmailVerification] =
+    useVerifyPublicBookingEmailVerificationMutation();
 
   const parsedApiSessions = useMemo(() => {
     const raw = clinicianSessionsResponse?.response?.data as any;
@@ -827,7 +845,131 @@ export function PublicBookAppointmentPage() {
     return Object.keys(e).length === 0;
   };
 
-  const handleNext = () => {
+  const clearEmailVerification = () => {
+    setOtp(["", "", "", "", "", ""]);
+    setChallengeToken(null);
+    setEmailVerificationToken(null);
+    setVerifiedEmail(null);
+  };
+
+  const extractResponseData = <T,>(response: any): T | undefined =>
+    (response?.response?.data as T | undefined) || (response?.data as T | undefined);
+
+  const sendVerificationCode = async () => {
+    if (!clinicianToken) return false;
+    setIsSendingCode(true);
+    setErrors({});
+    try {
+      const response = await sendBookingEmailVerification({
+        token: clinicianToken,
+        email: formData.email.trim().toLowerCase(),
+      }).unwrap();
+      const data = extractResponseData<{ challengeToken: string }>(response);
+      if (!data?.challengeToken) {
+        throw new Error("Missing verification challenge");
+      }
+      setChallengeToken(data.challengeToken);
+      setEmailVerificationToken(null);
+      setVerifiedEmail(null);
+      setOtp(["", "", "", "", "", ""]);
+      return true;
+    } catch (err: any) {
+      setErrors({
+        email:
+          err?.data?.message ||
+          err?.message ||
+          "Failed to send verification code",
+      });
+      return false;
+    } finally {
+      setIsSendingCode(false);
+    }
+  };
+
+  const handleVerifyEmail = async () => {
+    if (!clinicianToken || !challengeToken) {
+      setErrors({ otp: "Please request a verification code first." });
+      return false;
+    }
+    const code = otp.join("").trim();
+    if (code.length !== 6) {
+      setErrors({ otp: "Please enter the 6-digit verification code." });
+      return false;
+    }
+    setIsVerifyingCode(true);
+    setErrors({});
+    try {
+      const response = await verifyBookingEmailVerification({
+        token: clinicianToken,
+        email: formData.email.trim().toLowerCase(),
+        otp: code,
+        challengeToken,
+      }).unwrap();
+      const data = extractResponseData<{
+        emailVerificationToken: string;
+        email: string;
+      }>(response);
+      if (!data?.emailVerificationToken) {
+        throw new Error("Missing verification token");
+      }
+      setEmailVerificationToken(data.emailVerificationToken);
+      setVerifiedEmail(data.email || formData.email.trim().toLowerCase());
+      return true;
+    } catch (err: any) {
+      setErrors({
+        otp:
+          err?.data?.message ||
+          err?.message ||
+          "Invalid or expired verification code",
+      });
+      return false;
+    } finally {
+      setIsVerifyingCode(false);
+    }
+  };
+
+  const handleOtpChange = (index: number, value: string) => {
+    const digit = value.replace(/\D/g, "").slice(-1);
+    const nextOtp = [...otp];
+    nextOtp[index] = digit;
+    setOtp(nextOtp);
+    if (digit && index < otpInputRefs.current.length - 1) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (
+    index: number,
+    e: KeyboardEvent<HTMLInputElement>,
+  ) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    }
+    if (e.key === "ArrowLeft" && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    }
+    if (e.key === "ArrowRight" && index < otpInputRefs.current.length - 1) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedDigits = e.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, otp.length);
+    if (!pastedDigits) return;
+    const nextOtp = [...otp];
+    pastedDigits.split("").forEach((digit, index) => {
+      nextOtp[index] = digit;
+    });
+    setOtp(nextOtp);
+    const nextFocusIndex = Math.min(pastedDigits.length, otp.length - 1);
+    otpInputRefs.current[nextFocusIndex]?.focus();
+  };
+
+  const handleNext = async () => {
     if (step === "session") {
       if (!selectedSessionId) {
         setErrors({ session: "Please select a session." });
@@ -856,13 +998,35 @@ export function PublicBookAppointmentPage() {
       goToNext("time");
       return;
     }
-    if (step === "details" && validateDetails()) {
-      goToNext("details");
+    if (step === "details") {
+      if (!validateDetails()) return;
+      const sent = await sendVerificationCode();
+      if (sent) goToNext("details");
+      return;
+    }
+    if (step === "verify") {
+      const email = formData.email.trim().toLowerCase();
+      if (emailVerificationToken && verifiedEmail === email) {
+        goToNext("verify");
+        return;
+      }
+      const verified = await handleVerifyEmail();
+      if (verified) goToNext("verify");
     }
   };
 
   const handleConfirm = async () => {
     if (!clinician || !selectedDate || !selectedSessionId) return;
+    if (
+      !emailVerificationToken ||
+      verifiedEmail !== formData.email.trim().toLowerCase()
+    ) {
+      setErrors({
+        submit: "Please verify your email before confirming the booking.",
+      });
+      setStep("verify");
+      return;
+    }
     setIsSubmitting(true);
     try {
       const clinicianTimezone = clinician.timezone || "Europe/London";
@@ -887,6 +1051,7 @@ export function PublicBookAppointmentPage() {
         clientFirstName: formData.firstName,
         clientLastName: formData.lastName,
         clientEmail: formData.email,
+        emailVerificationToken,
         clientPhone: parsedPhone
           ? parsedPhone.nationalNumber
           : formData.phone,
@@ -961,6 +1126,7 @@ export function PublicBookAppointmentPage() {
     day: "Which date works for you?",
     time: "What time suits you?",
     details: "Your contact details",
+    verify: "Verify your email",
     confirm: "Please check your booking",
     success: "You're all set",
   };
@@ -972,7 +1138,8 @@ export function PublicBookAppointmentPage() {
     time: selectedDate
       ? `Open times on ${formatIsoLong(selectedDate)}.`
       : "Select a time that works for you.",
-    details: "We’ll use these details to confirm your appointment.",
+    details: "For verification, we’ll send a one-time code (OTP) to your email.",
+    verify: `Enter the 6-digit code we sent to ${formData.email || "your email"}.`,
     confirm: "Take a moment to review, then confirm.",
     success: "Your appointment is confirmed.",
   };
@@ -1028,7 +1195,13 @@ export function PublicBookAppointmentPage() {
     (step === "day" && Boolean(selectedDate)) ||
     (step === "time" && Boolean(selectedSlot)) ||
     step === "details" ||
+    (step === "verify" &&
+      (otp.join("").length === 6 ||
+        (Boolean(emailVerificationToken) &&
+          verifiedEmail === formData.email.trim().toLowerCase()))) ||
     step === "confirm";
+
+  const footerBusy = isSendingCode || isVerifyingCode || isSubmitting;
 
   return (
     <div
@@ -1654,9 +1827,16 @@ export function PublicBookAppointmentPage() {
                       <input
                         type="email"
                         value={formData.email}
-                        onChange={(e) =>
-                          setFormData((f) => ({ ...f, email: e.target.value }))
-                        }
+                        onChange={(e) => {
+                          const nextEmail = e.target.value;
+                          setFormData((f) => ({ ...f, email: nextEmail }));
+                          if (
+                            verifiedEmail &&
+                            nextEmail.trim().toLowerCase() !== verifiedEmail
+                          ) {
+                            clearEmailVerification();
+                          }
+                        }}
                         placeholder="alex@email.com"
                         className={`${inputWithIcon} ${
                           errors.email
@@ -1667,6 +1847,11 @@ export function PublicBookAppointmentPage() {
                     </div>
                     {errors.email && (
                       <p className="text-red-600 text-sm mt-1.5">{errors.email}</p>
+                    )}
+                    {!errors.email && (
+                      <p className="text-sm text-warm-gray mt-1.5">
+                        We’ll send a verification OTP to this email before booking.
+                      </p>
                     )}
                   </div>
                   <div>
@@ -1682,6 +1867,67 @@ export function PublicBookAppointmentPage() {
                       className="[&_.PhoneInput]:h-14 [&_.PhoneInput]:rounded-2xl [&_.PhoneInput]:px-4 [&_.PhoneInput]:text-base [&_.PhoneInput]:border-warm-gray/20"
                     />
                   </div>
+                </div>
+              )}
+
+              {step === "verify" && (
+                <div className="space-y-6 max-w-lg">
+                  <div className="rounded-2xl border border-warm-gray/15 bg-warm-white px-5 py-4">
+                    <p className="text-sm text-warm-gray">Code sent to</p>
+                    <p className="text-lg font-semibold text-charcoal break-all">
+                      {formData.email}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-charcoal mb-3">
+                      Verification code
+                    </label>
+                    <div className="flex gap-2 sm:gap-3">
+                      {otp.map((digit, index) => (
+                        <input
+                          key={index}
+                          ref={(element) => {
+                            otpInputRefs.current[index] = element;
+                          }}
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete={index === 0 ? "one-time-code" : "off"}
+                          maxLength={1}
+                          value={digit}
+                          onChange={(e) => handleOtpChange(index, e.target.value)}
+                          onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                          onPaste={handleOtpPaste}
+                          className={`h-14 w-11 sm:w-12 text-center text-xl font-semibold border rounded-2xl bg-warm-white focus:outline-none focus:ring-2 ${
+                            errors.otp
+                              ? "border-red-400 bg-red-50"
+                              : "border-warm-gray/20"
+                          }`}
+                          style={
+                            {
+                              ["--tw-ring-color" as string]: brandBg(color, 0.35),
+                            } as CSSProperties
+                          }
+                        />
+                      ))}
+                    </div>
+                    {errors.otp && (
+                      <p className="text-red-600 text-sm mt-2">{errors.otp}</p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const sent = await sendVerificationCode();
+                      if (sent) {
+                        setErrors({});
+                      }
+                    }}
+                    disabled={isSendingCode}
+                    className="text-sm font-semibold underline disabled:opacity-50"
+                    style={{ color: textColor }}
+                  >
+                    {isSendingCode ? "Sending new code..." : "Resend code"}
+                  </button>
                 </div>
               )}
 
@@ -1851,11 +2097,28 @@ export function PublicBookAppointmentPage() {
                 <button
                   type="button"
                   onClick={handleNext}
-                  disabled={!canContinue}
+                  disabled={!canContinue || footerBusy}
                   className="min-w-[160px] sm:min-w-[200px] py-4 px-7 font-semibold rounded-full transition-all flex items-center justify-center gap-2 disabled:opacity-40 text-base"
                   style={{ backgroundColor: accent, color: onBrand }}
                 >
-                  Continue <ChevronRight className="h-5 w-5" />
+                  {isSendingCode || isVerifyingCode ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      {isSendingCode ? "Sending code..." : "Verifying..."}
+                    </>
+                  ) : step === "details" ? (
+                    <>
+                      Send code <Send className="h-5 w-5" />
+                    </>
+                  ) : step === "verify" ? (
+                    <>
+                      Verify email <Check className="h-5 w-5" strokeWidth={3} />
+                    </>
+                  ) : (
+                    <>
+                      Continue <ChevronRight className="h-5 w-5" />
+                    </>
+                  )}
                 </button>
               ) : (
                 <button
