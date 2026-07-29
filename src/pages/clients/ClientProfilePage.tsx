@@ -1,521 +1,643 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useOutletContext } from 'react-router-dom';
-import { Save, User, Shield, AlertCircle, Clock, Video, Building2 } from 'lucide-react';
-import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
-import { Badge } from '../../components/ui/Badge';
-import { DatePicker } from '../../components/ui/DatePicker';
-import { Select } from '../../components/ui/Select';
-import { COUNTRY_OPTIONS } from '../../lib/countryPhoneOptions';
-import { useUpdateClientMutation } from '../../redux/api/clientsApi';
-import { useGetIntegrationsQuery } from '../../redux/api/integrationApi';
+import { useState, useEffect } from "react";
+import { useNavigate, useOutletContext } from "react-router-dom";
+import {
+  Save,
+  User,
+  Shield,
+  AlertCircle,
+  Clock,
+  Video,
+  Building2,
+} from "lucide-react";
+import { Button } from "../../components/ui/Button";
+import { Input } from "../../components/ui/Input";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "../../components/ui/Card";
+import { Badge } from "../../components/ui/Badge";
+import { DatePicker } from "../../components/ui/DatePicker";
+import { Select } from "../../components/ui/Select";
+import { COUNTRY_OPTIONS } from "../../lib/countryPhoneOptions";
+import { useUpdateClientMutation } from "../../redux/api/clientsApi";
+import { useGetIntegrationsQuery } from "../../redux/api/integrationApi";
 
 type ClientOutletContext = {
-    client: {
-        id: string;
-        name: string;
-        email: string;
-        phone: string;
-        status: 'Active' | 'Waiting List' | 'Inactive';
-    };
-    clientRaw: any;
+  client: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    status: "Active" | "Waiting List" | "Inactive";
+  };
+  clientRaw: any;
 };
 
 export function ClientProfilePage() {
-    const navigate = useNavigate();
-    const { client, clientRaw } = useOutletContext<ClientOutletContext>();
-    const [updateClient, { isLoading }] = useUpdateClientMutation();
-    const { data: integrationsResponse } = useGetIntegrationsQuery();
+  const navigate = useNavigate();
+  const { client, clientRaw } = useOutletContext<ClientOutletContext>();
+  const [updateClient, { isLoading }] = useUpdateClientMutation();
+  const { data: integrationsResponse } = useGetIntegrationsQuery();
 
-    const [formData, setFormData] = useState({
-        firstName: '',
-        lastName: '',
-        email: '',
-        phoneNumber: '',
-        countryCode: '',
-        gender: '',
-        status: '',
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phoneNumber: "",
+    countryCode: "",
+    gender: "",
+    status: "",
+    address: {
+      street: "",
+      city: "",
+      state: "",
+      zip: "",
+      country: "",
+    },
+    insuranceProvider: "",
+    insuranceNumber: "",
+    insuranceAuthorizationNumber: "",
+    gpName: "",
+    surgeryName: "",
+    surgeryStreet: "",
+    surgeryCity: "",
+    surgeryPostcode: "",
+    medicalAlerts: "",
+  });
+  const [dob, setDob] = useState<Date | undefined>(undefined);
+
+  useEffect(() => {
+    if (clientRaw) {
+      const rawDob = clientRaw?.dateOfBirth
+        ? new Date(clientRaw.dateOfBirth)
+        : undefined;
+      setDob(rawDob && !isNaN(rawDob.getTime()) ? rawDob : undefined);
+
+      setFormData({
+        firstName: clientRaw?.firstName || client.name.split(" ")[0] || "",
+        lastName: clientRaw?.lastName || client.name.split(" ")[1] || "",
+        email: clientRaw?.email || client.email || "",
+        phoneNumber: clientRaw?.phoneNumber || client.phone || "",
+        countryCode: clientRaw?.countryCode || "+1",
+        gender: clientRaw?.gender || "",
+        status: clientRaw?.status || "active",
         address: {
-            street: '',
-            city: '',
-            state: '',
-            zip: '',
-            country: ''
+          street: clientRaw?.address?.street || "",
+          city: clientRaw?.address?.city || "",
+          state: clientRaw?.address?.state || "",
+          zip: clientRaw?.address?.zip || "",
+          country: clientRaw?.address?.country || "",
         },
-        insuranceProvider: '',
-        insuranceNumber: '',
-        insuranceAuthorizationNumber: '',
-        gpName: '',
-        surgeryName: '',
-        surgeryStreet: '',
-        surgeryCity: '',
-        surgeryPostcode: '',
-        medicalAlerts: ''
-    });
-    const [dob, setDob] = useState<Date | undefined>(undefined);
+        insuranceProvider: clientRaw?.insuranceProvider || "",
+        insuranceNumber: clientRaw?.insuranceNumber || "",
+        insuranceAuthorizationNumber:
+          clientRaw?.insuranceAuthorizationNumber || "",
+        gpName: clientRaw?.gpName || "",
+        surgeryName: clientRaw?.surgeryName || "",
+        surgeryStreet: clientRaw?.surgeryStreet || "",
+        surgeryCity: clientRaw?.surgeryCity || "",
+        surgeryPostcode: clientRaw?.surgeryPostcode || "",
+        medicalAlerts: clientRaw?.medicalAlerts || "",
+      });
+    }
+  }, [clientRaw, client]);
 
-    useEffect(() => {
-        if (clientRaw) {
-            const rawDob = clientRaw?.dateOfBirth ? new Date(clientRaw.dateOfBirth) : undefined;
-            setDob(rawDob && !isNaN(rawDob.getTime()) ? rawDob : undefined);
-            
-            setFormData({
-                firstName: clientRaw?.firstName || client.name.split(' ')[0] || '',
-                lastName: clientRaw?.lastName || client.name.split(' ')[1] || '',
-                email: clientRaw?.email || client.email || '',
-                phoneNumber: clientRaw?.phoneNumber || client.phone || '',
-                countryCode: clientRaw?.countryCode || '+1',
-                gender: clientRaw?.gender || '',
-                status: clientRaw?.status || 'active',
-                address: {
-                    street: clientRaw?.address?.street || '',
-                    city: clientRaw?.address?.city || '',
-                    state: clientRaw?.address?.state || '',
-                    zip: clientRaw?.address?.zip || '',
-                    country: clientRaw?.address?.country || ''
-                },
-                insuranceProvider: clientRaw?.insuranceProvider || '',
-                insuranceNumber: clientRaw?.insuranceNumber || '',
-                insuranceAuthorizationNumber: clientRaw?.insuranceAuthorizationNumber || '',
-                gpName: clientRaw?.gpName || '',
-                surgeryName: clientRaw?.surgeryName || '',
-                surgeryStreet: clientRaw?.surgeryStreet || '',
-                surgeryCity: clientRaw?.surgeryCity || '',
-                surgeryPostcode: clientRaw?.surgeryPostcode || '',
-                medicalAlerts: clientRaw?.medicalAlerts || ''
-            });
-        }
-    }, [clientRaw, client]);
+  if (!client) return null;
 
-    if (!client) return null;
-
-    const integrationsRaw = integrationsResponse?.response?.data;
-    const integrations = Array.isArray(integrationsRaw) ? integrationsRaw : integrationsRaw?.docs || [];
-    const isIntegrationConnected = (type: string) =>
-        integrations.some((integration: any) => {
-            const normalizedType = String(integration?.type || integration?.name || '')
-                .toLowerCase()
-                .replace(/[\s-]+/g, '_');
-            const normalizedStatus = String(integration?.status || '').toLowerCase();
-            const matchesType = normalizedType === type;
-            const isConnected = normalizedStatus === 'connected' || integration?.isConnected === true;
-            return matchesType && isConnected;
-        });
-
-    const zoomConnected = isIntegrationConnected('zoom');
-    const googleMeetConnected = isIntegrationConnected('google_meet');
-
-    const getMeetingJoinUrl = (appointment: any, provider: 'zoom' | 'google_meet' | 'video') => {
-        const zoomCandidates = [
-            appointment?.zoomJoinUrl,
-            appointment?.zoomStartUrl,
-        ];
-        const googleMeetCandidates = [
-            appointment?.googleMeetJoinUrl,
-            appointment?.googleMeetStartUrl,
-            appointment?.googleMeetUrl,
-            appointment?.googleMeetLink,
-        ];
-        const genericCandidates = [
-            appointment?.meetingLink,
-            appointment?.meetingUrl,
-            appointment?.joinLink,
-            appointment?.joinUrl,
-            appointment?.videoLink,
-            appointment?.videoUrl,
-            appointment?.location,
-            appointment?.url,
-        ];
-
-        const candidates = provider === 'zoom'
-            ? [...zoomCandidates, ...genericCandidates]
-            : provider === 'google_meet'
-                ? [...googleMeetCandidates, ...genericCandidates]
-                : [...genericCandidates, ...zoomCandidates, ...googleMeetCandidates];
-
-        return candidates.find((value) => typeof value === 'string' && value.trim()) || null;
-    };
-
-    const appointments = [...(clientRaw?.appointments || [])]
-        .sort((a: any, b: any) => {
-            const aTime = a?.startTime ? new Date(a.startTime).getTime() : 0;
-            const bTime = b?.startTime ? new Date(b.startTime).getTime() : 0;
-            return bTime - aTime;
-        })
-        .map((apt: any) => {
-        const start = apt?.startTime ? new Date(apt.startTime) : null;
-        const end = apt?.endTime ? new Date(apt.endTime) : null;
-        const duration = start && end ? Math.round((end.getTime() - start.getTime()) / 60000) : 0;
-        const normalizedMeetingType = String(apt.meetingType || '').toLowerCase().replace(/[\s-]+/g, '_');
-        const provider = normalizedMeetingType === 'google_meet'
-            ? 'google_meet'
-            : apt.zoomJoinUrl || apt.zoomStartUrl || normalizedMeetingType === 'zoom'
-                ? 'zoom'
-                : 'video';
-        const joinUrl = getMeetingJoinUrl(apt, provider);
-        const isProviderConnected = provider === 'google_meet' ? googleMeetConnected : provider === 'zoom' ? zoomConnected : zoomConnected || googleMeetConnected;
-        const providerLabel = provider === 'google_meet' ? 'Google Meet' : provider === 'zoom' ? 'Zoom' : 'Video Session';
-
-        return {
-            id: apt.id,
-            date: start ? start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-',
-            time: start ? start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '-',
-            duration: duration || 0,
-            type: providerLabel,
-            status: apt.status || 'pending',
-            videoLink: joinUrl,
-            provider,
-            isProviderConnected,
-        };
+  const integrationsRaw = integrationsResponse?.response?.data;
+  const integrations = Array.isArray(integrationsRaw)
+    ? integrationsRaw
+    : integrationsRaw?.docs || [];
+  const isIntegrationConnected = (type: string) =>
+    integrations.some((integration: any) => {
+      const normalizedType = String(
+        integration?.type || integration?.name || "",
+      )
+        .toLowerCase()
+        .replace(/[\s-]+/g, "_");
+      const normalizedStatus = String(integration?.status || "").toLowerCase();
+      const matchesType = normalizedType === type;
+      const isConnected =
+        normalizedStatus === "connected" || integration?.isConnected === true;
+      return matchesType && isConnected;
     });
 
+  const zoomConnected = isIntegrationConnected("zoom");
+  const googleMeetConnected = isIntegrationConnected("google_meet");
 
+  const getMeetingJoinUrl = (
+    appointment: any,
+    provider: "zoom" | "google_meet" | "video",
+  ) => {
+    const zoomCandidates = [
+      appointment?.zoomJoinUrl,
+      appointment?.zoomStartUrl,
+    ];
+    const googleMeetCandidates = [
+      appointment?.googleMeetJoinUrl,
+      appointment?.googleMeetStartUrl,
+      appointment?.googleMeetUrl,
+      appointment?.googleMeetLink,
+    ];
+    const genericCandidates = [
+      appointment?.meetingLink,
+      appointment?.meetingUrl,
+      appointment?.joinLink,
+      appointment?.joinUrl,
+      appointment?.videoLink,
+      appointment?.videoUrl,
+      appointment?.location,
+      appointment?.url,
+    ];
 
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();
-        
-        // Validate required fields
-        if (!formData.firstName || !formData.lastName) {
-            alert('First name and last name are required');
-            return;
-        }
-        
-        if (!formData.email) {
-            alert('Email is required');
-            return;
-        }
-        
-        try {
-            const updateData = {
-                clientId: client.id,
-                firstName: formData.firstName,
-                lastName: formData.lastName,
-                email: formData.email,
-                phoneNumber: formData.phoneNumber || null,
-                countryCode: formData.countryCode || '+1',
-                dateOfBirth: dob ? dob.toISOString().split('T')[0] : null, // Send only date part
-                gender: formData.gender ? formData.gender.toLowerCase() : null,
-                status: formData.status ? formData.status.toLowerCase() : 'active',
-                assignedClinicianId: clientRaw?.assignedClinicianId || null,
-                address: formData.address,
-                insuranceProvider: formData.insuranceProvider || null,
-                insuranceNumber: formData.insuranceNumber || null,
-                insuranceAuthorizationNumber: formData.insuranceAuthorizationNumber || null,
-                gpName: formData.gpName || null,
-                surgeryName: formData.surgeryName || null,
-                surgeryStreet: formData.surgeryStreet || null,
-                surgeryCity: formData.surgeryCity || null,
-                surgeryPostcode: formData.surgeryPostcode || null,
-            };
-
-            console.log('Updating client with data:', updateData);
-            const response = await updateClient(updateData).unwrap();
-            console.log('Update response:', response);
-            
-            if (response.success) {
-                alert('Client profile updated successfully!');
-            }
-        } catch (error: any) {
-            console.error('Failed to update client:', error);
-            const errorMessage = error?.data?.message || error?.message || 'Failed to update client profile';
-            alert(errorMessage);
-        }
-    };
-
-    const handleInputChange = (field: string, value: any) => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: value
-        }));
-    };
-
-    const handleAddressChange = (field: string, value: string) => {
-        setFormData(prev => ({
-            ...prev,
-            address: {
-                ...prev.address,
-                [field]: value
-            }
-        }));
-    };
+    const candidates =
+      provider === "zoom"
+        ? [...zoomCandidates, ...genericCandidates]
+        : provider === "google_meet"
+          ? [...googleMeetCandidates, ...genericCandidates]
+          : [...genericCandidates, ...zoomCandidates, ...googleMeetCandidates];
 
     return (
-        <form onSubmit={handleSave} className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 2xl:grid-cols-[minmax(0,2fr)_minmax(320px,0.95fr)]">
-                <div className="min-w-0 space-y-4">
-                    {/* Personal Info */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <User className="h-5 w-5 text-primary" />
-                                Personal Information
-                            </CardTitle>
-                            <CardDescription>
-                                Basic identity details required for identification and billing.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 sm:p-5">
-                            <Input 
-                                label="First Name" 
-                                value={formData.firstName} 
-                                onChange={(e) => handleInputChange('firstName', e.target.value)}
-                                className="h-11 rounded-xl bg-secondary/30" 
-                                maxLength={50}
-                            />
-                            <Input 
-                                label="Last Name" 
-                                value={formData.lastName} 
-                                onChange={(e) => handleInputChange('lastName', e.target.value)}
-                                className="h-11 rounded-xl bg-secondary/30" 
-                                maxLength={50}
-                            />
-                            <DatePicker label="Date of Birth" date={dob} setDate={setDob} triggerClassName="h-11 rounded-xl" />
-                            <Select
-                                label="Gender Identity"
-                                value={formData.gender}
-                                onChange={(e) => handleInputChange('gender', e.target.value)}
-                                triggerClassName="h-11 rounded-xl"
-                                options={[
-                                    { value: 'female', label: 'Female' },
-                                    { value: 'male', label: 'Male' },
-                                    { value: 'non-binary', label: 'Non-binary' }
-                                ]}
-                            />
-                        </CardContent>
-                    </Card>
-
-                    {/* Address */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">Address & Location</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4 p-4 sm:p-5">
-                            <Input 
-                                label="Street Address" 
-                                value={formData.address.street} 
-                                onChange={(e) => handleAddressChange('street', e.target.value)}
-                                className="h-11 rounded-xl bg-secondary/30" 
-                                maxLength={200}
-                            />
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <Input 
-                                    label="City" 
-                                    value={formData.address.city} 
-                                    onChange={(e) => handleAddressChange('city', e.target.value)}
-                                    className="h-11 rounded-xl bg-secondary/30" 
-                                    maxLength={100}
-                                />
-                                <Input 
-                                    label="State/Province" 
-                                    value={formData.address.state} 
-                                    onChange={(e) => handleAddressChange('state', e.target.value)}
-                                    className="h-11 rounded-xl bg-secondary/30" 
-                                    maxLength={100}
-                                />
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <Input 
-                                    label="Postal Code" 
-                                    value={formData.address.zip} 
-                                    onChange={(e) => handleAddressChange('zip', e.target.value)}
-                                    className="h-11 rounded-xl bg-secondary/30" 
-                                    maxLength={30}
-                                />
-                                <Select 
-                                    label="Country" 
-                                    value={formData.address.country} 
-                                    onChange={(e) => handleAddressChange('country', e.target.value)}
-                                    triggerClassName="h-11 rounded-xl bg-secondary/30"
-                                    options={COUNTRY_OPTIONS}
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
-                    {/* Medical Alerts */}
-                    <Card className="border-l-4 border-l-red-500">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-red-600">
-                        <AlertCircle className="h-5 w-5" />
-                        Medical Alerts
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <textarea
-                        className="flex min-h-[135px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-y"
-                        placeholder="List any critical allergies, conditions, or risks here..."
-                        value={formData.medicalAlerts}                       
-                        onChange={(e) => handleInputChange('medicalAlerts', e.target.value)}
-                        maxLength={500}
-                    />
-                </CardContent>
-            </Card>
-                </div>
-
-                <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-3 2xl:block 2xl:space-y-4">
-                    {/* Upcoming Appointments Card */}
-                    <Card className="border-primary/20 shadow-md shadow-primary/5">
-                        <CardHeader className="pb-3 text-primary/80 flex-row items-center justify-between space-y-0">
-                            <CardTitle className="text-lg flex items-center gap-2">
-                                <Clock className="h-5 w-5" />
-                                Upcoming Sessions
-                            </CardTitle>
-                            {appointments.length > 0 && (
-                                <button
-                                    type="button"
-                                    onClick={() => navigate(`/appointments?clientId=${client.id}&clientName=${encodeURIComponent(client.name)}`)}
-                                    className="text-xs font-semibold text-primary hover:underline"
-                                >
-                                    View all
-                                </button>
-                            )}
-                        </CardHeader>
-                        <CardContent>
-                            {appointments.length === 0 ? (
-                                <p className="text-sm text-muted-foreground text-center py-4">No upcoming sessions found.</p>
-                            ) : (
-                                <div className="space-y-4">
-                                    {appointments.slice(0, 3).map(apt => (
-                                        <div key={apt.id} className="p-3 rounded-lg border border-border/50 bg-muted/5 space-y-2">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <p className="font-semibold text-sm">{apt.date}</p>
-                                            <p className="text-xs text-muted-foreground">{apt.time} ({apt.duration} min)</p>
-                                        </div>
-                                        <Badge variant="outline" className="text-[10px]">{apt.status}</Badge>
-                                    </div>
-                                    <p className="text-xs font-medium text-primary">{apt.type}</p>
-                                    {apt.isProviderConnected && apt.videoLink ? (
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="secondary"
-                                            className="w-full bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
-                                            onClick={() => window.open(apt.videoLink, '_blank')}
-                                        >
-                                            <Video className="h-4 w-4 mr-2" />
-                                            {apt.provider === 'google_meet' ? 'Join Google Meet' : 'Join Zoom'}
-                                        </Button>
-                                    ) : (
-                                        <button
-                                            type="button"
-                                            onClick={() => navigate('/integrations')}
-                                            className="w-full rounded-lg border border-dashed border-amber-300 bg-amber-50 px-3 py-2 text-left text-xs font-medium text-amber-800 hover:bg-amber-100 transition-colors"
-                                        >
-                                            Please connect Zoom or Google Meet in Integrations to enable session joining.
-                                        </button>
-                                    )}
-                                        </div>
-                                    ))}
-                                    {appointments.length > 3 && (
-                                        <button
-                                            type="button"
-                                            onClick={() => navigate(`/appointments?clientId=${client.id}&clientName=${encodeURIComponent(client.name)}`)}
-                                            className="w-full text-center text-xs font-semibold text-primary hover:underline pt-1"
-                                        >
-                                            View all {appointments.length} sessions
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {/* Insurance */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Shield className="h-5 w-5 text-primary" />
-                                Insurance
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            <Input 
-                                label="Provider" 
-                                value={formData.insuranceProvider} 
-                                onChange={(e) => handleInputChange('insuranceProvider', e.target.value)}
-                                className="h-11 rounded-xl" 
-                                maxLength={200}
-                            />
-                            <Input 
-                                label="Member ID" 
-                                value={formData.insuranceNumber} 
-                                onChange={(e) => handleInputChange('insuranceNumber', e.target.value)}
-                                className="h-11 rounded-xl" 
-                                maxLength={100}
-                            />
-                            <Input 
-                                label="Authorisation Code" 
-                                value={formData.insuranceAuthorizationNumber} 
-                                onChange={(e) => handleInputChange('insuranceAuthorizationNumber', e.target.value)}
-                                className="h-11 rounded-xl" 
-                                maxLength={100}
-                            />
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Building2 className="h-5 w-5 text-primary" />
-                                GP Details
-                            </CardTitle>
-                            <CardDescription>
-                                Primary care and surgery information for referrals and coordination.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            <Input
-                                label="GP Name"
-                                value={formData.gpName}
-                                onChange={(e) => handleInputChange('gpName', e.target.value)}
-                                className="h-11 rounded-xl"
-                                maxLength={200}
-                            />
-                            <Input
-                                label="Surgery Name"
-                                value={formData.surgeryName}
-                                onChange={(e) => handleInputChange('surgeryName', e.target.value)}
-                                className="h-11 rounded-xl"
-                                maxLength={200}
-                            />
-                            <Input
-                                label="Surgery Street Address"
-                                value={formData.surgeryStreet}
-                                onChange={(e) => handleInputChange('surgeryStreet', e.target.value)}
-                                className="h-11 rounded-xl"
-                                maxLength={200}
-                            />
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <Input
-                                    label="City / Town"
-                                    value={formData.surgeryCity}
-                                    onChange={(e) => handleInputChange('surgeryCity', e.target.value)}
-                                    className="h-11 rounded-xl"
-                                    maxLength={100}
-                                />
-                                <Input
-                                    label="Postcode"
-                                    value={formData.surgeryPostcode}
-                                    onChange={(e) => handleInputChange('surgeryPostcode', e.target.value)}
-                                    className="h-11 rounded-xl"
-                                    maxLength={30}
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
-
-            {/* Medical Alert */}
-            
-
-            <div className="flex justify-end pt-4">
-                <Button type="submit" size="default" isLoading={isLoading} className="w-full sm:w-auto px-10 h-11 rounded-xl">
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Changes
-                </Button>
-            </div>
-        </form>
+      candidates.find((value) => typeof value === "string" && value.trim()) ||
+      null
     );
+  };
+
+  const appointments = [...(clientRaw?.appointments || [])]
+    .sort((a: any, b: any) => {
+      const aTime = a?.startTime ? new Date(a.startTime).getTime() : 0;
+      const bTime = b?.startTime ? new Date(b.startTime).getTime() : 0;
+      return bTime - aTime;
+    })
+    .map((apt: any) => {
+      const start = apt?.startTime ? new Date(apt.startTime) : null;
+      const end = apt?.endTime ? new Date(apt.endTime) : null;
+      const duration =
+        start && end
+          ? Math.round((end.getTime() - start.getTime()) / 60000)
+          : 0;
+      const normalizedMeetingType = String(apt.meetingType || "")
+        .toLowerCase()
+        .replace(/[\s-]+/g, "_");
+      const provider =
+        normalizedMeetingType === "google_meet"
+          ? "google_meet"
+          : apt.zoomJoinUrl ||
+              apt.zoomStartUrl ||
+              normalizedMeetingType === "zoom"
+            ? "zoom"
+            : "video";
+      const joinUrl = getMeetingJoinUrl(apt, provider);
+      const isProviderConnected =
+        provider === "google_meet"
+          ? googleMeetConnected
+          : provider === "zoom"
+            ? zoomConnected
+            : zoomConnected || googleMeetConnected;
+      const providerLabel =
+        provider === "google_meet"
+          ? "Google Meet"
+          : provider === "zoom"
+            ? "Zoom"
+            : "Video Session";
+
+      return {
+        id: apt.id,
+        date: start
+          ? start.toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })
+          : "-",
+        time: start
+          ? start.toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
+            })
+          : "-",
+        duration: duration || 0,
+        type: providerLabel,
+        status: apt.status || "pending",
+        videoLink: joinUrl,
+        provider,
+        isProviderConnected,
+      };
+    });
+
+  const clientStatus = {
+    active: "Active",
+    waiting_list: "Waiting List",
+    inactive: "Inactive",
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Validate required fields
+    if (!formData.firstName || !formData.lastName) {
+      alert("First name and last name are required");
+      return;
+    }
+
+    if (!formData.email) {
+      alert("Email is required");
+      return;
+    }
+
+    try {
+      const updateData = {
+        clientId: client.id,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phoneNumber: formData.phoneNumber || null,
+        countryCode: formData.countryCode || "+1",
+        dateOfBirth: dob ? dob.toISOString().split("T")[0] : null, // Send only date part
+        gender: formData.gender ? formData.gender.toLowerCase() : null,
+        status: formData.status ? formData.status.toLowerCase() : "active",
+        assignedClinicianId: clientRaw?.assignedClinicianId || null,
+        address: formData.address,
+        insuranceProvider: formData.insuranceProvider || null,
+        insuranceNumber: formData.insuranceNumber || null,
+        insuranceAuthorizationNumber:
+          formData.insuranceAuthorizationNumber || null,
+        gpName: formData.gpName || null,
+        surgeryName: formData.surgeryName || null,
+        surgeryStreet: formData.surgeryStreet || null,
+        surgeryCity: formData.surgeryCity || null,
+        surgeryPostcode: formData.surgeryPostcode || null,
+      };
+
+      console.log("Updating client with data:", updateData);
+      const response = await updateClient(updateData).unwrap();
+      console.log("Update response:", response);
+
+      if (response.success) {
+        alert("Client profile updated successfully!");
+      }
+    } catch (error: any) {
+      console.error("Failed to update client:", error);
+      const errorMessage =
+        error?.data?.message ||
+        error?.message ||
+        "Failed to update client profile";
+      alert(errorMessage);
+    }
+  };
+
+  const handleInputChange = (field: string, value: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleAddressChange = (field: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      address: {
+        ...prev.address,
+        [field]: value,
+      },
+    }));
+  };
+
+  return (
+    <form onSubmit={handleSave} className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 2xl:grid-cols-[minmax(0,2fr)_minmax(320px,0.95fr)]">
+        <div className="min-w-0 space-y-4">
+          {/* Personal Info */}
+          <Card>
+            <CardContent className="m-0 p-0 flex">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 flex-1">
+                  <User className="h-5 w-5 text-primary" />
+                  Personal Information
+                </CardTitle>
+                <CardDescription>
+                  Basic identity details required for identification and billing.
+                </CardDescription>
+              </CardHeader>
+              // Here add a dropdown about client status, and we can edit it as well
+            </CardContent>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 sm:p-5">
+              <Input
+                label="First Name"
+                value={formData.firstName}
+                onChange={(e) => handleInputChange("firstName", e.target.value)}
+                className="h-11 rounded-xl bg-secondary/30"
+                maxLength={50}
+              />
+              <Input
+                label="Last Name"
+                value={formData.lastName}
+                onChange={(e) => handleInputChange("lastName", e.target.value)}
+                className="h-11 rounded-xl bg-secondary/30"
+                maxLength={50}
+              />
+              <DatePicker
+                label="Date of Birth"
+                date={dob}
+                setDate={setDob}
+                triggerClassName="h-11 rounded-xl"
+              />
+              <Select
+                label="Gender Identity"
+                value={formData.gender}
+                onChange={(e) => handleInputChange("gender", e.target.value)}
+                triggerClassName="h-11 rounded-xl"
+                options={[
+                  { value: "female", label: "Female" },
+                  { value: "male", label: "Male" },
+                  { value: "non-binary", label: "Non-binary" },
+                ]}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Address */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Address & Location</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 p-4 sm:p-5">
+              <Input
+                label="Street Address"
+                value={formData.address.street}
+                onChange={(e) => handleAddressChange("street", e.target.value)}
+                className="h-11 rounded-xl bg-secondary/30"
+                maxLength={200}
+              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Input
+                  label="City"
+                  value={formData.address.city}
+                  onChange={(e) => handleAddressChange("city", e.target.value)}
+                  className="h-11 rounded-xl bg-secondary/30"
+                  maxLength={100}
+                />
+                <Input
+                  label="State/Province"
+                  value={formData.address.state}
+                  onChange={(e) => handleAddressChange("state", e.target.value)}
+                  className="h-11 rounded-xl bg-secondary/30"
+                  maxLength={100}
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Input
+                  label="Postal Code"
+                  value={formData.address.zip}
+                  onChange={(e) => handleAddressChange("zip", e.target.value)}
+                  className="h-11 rounded-xl bg-secondary/30"
+                  maxLength={30}
+                />
+                <Select
+                  label="Country"
+                  value={formData.address.country}
+                  onChange={(e) =>
+                    handleAddressChange("country", e.target.value)
+                  }
+                  triggerClassName="h-11 rounded-xl bg-secondary/30"
+                  options={COUNTRY_OPTIONS}
+                />
+              </div>
+            </CardContent>
+          </Card>
+          {/* Medical Alerts */}
+          <Card className="border-l-4 border-l-red-500">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-red-600">
+                <AlertCircle className="h-5 w-5" />
+                Medical Alerts
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <textarea
+                className="flex min-h-[135px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-y"
+                placeholder="List any critical allergies, conditions, or risks here..."
+                value={formData.medicalAlerts}
+                onChange={(e) =>
+                  handleInputChange("medicalAlerts", e.target.value)
+                }
+                maxLength={500}
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-3 2xl:block 2xl:space-y-4">
+          {/* Upcoming Appointments Card */}
+          <Card className="border-primary/20 shadow-md shadow-primary/5">
+            <CardHeader className="pb-3 text-primary/80 flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Upcoming Sessions
+              </CardTitle>
+              {appointments.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      `/appointments?clientId=${client.id}&clientName=${encodeURIComponent(client.name)}`,
+                    )
+                  }
+                  className="text-xs font-semibold text-primary hover:underline"
+                >
+                  View all
+                </button>
+              )}
+            </CardHeader>
+            <CardContent>
+              {appointments.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No upcoming sessions found.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {appointments.slice(0, 3).map((apt) => (
+                    <div
+                      key={apt.id}
+                      className="p-3 rounded-lg border border-border/50 bg-muted/5 space-y-2"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-semibold text-sm">{apt.date}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {apt.time} ({apt.duration} min)
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="text-[10px]">
+                          {apt.status}
+                        </Badge>
+                      </div>
+                      <p className="text-xs font-medium text-primary">
+                        {apt.type}
+                      </p>
+                      {apt.isProviderConnected && apt.videoLink ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          className="w-full bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+                          onClick={() => window.open(apt.videoLink, "_blank")}
+                        >
+                          <Video className="h-4 w-4 mr-2" />
+                          {apt.provider === "google_meet"
+                            ? "Join Google Meet"
+                            : "Join Zoom"}
+                        </Button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => navigate("/integrations")}
+                          className="w-full rounded-lg border border-dashed border-amber-300 bg-amber-50 px-3 py-2 text-left text-xs font-medium text-amber-800 hover:bg-amber-100 transition-colors"
+                        >
+                          Please connect Zoom or Google Meet in Integrations to
+                          enable session joining.
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  {appointments.length > 3 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          `/appointments?clientId=${client.id}&clientName=${encodeURIComponent(client.name)}`,
+                        )
+                      }
+                      className="w-full text-center text-xs font-semibold text-primary hover:underline pt-1"
+                    >
+                      View all {appointments.length} sessions
+                    </button>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Insurance */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-primary" />
+                Insurance
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Input
+                label="Provider"
+                value={formData.insuranceProvider}
+                onChange={(e) =>
+                  handleInputChange("insuranceProvider", e.target.value)
+                }
+                className="h-11 rounded-xl"
+                maxLength={200}
+              />
+              <Input
+                label="Member ID"
+                value={formData.insuranceNumber}
+                onChange={(e) =>
+                  handleInputChange("insuranceNumber", e.target.value)
+                }
+                className="h-11 rounded-xl"
+                maxLength={100}
+              />
+              <Input
+                label="Authorisation Code"
+                value={formData.insuranceAuthorizationNumber}
+                onChange={(e) =>
+                  handleInputChange(
+                    "insuranceAuthorizationNumber",
+                    e.target.value,
+                  )
+                }
+                className="h-11 rounded-xl"
+                maxLength={100}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-primary" />
+                GP Details
+              </CardTitle>
+              <CardDescription>
+                Primary care and surgery information for referrals and
+                coordination.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Input
+                label="GP Name"
+                value={formData.gpName}
+                onChange={(e) => handleInputChange("gpName", e.target.value)}
+                className="h-11 rounded-xl"
+                maxLength={200}
+              />
+              <Input
+                label="Surgery Name"
+                value={formData.surgeryName}
+                onChange={(e) =>
+                  handleInputChange("surgeryName", e.target.value)
+                }
+                className="h-11 rounded-xl"
+                maxLength={200}
+              />
+              <Input
+                label="Surgery Street Address"
+                value={formData.surgeryStreet}
+                onChange={(e) =>
+                  handleInputChange("surgeryStreet", e.target.value)
+                }
+                className="h-11 rounded-xl"
+                maxLength={200}
+              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Input
+                  label="City / Town"
+                  value={formData.surgeryCity}
+                  onChange={(e) =>
+                    handleInputChange("surgeryCity", e.target.value)
+                  }
+                  className="h-11 rounded-xl"
+                  maxLength={100}
+                />
+                <Input
+                  label="Postcode"
+                  value={formData.surgeryPostcode}
+                  onChange={(e) =>
+                    handleInputChange("surgeryPostcode", e.target.value)
+                  }
+                  className="h-11 rounded-xl"
+                  maxLength={30}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Medical Alert */}
+
+      <div className="flex justify-end pt-4">
+        <Button
+          type="submit"
+          size="default"
+          isLoading={isLoading}
+          className="w-full sm:w-auto px-10 h-11 rounded-xl"
+        >
+          <Save className="mr-2 h-4 w-4" />
+          Save Changes
+        </Button>
+      </div>
+    </form>
+  );
 }

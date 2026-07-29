@@ -14,7 +14,6 @@ import { ClientAssessmentsPage } from './pages/clients/ClientAssessmentsPage';
 import { OutcomeMeasuresPage } from './pages/clients/OutcomeMeasuresPage';
 import { ClientIntakeFormPage } from './pages/clients/ClientIntakeFormPage';
 import { ClientLettersPage } from './pages/clients/ClientLettersPage';
-import { ClientStatusPage } from './pages/clients/ClientStatusPage';
 import { ClinicLayout } from './pages/clinic/ClinicLayout';
 import { ClinicDetailsPage } from './pages/clinic/ClinicDetailsPage';
 import { CliniciansPage } from './pages/clinic/CliniciansPage';
@@ -123,7 +122,6 @@ export function App() {
               <Route path="assessments" element={<ClientAssessmentsPage />} />
               <Route path="measures" element={<OutcomeMeasuresPage />} />
               <Route path="intake" element={<ClientIntakeFormPage />} />
-              <Route path="status" element={<ClientStatusPage />} />
               <Route path="letters" element={<ClientLettersPage />} />
             </Route>
 

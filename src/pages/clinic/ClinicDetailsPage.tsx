@@ -314,7 +314,7 @@ export function ClinicDetailsPage() {
                                         value={clinicDescriptionInput}
                                         onChange={(e) => setClinicDescriptionInput(e.target.value)}
                                         placeholder="Add a short public slogan for your clinic page."
-                                        rows={5}
+                                        rows={2}
                                     />
                                 </>
                             )}

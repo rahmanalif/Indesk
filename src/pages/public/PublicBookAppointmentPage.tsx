@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { gsap } from "gsap";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -452,6 +453,30 @@ export function PublicBookAppointmentPage() {
     if (prefill.day || prefill.sessionId) setStep(2);
   }, [prefill.day, prefill.sessionId, prefill.time]);
 
+  const contentRef = useRef<HTMLDivElement>(null);
+  const slotsRef = useRef<HTMLDivElement>(null);
+  const sessionsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (contentRef.current) {
+      gsap.fromTo(
+        contentRef.current,
+        { opacity: 0, y: 20, scale: 0.98 },
+        { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: "back.out(1.2)" }
+      );
+    }
+  }, [step]);
+
+  useEffect(() => {
+    if (sessionsRef.current && sessionOptions.length > 0) {
+      gsap.fromTo(
+        sessionsRef.current.children,
+        { opacity: 0, x: -15 },
+        { opacity: 1, x: 0, duration: 0.3, stagger: 0.08, ease: "power2.out" }
+      );
+    }
+  }, [sessionOptions, step]);
+
   const getDayIsoDate = (dayName: string) => {
     const days = [
       "Sunday",
@@ -520,6 +545,16 @@ export function PublicBookAppointmentPage() {
       setSelectedSlotIso(null);
     }
   }, [availableSlots, isSlotsLoading, selectedSlot]);
+
+  useEffect(() => {
+    if (slotsRef.current && availableSlots.length > 0) {
+      gsap.fromTo(
+        slotsRef.current.children,
+        { opacity: 0, scale: 0.8, y: 10 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.3, stagger: 0.05, ease: "back.out(1.5)" }
+      );
+    }
+  }, [availableSlots, selectedDay, step]);
 
   const validateStep1 = () => {
     const e: Record<string, string> = {};
@@ -792,9 +827,9 @@ export function PublicBookAppointmentPage() {
           </div>
         )}
 
-        <div className="bg-warm-white/80 border border-warm-gray/10 rounded-3xl p-6 sm:p-8 shadow-sm">
+        <div ref={contentRef} className="bg-warm-white/80 border border-warm-gray/10 rounded-3xl p-6 sm:p-8 shadow-sm">
           {step === 1 && (
-            <div className="space-y-4 animate-in fade-in duration-200">
+            <div className="space-y-4">
               <p className="text-warm-gray text-sm mb-2">
                 Your contact information so we can confirm your appointment.
               </p>
@@ -895,7 +930,7 @@ export function PublicBookAppointmentPage() {
           )}
 
           {step === 2 && (
-            <div className="animate-in fade-in duration-200">
+            <div>
               <p className="text-warm-gray text-sm mb-4">
                 Choose a day, time, and session type.
               </p>
@@ -964,7 +999,7 @@ export function PublicBookAppointmentPage() {
                       Loading available slots...
                     </div>
                   ) : availableSlots.length > 0 ? (
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-5">
+                    <div ref={slotsRef} className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-5">
                       {availableSlots.map((slot: any) => {
                         const isSelected = selectedSlot === slot.timeLabel;
                         return (
@@ -1020,7 +1055,7 @@ export function PublicBookAppointmentPage() {
               {isSessionsLoading && (
                 <p className="text-xs text-warm-gray mb-3">Loading sessions...</p>
               )}
-              <div className="space-y-3">
+              <div ref={sessionsRef} className="space-y-3">
                 {sessionOptions.map((session: any) => {
                   const isSel =
                     String(selectedSessionId) === String(session.id);
@@ -1157,7 +1192,7 @@ export function PublicBookAppointmentPage() {
           )}
 
           {step === 3 && (
-            <div className="animate-in fade-in duration-200">
+            <div>
               <p className="text-warm-gray text-sm mb-4">
                 Review your booking before confirming.
               </p>
@@ -1218,7 +1253,7 @@ export function PublicBookAppointmentPage() {
           )}
 
           {step === 4 && (
-            <div className="animate-in fade-in zoom-in-95 duration-300">
+            <div>
               <div className="text-center mb-5">
                 <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
                   <CheckCircle className="h-8 w-8 text-green-500" />

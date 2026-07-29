@@ -107,7 +107,6 @@ export function ClientLayout() {
         { id: 'assessments', label: 'Assessments', icon: ClipboardCheck, path: `/clients/${id}/assessments` },
         { id: 'measures', label: 'Outcome Measures', icon: Activity, path: `/clients/${id}/measures` },
         { id: 'intake', label: 'Intake Form', icon: ClipboardList, path: `/clients/${id}/intake` },
-        { id: 'status', label: 'Status', icon: UserCheck, path: `/clients/${id}/status` },
     ];
 
     const activeTab = location.pathname.split('/').pop() || 'details';
