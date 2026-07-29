@@ -14,6 +14,7 @@ const PUBLIC_PATH_PREFIXES = [
   '/assessment-portal',
   '/clinic-portal',
   '/appointments/payment-success',
+  '/appointments/payment-cancelled',
   '/landing',
 ];
 

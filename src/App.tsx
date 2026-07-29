@@ -44,6 +44,7 @@ import { NoPermissionsPage } from './pages/NoPermissionsPage';
 import { ToastHost } from './components/ui/ToastHost';
 import { SessionBootstrap } from './components/SessionBootstrap';
 import { AppointmentPaymentSuccessPage } from './pages/AppointmentPaymentSuccessPage';
+import { AppointmentPaymentCancelledPage } from './pages/AppointmentPaymentCancelledPage';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { RequireOnboarding } from './components/RequireOnboarding';
 import { OnboardingGuard } from './components/OnboardingGuard';
@@ -78,6 +79,7 @@ export function App() {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/appointments/payment-success" element={<AppointmentPaymentSuccessPage />} />
+          <Route path="/appointments/payment-cancelled" element={<AppointmentPaymentCancelledPage />} />
           <Route path="/legal/:slug" element={<LegalDocumentPage />} />
           <Route path="/client-intake-form" element={<PublicClientIntakePage />} />
           <Route path="/assessment-portal/:token" element={<PublicAssessmentPage />} />

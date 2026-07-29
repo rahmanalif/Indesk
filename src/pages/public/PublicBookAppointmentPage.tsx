@@ -648,6 +648,7 @@ export function PublicBookAppointmentPage() {
           Number.isFinite(priceNumber) && priceNumber >= 0
             ? `£${priceNumber}`
             : session?.price || "-",
+        priceNumber: Number.isFinite(priceNumber) ? priceNumber : 0,
       };
     });
   }, [clinicianSessionsResponse]);
@@ -656,12 +657,15 @@ export function PublicBookAppointmentPage() {
     return fallbackSessionTypes.map((session) => {
       const durationMatch = String(session.duration || "").match(/\d+/);
       const durationMinutes = durationMatch ? Number(durationMatch[0]) : 50;
+      const priceMatch = String(session.price || "").replace(/[^\d.]/g, "");
+      const priceNumber = Number(priceMatch);
       return {
         id: session.id,
         name: session.name,
         durationMinutes,
         durationLabel: session.duration || `${durationMinutes} minutes`,
         priceLabel: session.price || "-",
+        priceNumber: Number.isFinite(priceNumber) ? priceNumber : 0,
       };
     });
   }, [fallbackSessionTypes]);
@@ -671,6 +675,7 @@ export function PublicBookAppointmentPage() {
   const selectedSession = sessionOptions.find(
     (s: any) => String(s.id) === String(selectedSessionId)
   );
+  const isPaidSession = Number(selectedSession?.priceNumber) > 0;
 
   const isZoomAvailable = Boolean((clinic as any)?.isZoomAvailable);
   const isMeetAvailable = Boolean((clinic as any)?.isMeetAvailable);
@@ -1140,7 +1145,9 @@ export function PublicBookAppointmentPage() {
       : "Select a time that works for you.",
     details: "For verification, we’ll send a one-time code (OTP) to your email.",
     verify: `Enter the 6-digit code we sent to ${formData.email || "your email"}.`,
-    confirm: "Take a moment to review, then confirm.",
+    confirm: isPaidSession
+      ? "Review the details, then continue to payment to confirm your appointment."
+      : "Take a moment to review, then confirm.",
     success: "Your appointment is confirmed.",
   };
 
@@ -2130,7 +2137,12 @@ export function PublicBookAppointmentPage() {
                 >
                   {isSubmitting ? (
                     <>
-                      <Loader2 className="h-5 w-5 animate-spin" /> Confirming...
+                      <Loader2 className="h-5 w-5 animate-spin" />{" "}
+                      {isPaidSession ? "Redirecting..." : "Confirming..."}
+                    </>
+                  ) : isPaidSession ? (
+                    <>
+                      <CheckCircle className="h-5 w-5" /> Continue to payment
                     </>
                   ) : (
                     <>

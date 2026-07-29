@@ -295,6 +295,18 @@ export const invoiceApi = createApi({
       invalidatesTags: ["Invoice"],
     }),
 
+    cancelAppointmentPayment: builder.mutation<
+      ConfirmAppointmentPaymentResponse,
+      string
+    >({
+      query: (sessionId) => ({
+        url: "appointment/payment/cancel",
+        method: "POST",
+        body: { sessionId },
+      }),
+      invalidatesTags: ["Invoice"],
+    }),
+
     createInvoice: builder.mutation<Invoice, CreateInvoiceData>({
       query: (newInvoice) => ({
         url: "invoice",
@@ -373,4 +385,5 @@ export const {
   useSendInvoiceMutation,
   useExportInvoiceToXeroMutation,
   useConfirmAppointmentPaymentMutation,
+  useCancelAppointmentPaymentMutation,
 } = invoiceApi;
