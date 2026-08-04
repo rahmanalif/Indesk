@@ -26,6 +26,15 @@ import { ClinicianScheduleModal } from "../../components/modals/ClinicianSchedul
 import { RootState } from "../../store";
 import { normalizeAvailabilitySchedule } from "../../lib/clinicianAvailability";
 
+function formatMemberRole(role?: string) {
+  const normalized = (role || "").toLowerCase();
+  if (normalized === "superadmin") return "Super Admin";
+  if (normalized === "admin") return "Admin";
+  if (normalized === "clinician") return "Clinician";
+  if (!role) return "Clinician";
+  return role.charAt(0).toUpperCase() + role.slice(1);
+}
+
 export function CliniciansPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isSeatWarningOpen, setIsSeatWarningOpen] = useState(false);
@@ -338,7 +347,7 @@ export function CliniciansPage() {
     const specialty =
       Array.isArray(member.specialization) && member.specialization.length > 0
         ? member.specialization.join(", ")
-        : member.role || "Clinician";
+        : formatMemberRole(member.role);
     const avatarPath = member.user?.avatar || "";
     const avatar = avatarPath
       ? avatarPath.startsWith("http")
@@ -356,7 +365,7 @@ export function CliniciansPage() {
     return {
       id: member.id as string,
       name,
-      role: member.role || "Clinician",
+      role: formatMemberRole(member.role),
       email: member.user?.email || "",
       avatar,
       phoneNumber: phone,
@@ -412,7 +421,7 @@ export function CliniciansPage() {
         <div className="relative w-full sm:w-auto flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search clinicians..."
+            placeholder="Search team members..."
             className="pl-10"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}

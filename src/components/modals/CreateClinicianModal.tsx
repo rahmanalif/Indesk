@@ -121,7 +121,7 @@ export function CreateClinicianModal({
         setIsLoading(false);
       });
   };
-  return <Modal isOpen={isOpen} onClose={onClose} title="Add New Clinician" description="Onboard a new team member" size="xl" className="lg:max-w-5xl xl:max-w-6xl">
+  return <Modal isOpen={isOpen} onClose={onClose} title="Add Team Member" description="Onboard a new team member" size="xl" className="lg:max-w-5xl xl:max-w-6xl">
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.95fr)]">
         <div className="space-y-5">
@@ -189,7 +189,7 @@ export function CreateClinicianModal({
           Cancel
         </Button>
         <Button type="submit" isLoading={isLoading}>
-          Add Clinician
+          Add Team Member
         </Button>
       </div>
 
@@ -197,7 +197,7 @@ export function CreateClinicianModal({
       {extraClinicianPrice && (
         <div className="mt-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
           <p className="text-sm text-muted-foreground">
-            Adding a new clinician will add{' '}
+            Adding a new team member will add{' '}
             <span className="font-semibold text-foreground">{extraClinicianPrice}/month</span>{' '}
             to your next invoice.
           </p>
@@ -208,7 +208,7 @@ export function CreateClinicianModal({
     <Modal
       isOpen={Boolean(submitError)}
       onClose={() => setSubmitError('')}
-      title="Unable To Add Clinician"
+      title="Unable To Add Team Member"
       description="This team member could not be added."
       size="sm"
     >
