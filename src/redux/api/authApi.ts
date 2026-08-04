@@ -1,5 +1,6 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQueryWithReauth } from "./baseQuery";
+import type { AvailabilityScheduleApiItem } from "../../lib/clinicianAvailability";
 
 interface LoginCredentials {
   email: string;
@@ -172,7 +173,7 @@ interface SelfClinicMembership {
   id: string;
   role: string;
   clinicianToken: string | null;
-  availabilitySchedule?: unknown;
+  availabilitySchedule?: AvailabilityScheduleApiItem[] | null;
   specialization: string[];
   clinic?: {
     id: string;

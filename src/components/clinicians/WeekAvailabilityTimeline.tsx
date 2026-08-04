@@ -1,6 +1,12 @@
 import { Coffee } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { normalizeDay, type AvailabilityDaySchedule } from '../../lib/clinicianAvailability';
+import {
+  getDayBreaks,
+  isValidBreakWindow,
+  normalizeDay,
+  type AvailabilityBreakTime,
+  type AvailabilityDaySchedule,
+} from '../../lib/clinicianAvailability';
 
 export const DAY_ORDER = [
   'monday',
@@ -52,32 +58,19 @@ export const formatClock = (value?: string | null) => {
   return `${hours12}:${String(mins).padStart(2, '0')} ${period}`;
 };
 
-const hasValidBreak = (day: {
-  startTime?: string;
-  endTime?: string;
-  breakStartTime?: string;
-  breakEndTime?: string;
-}) => {
-  const start = toMinutes(day.startTime);
-  const end = toMinutes(day.endTime);
-  const breakStart = toMinutes(day.breakStartTime);
-  const breakEnd = toMinutes(day.breakEndTime);
-  return (
-    start !== null &&
-    end !== null &&
-    breakStart !== null &&
-    breakEnd !== null &&
-    start < breakStart &&
-    breakStart < breakEnd &&
-    breakEnd < end
-  );
+const validBreaksForDay = (
+  startTime: string | undefined,
+  endTime: string | undefined,
+  breaks: AvailabilityBreakTime[] | undefined
+): AvailabilityBreakTime[] => {
+  if (!startTime || !endTime || !breaks?.length) return [];
+  return breaks.filter((breakItem) => isValidBreakWindow(startTime, endTime, breakItem));
 };
 
 type DayBarProps = {
   startTime?: string;
   endTime?: string;
-  breakStartTime?: string;
-  breakEndTime?: string;
+  breaks?: AvailabilityBreakTime[];
   accentColor?: string;
   active?: boolean;
   showTicks?: boolean;
@@ -86,13 +79,12 @@ type DayBarProps = {
 
 /**
  * A single horizontal track that paints a clinician's working window for one day,
- * with the break rendered as a notch cut out of the working block.
+ * with breaks rendered as notches cut out of the working block.
  */
 export function DayBar({
   startTime,
   endTime,
-  breakStartTime,
-  breakEndTime,
+  breaks,
   accentColor = 'hsl(var(--primary))',
   active = true,
   showTicks = false,
@@ -101,12 +93,10 @@ export function DayBar({
   const start = toMinutes(startTime);
   const end = toMinutes(endTime);
   const isWorking = active && start !== null && end !== null && start < end;
-  const breakValid = isWorking && hasValidBreak({ startTime, endTime, breakStartTime, breakEndTime });
+  const paintedBreaks = isWorking ? validBreaksForDay(startTime, endTime, breaks) : [];
 
   const left = isWorking ? toPercent(start!) : 0;
   const right = isWorking ? toPercent(end!) : 0;
-  const breakLeft = breakValid ? toPercent(toMinutes(breakStartTime)!) : 0;
-  const breakRight = breakValid ? toPercent(toMinutes(breakEndTime)!) : 0;
 
   return (
     <div
@@ -131,27 +121,40 @@ export function DayBar({
         />
       )}
 
-      {breakValid && (
-        <div
-          className="absolute top-0 flex h-full items-center justify-center bg-white"
-          style={{ left: `${breakLeft}%`, width: `${Math.max(breakRight - breakLeft, 0.5)}%` }}
-          title="Break"
-        >
-          <Coffee className="h-3 w-3" style={{ color: accentColor, opacity: 0.7 }} />
-        </div>
-      )}
+      {paintedBreaks.map((breakItem, index) => {
+        const breakLeft = toPercent(toMinutes(breakItem.startTime)!);
+        const breakRight = toPercent(toMinutes(breakItem.endTime)!);
+        return (
+          <div
+            key={`break-${index}-${breakItem.startTime}`}
+            className="absolute top-0 flex h-full items-center justify-center bg-white"
+            style={{ left: `${breakLeft}%`, width: `${Math.max(breakRight - breakLeft, 0.5)}%` }}
+            title="Break"
+          >
+            <Coffee className="h-3 w-3" style={{ color: accentColor, opacity: 0.7 }} />
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 const summarizeDay = (day?: AvailabilityDaySchedule) => {
   if (!day || toMinutes(day.startTime) === null || toMinutes(day.endTime) === null) return null;
-  if (hasValidBreak(day)) {
-    return `${formatClock(day.startTime)} – ${formatClock(day.breakStartTime)}  ·  ${formatClock(
-      day.breakEndTime
-    )} – ${formatClock(day.endTime)}`;
+
+  const breaks = validBreaksForDay(day.startTime, day.endTime, getDayBreaks(day));
+  if (breaks.length === 0) {
+    return `${formatClock(day.startTime)} – ${formatClock(day.endTime)}`;
   }
-  return `${formatClock(day.startTime)} – ${formatClock(day.endTime)}`;
+
+  const segments: string[] = [];
+  let cursor = day.startTime;
+  for (const breakItem of breaks) {
+    segments.push(`${formatClock(cursor)} – ${formatClock(breakItem.startTime)}`);
+    cursor = breakItem.endTime;
+  }
+  segments.push(`${formatClock(cursor)} – ${formatClock(day.endTime)}`);
+  return segments.join('  ·  ');
 };
 
 type WeekAvailabilityTimelineProps = {
@@ -217,8 +220,7 @@ export function WeekAvailabilityTimeline({
             <DayBar
               startTime={entry?.startTime}
               endTime={entry?.endTime}
-              breakStartTime={entry?.breakStartTime}
-              breakEndTime={entry?.breakEndTime}
+              breaks={entry?.breaks}
               accentColor={accentColor}
               active={isWorking}
               showTicks

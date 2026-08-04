@@ -15,9 +15,24 @@ import {
 import {
   buildAvailabilitySchedulePayload,
   normalizeAvailabilitySchedule,
+  type AvailabilityDaySchedule,
 } from '../../lib/clinicianAvailability';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+type ClinicianDetailsForm = {
+  id: string;
+  name: string;
+  email: string;
+  phoneNumber: string;
+  avatar?: string;
+  role: string;
+  clients: string | number;
+  sessions: string | number;
+  availabilitySchedule: AvailabilityDaySchedule[];
+  specializationText: string;
+  bio: string;
+};
 
 const apiOrigin = (() => {
   try {
@@ -46,12 +61,12 @@ export function ClinicianDetailsPage() {
   const [updateClinicMember] = useUpdateClinicMemberMutation();
   const [updateClinicMemberRole] = useUpdateClinicMemberRoleMutation();
 
-  const member = useMemo<any>(() => {
+  const member = useMemo(() => {
     const docs = clinicMembersResponse?.response?.data?.docs || [];
-    return docs.find((item: any) => String(item.id) === String(memberId)) || null;
+    return docs.find((item) => String(item.id) === String(memberId)) || null;
   }, [clinicMembersResponse, memberId]);
 
-  const [formData, setFormData] = useState<any>(null);
+  const [formData, setFormData] = useState<ClinicianDetailsForm | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -91,7 +106,7 @@ export function ClinicianDetailsPage() {
     const nextRole = (formData.role || '').toLowerCase();
     const specialization = (formData.specializationText || '')
       .split(',')
-      .map((item: string) => item.trim())
+      .map((item) => item.trim())
       .filter(Boolean);
 
     updateClinicMember({
@@ -159,7 +174,7 @@ export function ClinicianDetailsPage() {
             fallback={formData.name[0]}
             className="h-20 w-20 border-4 border-white bg-primary/10 text-2xl text-primary shadow-sm"
           >
-            {formData.name.split(' ').map((n: string) => n[0]).join('')}
+            {formData.name.split(' ').map((n) => n[0]).join('')}
           </Avatar>
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl font-bold text-foreground">{formData.name}</h1>

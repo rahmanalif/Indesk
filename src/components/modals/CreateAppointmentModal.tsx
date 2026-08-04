@@ -16,7 +16,7 @@ import { useCreateAppointmentMutation, useUpdateAppointmentMutation, useGetClien
 import { useGetIntegrationsQuery } from '../../redux/api/integrationApi';
 import type { RootState } from '../../store';
 import { fromZonedTime, formatInTimeZone } from 'date-fns-tz';
-import { AvailabilityDaySchedule } from '../../lib/clinicianAvailability';
+import { normalizeAvailabilitySchedule, getDayBreaks } from '../../lib/clinicianAvailability';
 
 const APPOINTMENT_CLINICIAN_ROLES = new Set(['clinician', 'superadmin', 'admin']);
 
@@ -229,13 +229,7 @@ export function CreateAppointmentModal({
 
   const getDayWorkingMinutes = (dayName: string) => {
     if (!selectedClinicianMember) return 0;
-    const schedule: AvailabilityDaySchedule[] = selectedClinicianMember.availabilitySchedule || [];
-    
-    let normalized: AvailabilityDaySchedule[] = [];
-    if (Array.isArray(schedule) && schedule.length > 0) {
-      normalized = schedule;
-    }
-
+    const normalized = normalizeAvailabilitySchedule(selectedClinicianMember.availabilitySchedule);
     const dayAvailability = normalized.find((item) => item.day?.toLowerCase() === dayName.toLowerCase());
     if (!dayAvailability) return 0;
 
@@ -243,11 +237,10 @@ export function CreateAppointmentModal({
     const [endH, endM] = (dayAvailability.endTime || "17:00").split(':').map(Number);
     let totalMin = (endH * 60 + endM) - (startH * 60 + startM);
 
-    if (dayAvailability.breakTime?.startTime && dayAvailability.breakTime?.endTime) {
-      const [breakStartH, breakStartM] = dayAvailability.breakTime.startTime.split(':').map(Number);
-      const [breakEndH, breakEndM] = dayAvailability.breakTime.endTime.split(':').map(Number);
-      const breakMin = (breakEndH * 60 + breakEndM) - (breakStartH * 60 + breakStartM);
-      totalMin -= breakMin;
+    for (const breakItem of getDayBreaks(dayAvailability)) {
+      const [breakStartH, breakStartM] = breakItem.startTime.split(':').map(Number);
+      const [breakEndH, breakEndM] = breakItem.endTime.split(':').map(Number);
+      totalMin -= (breakEndH * 60 + breakEndM) - (breakStartH * 60 + breakStartM);
     }
     return totalMin;
   };
@@ -260,9 +253,9 @@ export function CreateAppointmentModal({
       weekday: "long"
     }).format(d).toLowerCase();
 
-    const schedule: AvailabilityDaySchedule[] = selectedClinicianMember.availabilitySchedule || [];
+    const schedule = normalizeAvailabilitySchedule(selectedClinicianMember.availabilitySchedule);
 
-    const workingDays = Array.isArray(schedule) && schedule.length > 0
+    const workingDays = schedule.length > 0
       ? schedule.map((item) => item?.day?.toLowerCase())
       : [];
 

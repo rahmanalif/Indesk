@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import type { AvailabilityScheduleApiItem } from '../../lib/clinicianAvailability';
 
 interface User {
   id: string;
@@ -13,7 +14,7 @@ interface User {
   clinicMemberships?: Array<{
     id: string;
     role: string;
-    availabilitySchedule?: unknown;
+    availabilitySchedule?: AvailabilityScheduleApiItem[] | null;
     clinic?: {
       id: string;
       name?: string;

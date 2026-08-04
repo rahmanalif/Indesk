@@ -1,5 +1,9 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { baseQueryWithReauth } from './baseQuery';
+import type {
+  AvailabilityScheduleApiItem,
+  AvailabilitySchedulePayload,
+} from '../../lib/clinicianAvailability';
 
 export type OnboardingStep = 1 | 2 | 3 | 4 | 5;
 
@@ -27,12 +31,7 @@ export interface OnboardingStatusData {
     stripeConnectAccountId: string | null;
     stripeConnectStatus: string | null;
   };
-  availabilitySchedule: Array<{
-    day: string;
-    startTime: string;
-    endTime: string;
-    breakTime?: { startTime: string; endTime: string } | null;
-  }>;
+  availabilitySchedule: AvailabilityScheduleApiItem[];
   sessionCount: number;
   integrations: OnboardingIntegrationSummary[];
 }
@@ -62,12 +61,7 @@ export type SaveOnboardingStepRequest =
   | {
       step: 2;
       data: {
-        availabilitySchedule: Array<{
-          day: string;
-          startTime: string;
-          endTime: string;
-          breakTime?: { startTime: string; endTime: string };
-        }>;
+        availabilitySchedule: AvailabilitySchedulePayload[];
       };
     }
   | {

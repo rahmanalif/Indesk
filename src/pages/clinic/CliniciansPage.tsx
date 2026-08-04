@@ -24,6 +24,7 @@ import {
 import { CreateClinicianModal } from "../../components/modals/CreateClinicianModal";
 import { ClinicianScheduleModal } from "../../components/modals/ClinicianScheduleModal";
 import { RootState } from "../../store";
+import { normalizeAvailabilitySchedule } from "../../lib/clinicianAvailability";
 
 export function CliniciansPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -360,9 +361,7 @@ export function CliniciansPage() {
       avatar,
       phoneNumber: phone,
       bio: member.user?.bio || "",
-      availabilitySchedule: Array.isArray(member.availabilitySchedule)
-        ? member.availabilitySchedule
-        : [],
+      availabilitySchedule: normalizeAvailabilitySchedule(member.availabilitySchedule),
       specialization: Array.isArray(member.specialization)
         ? member.specialization
         : [],

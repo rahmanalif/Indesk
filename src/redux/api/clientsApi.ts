@@ -1,6 +1,10 @@
 // src/services/clientsApi.ts
 import { createApi } from "@reduxjs/toolkit/query/react";
 import { baseQueryWithReauth } from "./baseQuery";
+import type {
+  AvailabilityScheduleApiItem,
+  AvailabilitySchedulePayload,
+} from "../../lib/clinicianAvailability";
 
 interface ClientAddress {
   street: string;
@@ -209,15 +213,7 @@ export interface ClinicMember {
   role: string;
   clinicianToken?: string | null;
   availability?: string[] | null;
-  availabilitySchedule?: Array<{
-    day: string;
-    startTime: string;
-    endTime: string;
-    breakTime?: {
-      startTime: string;
-      endTime: string;
-    };
-  }> | null;
+  availabilitySchedule?: AvailabilityScheduleApiItem[] | null;
   specialization?: string[] | null;
   createdAt: string;
   updatedAt: string;
@@ -227,6 +223,15 @@ export interface ClinicMember {
     firstName: string;
     lastName: string;
     avatar?: string | null;
+    isOnline?: boolean;
+    timezone?: string | null;
+    countryCode?: string | null;
+    phoneNumber?: string | null;
+    bio?: string | null;
+  };
+  _count?: {
+    assignedClients?: number;
+    appointments?: number;
   };
 }
 
@@ -259,6 +264,7 @@ export interface ClinicMemberUser {
   countryCode?: string | null;
   bio?: string | null;
   role?: string | null;
+  timezone?: string | null;
 }
 
 export interface ClinicMemberItem {
@@ -268,19 +274,15 @@ export interface ClinicMemberItem {
   role: string;
   clinicianToken?: string | null;
   availability?: string[] | null;
-  availabilitySchedule?: Array<{
-    day: string;
-    startTime: string;
-    endTime: string;
-    breakTime?: {
-      startTime: string;
-      endTime: string;
-    };
-  }> | null;
+  availabilitySchedule?: AvailabilityScheduleApiItem[] | null;
   specialization?: string[] | null;
   createdAt: string;
   updatedAt: string;
   user?: ClinicMemberUser | null;
+  _count?: {
+    assignedClients?: number;
+    appointments?: number;
+  };
 }
 
 export interface ClinicOwner {
@@ -920,28 +922,12 @@ export interface CreateClinicMemberRequest {
   countryCode?: string;
   bio?: string;
   specialization?: string[];
-  availabilitySchedule?: Array<{
-    day: string;
-    startTime: string;
-    endTime: string;
-    breakTime?: {
-      startTime: string;
-      endTime: string;
-    };
-  }>;
+  availabilitySchedule?: AvailabilitySchedulePayload[];
 }
 
 export interface UpdateClinicMemberRequest {
   memberId: string;
-  availabilitySchedule?: Array<{
-    day: string;
-    startTime: string;
-    endTime: string;
-    breakTime?: {
-      startTime: string;
-      endTime: string;
-    };
-  }>;
+  availabilitySchedule?: AvailabilitySchedulePayload[];
   specialization?: string[];
 }
 

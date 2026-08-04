@@ -23,11 +23,11 @@ const WEEK_DAYS = [
 ];
 
 const DEFAULT_SCHEDULE: AvailabilityDaySchedule[] = [
-  { day: 'monday', startTime: '09:00', endTime: '17:00', breakStartTime: '', breakEndTime: '' },
-  { day: 'tuesday', startTime: '09:00', endTime: '17:00', breakStartTime: '', breakEndTime: '' },
-  { day: 'wednesday', startTime: '09:00', endTime: '17:00', breakStartTime: '', breakEndTime: '' },
-  { day: 'thursday', startTime: '09:00', endTime: '17:00', breakStartTime: '', breakEndTime: '' },
-  { day: 'friday', startTime: '09:00', endTime: '17:00', breakStartTime: '', breakEndTime: '' },
+  { day: 'monday', startTime: '09:00', endTime: '17:00', breaks: [] },
+  { day: 'tuesday', startTime: '09:00', endTime: '17:00', breaks: [] },
+  { day: 'wednesday', startTime: '09:00', endTime: '17:00', breaks: [] },
+  { day: 'thursday', startTime: '09:00', endTime: '17:00', breaks: [] },
+  { day: 'friday', startTime: '09:00', endTime: '17:00', breaks: [] },
 ];
 
 interface AvailabilityPromptModalProps {

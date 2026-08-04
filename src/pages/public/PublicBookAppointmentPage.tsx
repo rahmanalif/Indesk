@@ -37,6 +37,10 @@ import {
   readableTextOn,
 } from "../../lib/branding";
 import {
+  normalizeAvailabilitySchedule,
+  type AvailabilityDaySchedule,
+} from "../../lib/clinicianAvailability";
+import {
   PhoneNumberInput,
   isValidPhoneNumber,
   parsePhoneNumber,
@@ -410,22 +414,15 @@ export function PublicBookAppointmentPage() {
 
   const clinician = useMemo(() => {
     const members = clinic?.members || [];
-    const member = members.find((m: any) => String(m.id) === String(id));
+    const member = members.find((m: { id?: string }) => String(m.id) === String(id));
     if (!member) return null;
     const firstName = member?.user?.firstName || "";
     const lastName = member?.user?.lastName || "";
     const fullName =
       [firstName, lastName].filter(Boolean).join(" ") || "Clinician";
-    const rawAvailabilitySchedule = Array.isArray(member?.availabilitySchedule)
-      ? member.availabilitySchedule
-      : [];
-    const availabilityMap = new Map<string, any>();
-    rawAvailabilitySchedule.forEach((item: any) => {
-      const dayValue =
-        typeof item?.day === "string" ? item.day.toLowerCase() : "";
-      if (!dayValue || availabilityMap.has(dayValue)) return;
-      availabilityMap.set(dayValue, item);
-    });
+    const availability: AvailabilityDaySchedule[] = normalizeAvailabilitySchedule(
+      member?.availabilitySchedule
+    );
     const specialization = Array.isArray(member?.specialization)
       ? member.specialization
       : [];
@@ -436,12 +433,10 @@ export function PublicBookAppointmentPage() {
       name: fullName,
       specialty:
         specialization.length > 0 ? specialization.join(", ") : "",
-      timezone: (member?.user as any)?.timezone || "Europe/London",
-      availability: Array.from(availabilityMap.values()).map((item: any) => ({
+      timezone: member?.user?.timezone || "Europe/London",
+      availability: availability.map((item) => ({
+        ...item,
         day: toTitleCase(item.day),
-        startTime: item?.startTime || "",
-        endTime: item?.endTime || "",
-        breakTime: item?.breakTime || null,
       })),
     };
   }, [clinic?.members, id]);
@@ -486,7 +481,7 @@ export function PublicBookAppointmentPage() {
 
   const availableWeekdays = useMemo(() => {
     return new Set(
-      availability.map((item: any) => String(item.day || "").toLowerCase())
+      availability.map((item) => String(item.day || "").toLowerCase())
     );
   }, [availability]);
 

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -9,7 +9,6 @@ import { useCreateClinicMemberMutation } from '../../redux/api/clientsApi';
 import {
   buildAvailabilitySchedulePayload,
   DEFAULT_AVAILABILITY_DAY,
-  ensureScheduleForDays,
   type AvailabilityDaySchedule,
 } from '../../lib/clinicianAvailability';
 
